@@ -1,3 +1,30 @@
+# SPF research revision closure — 7 September 2026
+
+## State
+
+The completed `ai-growth-divergence` revision is preserved in an isolated continuation on `ai-growth-divergence-closure-20260907`. The source checkout remains untouched. This closure does not change the research question or model choices. Remote verification is blocked by unavailable GitHub DNS/network access; the starting commit is the exact source HEAD and cached `origin/main`, `ade2384f269d72456ec65fc4d0e4172b14c650d9`.
+
+## Done
+
+- Read global instructions and `RESEARCH_REVISION.md`; no project AGENTS/CLAUDE files are present.
+- Inspected source status, branch, remotes, worktrees and cached base before edits.
+- Archived the full binary working diff, index diff and all 57 changed/untracked files with SHA-256 hashes under `/Users/maxghenis/capacity-sprint-20260907/spf-closure/snapshot/`.
+- Restored the snapshot into this isolated continuation and verified every file hash before edits.
+- Confirmed `auto_reset.enabled=false` and the no-reset hold; no resets or paid compute are authorized.
+
+## Next
+
+- Commit the preserved research revision, then run the existing test/lint checks once.
+- Verify generated tables/figures from committed local snapshots and inspect the rendered manuscript.
+- Fix only actual failures; record validation, research qualifications and remaining submission/release decisions.
+- Prepare a draft PR and an offline PR handoff if GitHub remains unavailable. Do not submit, publish or merge.
+
+---
+
+## Historical progress (preserved)
+
+> Historical development document. Superseded for current findings and methods by the September 2026 growth-beliefs revision: see `RESEARCH_REVISION.md`, `paper/index.qmd`, and regenerated `outputs/`. Numbers below may use the former midpoint/sample-variance convention and approximate annual outcomes.
+
 # Progress
 
 ## State
