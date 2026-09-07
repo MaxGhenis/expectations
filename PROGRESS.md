@@ -10,13 +10,16 @@ The completed `ai-growth-divergence` revision is preserved in an isolated contin
 - Inspected source status, branch, remotes, worktrees and cached base before edits.
 - Archived the full binary working diff, index diff and all 57 changed/untracked files with SHA-256 hashes under `/Users/maxghenis/capacity-sprint-20260907/spf-closure/snapshot/`.
 - Restored the snapshot into this isolated continuation and verified every file hash before edits.
-- Preserved the completed research files verbatim; the only closure edit so far is this progress preface.
+- The preserved revision passed all 130 tests (three known spreadsheet header/footer warnings), Ruff lint and formatting.
+- Full revision whitespace checking found publisher CRLF and generated SVG trailing spaces, missed when those files were untracked. Publisher bytes are retained with explicit Git attributes; SVG output now has deterministic IDs, no creation timestamp and no trailing whitespace. Repeated figure builds are byte-identical; normalized SVG structure and all PNG pixels are unchanged.
+- Preserved the completed research files verbatim; later closure changes concern artifact packaging and verification only.
 - Confirmed `auto_reset.enabled=false` and the no-reset hold; no resets or paid compute are authorized.
 
 ## Next
 
-- Run the existing test/lint checks once against the preserved revision.
+- Complete manuscript calculation and preserved-render inspection; the normal Quarto re-render is blocked by sandbox denial of Jupyter local socket binding.
 - Verify generated tables/figures from committed local snapshots and inspect the rendered manuscript.
+- Offline full-pipeline reproduction matches all nine output CSVs and companion JSON exactly; tracker data matches apart from file-time/build-date metadata.
 - Fix only actual failures; record validation, research qualifications and remaining submission/release decisions.
 - Prepare a draft PR and an offline PR handoff if GitHub remains unavailable. Do not submit, publish or merge.
 

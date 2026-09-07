@@ -39,7 +39,13 @@ def style_axis(ax, ylabel):
 def save(fig, name):
     FIGURES.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIGURES / f"{name}.png", dpi=180, bbox_inches="tight")
-    fig.savefig(FIGURES / f"{name}.svg", bbox_inches="tight")
+    # Fixed IDs and no creation timestamp make identical inputs byte-reproducible.
+    svg = FIGURES / f"{name}.svg"
+    with matplotlib.rc_context({"svg.hashsalt": "forecast-uncertainty"}):
+        fig.savefig(svg, bbox_inches="tight", metadata={"Date": None})
+    svg.write_text(
+        "\n".join(line.rstrip() for line in svg.read_text().splitlines()) + "\n"
+    )
     plt.close(fig)
 
 

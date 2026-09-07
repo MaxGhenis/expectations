@@ -1,3 +1,5 @@
 *.pdf binary
 # Quarto emits whitespace-only HTML lines; they carry no source-code change.
 site/paper/web/index.html whitespace=-blank-at-eol
+# Preserve publisher bytes (and provenance hashes), including CRLF endings.
+data/raw/ecb_ea_*.csv -text whitespace=cr-at-eol
