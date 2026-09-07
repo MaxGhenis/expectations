@@ -1,6 +1,6 @@
 # Submission and release readiness
 
-The September 2026 revision is preserved and locally validated on `ai-growth-divergence-closure-20260907`. It is ready for substantive review. Submission, publication and merging remain pending; no remote PR was created because GitHub access was unavailable.
+The September 2026 revision is preserved and locally validated on `ai-growth-divergence-closure-20260907`. It is ready for substantive review through a draft PR. Submission, publication and merging remain pending.
 
 The paper supports a descriptive professional-growth baseline: central forecasts declined, reconstructed uncertainty changed modestly, US probabilities above 4% fell, and the ECB's small longer-term tail increased. Retain the following qualifications in any submission or release:
 
@@ -13,8 +13,8 @@ Validation on 7 September: 130 tests passed; Ruff lint/format and full-revision 
 
 The exact four manuscript Python chunks were executed directly: all three generated tables match the preserved HTML, and 23 inline values occur in both HTML and PDF. Both equations have native MathML and all three figures are embedded. All eight PDF pages were visually inspected without clipping or overlap. Browser validation and clean independent review are documented by the prior revision; this closure reran JavaScript syntax and preserved-render checks, not a new browser or independent semantic review.
 
-Two environment gates remain. `git fetch origin main` failed with `Could not resolve host: github.com`; live ownership, current main, existing PR heads and remote permissions remain unverified. `bash scripts/build_paper.sh` failed because Jupyter could not bind a local socket (`PermissionError: [Errno 1] Operation not permitted`). The original HTML/PDF remain unchanged; direct calculation verification does not replace a successful full Quarto render.
+Both initial environment gates were resolved on 7 September in the normal local runtime. Live GitHub checks verified the repository owner, `main` default branch, write permission and absence of an existing PR. A successful fetch confirmed current `origin/main` is still `ade2384f269d72456ec65fc4d0e4172b14c650d9`, so no base integration was needed. `bash scripts/build_paper.sh` completed both Quarto HTML and PDF outputs. HTML is byte-identical to the preserved render; PDF differences are limited to creation/modification metadata and its generated instance identifier. Extracted PDF text is identical. All eight newly rendered PDF pages were inspected without clipping or overlap, and all five paper-embed tests pass.
 
-Next: from this isolated worktree, verify the live repository and branch ownership, fetch and safely integrate current main if needed, complete the normal Quarto HTML/PDF render, then open the prepared draft PR. Before release, Max must choose the outlet/release route and approve the final framing and deployment/submission. Retain the existing 2026Q3 snapshot unless a separately authorized refresh is intended. No additional model changes or new AI-comparator estimates are required for this closure.
+Next: review the draft PR and its research framing. Before release, Max must choose the outlet/release route and approve the final framing and deployment/submission. Retain the existing 2026Q3 snapshot unless a separately authorized refresh is intended. No additional model changes or new AI-comparator estimates are required for this closure.
 
 The local audit, exact source snapshot, logs, manuscript verification script, draft PR body and handoff live in `/Users/maxghenis/capacity-sprint-20260907/spf-closure/`. `RESEARCH_REVISION.md` records the research revision itself; this note records the subsequent preservation and validation limits.

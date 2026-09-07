@@ -2,7 +2,7 @@
 
 ## State
 
-The completed revision is committed in the isolated `/Users/maxghenis/forecast-uncertainty-spf-closure-20260907` worktree on `ai-growth-divergence-closure-20260907`. Local validation is complete; live-base verification, a normal Quarto re-render and remote draft-PR creation remain blocked by sandbox networking/socket restrictions. Nothing was published, submitted or merged. The source checkout remains at its original HEAD and dirty state.
+The completed revision is committed in the isolated `/Users/maxghenis/forecast-uncertainty-spf-closure-20260907` worktree on `ai-growth-divergence-closure-20260907`. Local validation, live-base verification and a normal Quarto re-render are complete; the branch is prepared for its authorized remote draft PR. Nothing was published, submitted or merged. The source checkout remains at its original HEAD and dirty state.
 
 ## Done
 
@@ -15,13 +15,12 @@ The completed revision is committed in the isolated `/Users/maxghenis/forecast-u
 - Executed all four original manuscript Python chunks without a socket: three generated tables match HTML exactly, 23 inline computed values occur in HTML/PDF, two MathML equations and three embedded figures are present. Visually inspected all eight PDF pages. JavaScript syntax checks pass; retained prior browser/independent-review evidence without repeating it.
 - Wrote `SUBMISSION_READINESS.md` and prepared a draft PR title/body plus an offline handoff in the lane directory. Normal Quarto rendering failed at Jupyter local socket binding; preserved HTML/PDF bytes remain unchanged.
 - Confirmed automatic resets stay disabled and the no-reset hold stays enabled; used no resets, paid overflow, new paid compute or external messaging.
+- Completed the local delivery follow-up outside the restricted Subfleet sandbox: verified live GitHub ownership, admin access, no existing PRs and unchanged current main; rendered HTML/PDF with Quarto successfully; inspected all eight new PDF pages and passed all five paper-embed tests. HTML and extracted PDF text are unchanged; only PDF metadata and its generated instance identifier changed. Full logs and the eventual draft URL are recorded in the lane's `delivery-followup.md`.
 
 ## Next
 
-1. Verify live ownership, remote permissions and existing PRs; fetch current main and integrate any change safely in this continuation. GitHub was unreachable (`Could not resolve host: github.com`).
-2. Run `bash scripts/build_paper.sh` where Jupyter can bind local sockets, inspect any artifact diff and commit any coherent change. This sandbox returned `PermissionError: [Errno 1] Operation not permitted`.
-3. Push this continuation and create the prepared draft PR after live checks. Follow the lane's `PR_HANDOFF.md`; no force push, merge, publication or submission is authorized.
-4. Max chooses the outlet/release route and approves final framing and release. Keep the current model choices and 2026Q3 snapshot unless a separate refresh is authorized.
+1. Push this continuation and create the prepared draft PR; live checks and normal rendering are complete. No force push, merge, publication or submission is authorized.
+2. Max chooses the outlet/release route and approves final framing and release. Keep the current model choices and 2026Q3 snapshot unless a separate refresh is authorized.
 
 ---
 
