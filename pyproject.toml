@@ -12,6 +12,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
+    "matplotlib>=3.9",
     "pytest>=8.0",
     "ruff>=0.6",
 ]

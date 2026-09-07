@@ -1,3 +1,5 @@
+> Historical development document. Superseded for current findings and methods by the September 2026 growth-beliefs revision: see `RESEARCH_REVISION.md`, `paper/index.qmd`, and regenerated `outputs/`. Numbers below may use the former midpoint/sample-variance convention and approximate annual outcomes.
+
 # What do forecasters say they don't know?
 
 Elicited macroeconomic uncertainty across two surveys, six decades, and the

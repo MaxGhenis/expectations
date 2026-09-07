@@ -1,0 +1,3 @@
+*.pdf binary
+# Quarto emits whitespace-only HTML lines; they carry no source-code change.
+site/paper/web/index.html whitespace=-blank-at-eol

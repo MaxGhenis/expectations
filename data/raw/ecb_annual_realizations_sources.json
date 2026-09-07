@@ -1,0 +1,147 @@
+{
+  "retrieved_at_utc": "2026-09-05T22:58:20.979042+00:00",
+  "notes": [
+    "Annual GDP is growth in sums of four quarterly chain-linked volume levels, calendar and seasonally adjusted, fixed EA20 composition.",
+    "Annual HICP and HICPX use official annual-average index growth (AVR), rounded by the publisher to 0.1 percentage point; not mean monthly year-on-year growth.",
+    "Monthly HICP indexes are retained to verify annual growth wherever both full years exist. HICPX index months are missing in 1997\u20132000; published annual AVR avoids losing those calendar benchmark targets.",
+    "Existing rolling raw files are preserved. Their original retrieval dates are unrecorded; do not infer identical vintages from this companion retrieval date.",
+    "GDP companion level implied quarterly year-on-year growth is compared with the archived rolling values in verification; retrieval date alone does not establish vintage equality.",
+    "Calendar inflation statuses are those of the official annual observation, and can differ from statuses in the archived monthly growth series.",
+    "Legacy ICP flow is discontinued; the new HICP flow is not spliced into this 1997\u20132025 outcome history."
+  ],
+  "sources": {
+    "ecb_ea_rgdp_level_quarterly.csv": {
+      "series_key": "MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N",
+      "url": "https://data-api.ecb.europa.eu/service/data/MNA/Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/MNA/MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N",
+      "sha256": "66593a7d3a19032bd6ea627c4f3eb63d2c0ef6ec908be1668dbcbea2a2b39a17",
+      "observations": 125,
+      "first_period": "1995-Q1",
+      "last_period": "2026-Q1",
+      "metadata": {
+        "TITLE": "Gross domestic product at market prices, volume",
+        "COMMENT_TS": "Gross domestic product at market prices - Euro area 20 (fixed composition) as of 1 January 2023 - Domestic (home or reference area), Total economy, Euro, Chain linked volume (rebased), , Calendar and seasonally adjusted data",
+        "REF_AREA": "I9",
+        "ADJUSTMENT": "Y",
+        "FREQ": "Q",
+        "UNIT_MEASURE": "EUR",
+        "UNIT_MULT": "6",
+        "REF_YEAR_PRICE": "2015",
+        "DECIMALS": "2"
+      }
+    },
+    "ecb_ea_hicp_index_monthly.csv": {
+      "series_key": "ICP.M.U2.N.000000.4.INX",
+      "url": "https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.000000.4.INX?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/ICP/ICP.M.U2.N.000000.4.INX",
+      "sha256": "9bfa365fe6dd664c75f90f271821011bfb8cc5a7e1d0b181850951529e225b88",
+      "observations": 360,
+      "first_period": "1996-01",
+      "last_period": "2025-12",
+      "metadata": {
+        "TITLE": "HICP - Overall index",
+        "TITLE_COMPL": "Euro area (changing composition) - HICP - Overall index, Index, Eurostat, Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "M",
+        "UNIT": "PURE_NUMB",
+        "UNIT_MULT": "0",
+        "UNIT_INDEX_BASE": "2015 = 100",
+        "DECIMALS": "2"
+      }
+    },
+    "ecb_ea_hicpx_index_monthly.csv": {
+      "series_key": "ICP.M.U2.N.XEF000.4.INX",
+      "url": "https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.XEF000.4.INX?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/ICP/ICP.M.U2.N.XEF000.4.INX",
+      "sha256": "f40108227c57b89f5faf40b93c60ae2e67a5e61a2252fef4e9751019f5e841b4",
+      "observations": 313,
+      "first_period": "1996-01",
+      "last_period": "2025-12",
+      "metadata": {
+        "TITLE": "HICP - All-items excluding energy and food",
+        "TITLE_COMPL": "Euro area (changing composition) - HICP - All-items excluding energy and food, Index, Eurostat, Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "M",
+        "UNIT": "PURE_NUMB",
+        "UNIT_MULT": "0",
+        "UNIT_INDEX_BASE": "2015 = 100",
+        "DECIMALS": "2"
+      }
+    },
+    "ecb_ea_hicp_growth_annual.csv": {
+      "series_key": "ICP.A.U2.N.000000.4.AVR",
+      "url": "https://data-api.ecb.europa.eu/service/data/ICP/A.U2.N.000000.4.AVR?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/ICP/ICP.A.U2.N.000000.4.AVR",
+      "sha256": "c059753da3af5130d335cd13a1b3102c181aaf6dc624424df6779b25a17ff554",
+      "observations": 29,
+      "first_period": "1997",
+      "last_period": "2025",
+      "metadata": {
+        "TITLE": "HICP - Overall index",
+        "TITLE_COMPL": "Euro area (changing composition) - HICP - Overall index, Annual average rate of change, Eurostat, Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "A",
+        "UNIT": "PCCH",
+        "UNIT_MULT": "0",
+        "DECIMALS": "1"
+      }
+    },
+    "ecb_ea_hicpx_growth_annual.csv": {
+      "series_key": "ICP.A.U2.N.XEF000.4.AVR",
+      "url": "https://data-api.ecb.europa.eu/service/data/ICP/A.U2.N.XEF000.4.AVR?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/ICP/ICP.A.U2.N.XEF000.4.AVR",
+      "sha256": "cc575a0079242add0cb0d32582a87fe3df301a1ecf6d410d21a8a34767817e5d",
+      "observations": 35,
+      "first_period": "1991",
+      "last_period": "2025",
+      "metadata": {
+        "TITLE": "HICP - All-items excluding energy and food",
+        "TITLE_COMPL": "Euro area (changing composition) - HICP - All-items excluding energy and food, Annual average rate of change, Eurostat, Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "A",
+        "UNIT": "PCCH",
+        "UNIT_MULT": "0",
+        "DECIMALS": "1"
+      }
+    }
+  },
+  "verification": {
+    "rgdp_quarterly_yoy_vs_archived_rolling": {
+      "matched_periods": 121,
+      "max_absolute_difference_pp": 0.0,
+      "archived_rolling_sha256": "70542cf496cc72b25d568e4c119ca70813484293a90611b09b54318018e0b954"
+    },
+    "hicp_avr_vs_annual_index_growth": {
+      "matched_years": 29,
+      "first_year": "1997",
+      "last_year": "2025",
+      "max_absolute_difference_pp": 0.049344183307451495,
+      "published_avr_precision_pp": 0.1,
+      "index_based_growth_unavailable_years": []
+    },
+    "hicpx_avr_vs_annual_index_growth": {
+      "matched_years": 24,
+      "first_year": "2002",
+      "last_year": "2025",
+      "max_absolute_difference_pp": 0.04888024946339087,
+      "published_avr_precision_pp": 0.1,
+      "index_based_growth_unavailable_years": [
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001"
+      ]
+    }
+  }
+}

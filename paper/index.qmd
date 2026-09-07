@@ -1,359 +1,196 @@
 ---
-title: "What do forecasters say they don't know?"
-subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r1"
+title: "Growth expectations in the AI era"
+subtitle: "Levels, uncertainty and upper tails in professional GDP forecasts"
 author:
   - name: Max Ghenis
-date: 2026-08-26
+date: 2026-09-05
 bibliography: references.bib
+bibliography-title: References
 csl: chicago-author-date.csl
 format:
   html:
     toc: true
     number-sections: true
     theme: cosmo
+    embed-resources: true
+    html-math-method: mathml
+    format-links: false
   typst:
     number-sections: true
+    fontsize: 10pt
+    papersize: a4
 execute:
   echo: false
-jupyter: forecast-uncertainty
+jupyter: forecast-uncertainty-local
 ---
 
 ```{python}
 #| include: false
 from pathlib import Path
-
 import pandas as pd
+from IPython.display import Markdown, display
 
-ROOT = Path().resolve()
-while not (ROOT / "outputs").exists():
-    ROOT = ROOT.parent
-m = pd.read_csv(ROOT / "outputs" / "measures.csv")
-s = pd.read_csv(ROOT / "outputs" / "scores.csv")
-cal = pd.read_csv(ROOT / "outputs" / "calibration.csv")
-lr = pd.read_csv(ROOT / "outputs" / "longrun_points.csv")
-seed_fan = pd.read_csv(ROOT / "tests" / "fixtures" / "seed" / "spf_nextyear_consensus.csv")
+ROOT = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "outputs/measures.csv").exists())
+m = pd.read_csv(ROOT / "outputs/measures.csv")
+t = pd.read_csv(ROOT / "outputs/growth_tails.csv")
+c = pd.read_csv(ROOT / "outputs/growth_comparison.csv")
+cal = pd.read_csv(ROOT / "outputs/calibration.csv")
+b = pd.read_csv(ROOT / "outputs/benchmark_summary.csv")
+lr = pd.read_csv(ROOT / "outputs/longrun_points.csv")
+NAMES = ["US next year", "US three years ahead", "ECB longer term"]
+LABELS = ["US, next year", "US, year +3", "Euro area, year +4"]
 
-# US next-year growth, Q1 rounds (the seed-validated series).
-g = m[
-    (m.survey == "us") & (m.variable == "PRGDP") & (m.quarter == 1)
-    & (m.horizon_class == "next_year") & (m.year >= 1992)
-].set_index("year")
-tot = g.total_sd
-pre = tot.loc[1992:2020]
-dec_1019 = tot.loc[2010:2019].mean()
-dec_2024 = tot.loc[2020:2024].mean()
+def row(name, window, threshold=4, rounds="Q1"):
+    return c[(c.series == name) & (c.window == window) & (c.threshold == threshold) & (c["rounds"] == rounds)].iloc[0]
 
-# Coverage: Q1 next-year US growth.
-cg = cal[
-    (cal.survey == "us") & (cal.variable == "PRGDP") & (cal.quarter == 1)
-    & (cal.horizon_class == "next_year")
-]
-cov = cg.inside_1sd.mean()
+def val(name, window, field, digits=2):
+    return f"{row(name, window)[field]:.{digits}f}"
 
-# The 2026 IQR pair: across-forecaster spread of density means (next year)
-# vs the 10-year point forecasts.
-ny26 = seed_fan[seed_fan.t == 2026].iloc[0]
-iqr_ny = ny26.p75 - ny26.p25
-rg10 = lr[(lr.variable == "RGDP10") & (lr.year == 2026)].iloc[0]
+def prob(name, window, threshold=4, digits=2):
+    r = row(name, window, threshold)
+    lo, hi = 100*r.probability_lower, 100*r.probability_upper
+    return f"{lo:.{digits}f}%" if abs(lo-hi) < 1e-9 else f"{lo:.{digits}f}–{hi:.{digits}f}%"
 
-# Disagreement shares (medians of share_between across all rounds/targets).
-def share_med(survey, variable):
-    x = m[(m.survey == survey) & (m.variable == variable)]
-    if survey == "us" and variable in {"PRGDP", "PRPGDP"}:
-        x = x[x.concept.isin(["real_gdp", "gdp_prices"])] if "concept" in x else x
-        x = x[x.year >= 1992]
-    return 100 * x.share_between.median()
+def table(headers, rows):
+    display(Markdown("| " + " | ".join(headers) + " |\n|" + "|".join(["---"]*len(headers)) + "|\n" + "\n".join("| " + " | ".join(map(str, r)) + " |" for r in rows)))
 
-# Proper scores.
-crps_gain = 100 * (1 - s.crps_pooled.mean() / s.crps_individual_mean.mean())
-skill_clim_usgdp = 100 * s[(s.survey == "us") & (s.variable == "PRGDP")].skill_vs_climatology.mean()
-skill_gauss_usgdp = 100 * s[(s.survey == "us") & (s.variable == "PRGDP")].skill_vs_gaussian.mean()
-
-v = dict(
-    t1992=f"{tot.loc[1992]:.2f}",
-    mean_1992_2020=f"{pre.mean():.2f}",
-    t2021=f"{tot.loc[2021]:.2f}",
-    t2026=f"{tot.loc[2026]:.2f}",
-    dec_1019=f"{dec_1019:.2f}",
-    dec_2024=f"{dec_2024:.2f}",
-    cov_pct=f"{100 * cov:.1f}",
-    cov_n=f"{int(cg.inside_1sd.sum())} of {len(cg)}",
-    iqr_ny=f"{iqr_ny:.1f}",
-    iqr_10y=f"{rg10.iqr:.1f}",
-    med_10y=f"{rg10['median']:.1f}",
-    med_ny=f"{ny26['median']:.1f}",
-    sh_usgdp=f"{share_med('us', 'PRGDP'):.0f}",
-    sh_hicp=f"{share_med('ecb', 'hicp'):.0f}",
-    sh_ecbgdp=f"{share_med('ecb', 'rgdp'):.0f}",
-    sh_usccpi=f"{share_med('us', 'PRCCPI'):.0f}",
-    sh_uscpce=f"{share_med('us', 'PRCPCE'):.0f}",
-    crps_gain=f"{crps_gain:.1f}",
-    skill_clim_usgdp=f"{skill_clim_usgdp:.0f}",
-    skill_gauss_usgdp=f"{skill_gauss_usgdp:.0f}",
-    n_measures=f"{len(m):,}",
-    n_cal=f"{len(cal):,}",
-)
+cg = cal[(cal.survey == "us") & (cal.variable == "PRGDP") & (cal.quarter == 1) & (cal.horizon_class == "next_year")]
+rg10 = lr[lr.variable == "RGDP10"].set_index("year")
+latest_e = t[(t.survey == "ecb") & (t.variable == "rgdp") & (t.horizon_class == "longer_term") & (t.year == 2026) & (t.quarter == 3) & (t.threshold == 4)].iloc[0]
+latest_u = t[(t.survey == "us") & (t.variable == "PRGDP") & (t.horizon_class == "next_year") & (t.year == 2026) & (t.quarter == 3) & (t.threshold == 4)].iloc[0]
 ```
 
 ## Abstract {.unnumbered}
 
-Professional forecasters state their own uncertainty four times a year. Since
-1968 the US Survey of Professional Forecasters has collected probability
-distributions — not just point forecasts — for output growth and inflation,
-and the ECB's survey has done the same for the euro area since 1999. We pool
-every reported histogram by the law of total variance, decomposing total
-uncertainty into the average forecaster's stated uncertainty and the
-disagreement between forecasters, for every variable, horizon, and survey
-round — `{python} v['n_measures']` round-target distributions. Five findings
-organize the panorama. Stated growth uncertainty is stable: its pandemic
-spike decayed by 2026 on both continents, while euro-area inflation
-uncertainty remains a third above its pre-2021 level. Disagreement — the
-only uncertainty visible in point-forecast data — is the minority share
-everywhere: a sixth of total variance for growth, at most a third for any
-variable. Stated uncertainty stops rising with horizon by year two, and the
-ten-year US point forecasts invert the term structure outright: forecasters
-put a tighter interquartile range on the next decade's growth
-(`{python} v['iqr_10y']`pp) than on next year's (`{python} v['iqr_ny']`pp).
-The US distributions are roughly calibrated on average
-(`{python} v['cov_pct']`% one-sigma coverage over 33 years); the euro
-area's are overconfident; both fail in clusters at regime shifts, in the
-tail the regime moved toward — and scored properly, the densities beat
-climatology everywhere but beat a consensus-plus-historical-error Gaussian
-only for growth and the euro area. Density elicitation stops three to five
-years out. Published estimates of AI's growth effects span roughly 0.1 to
-30 percentage points a year [@shenk2026; @cunningham2025] at the horizons
-no survey asks about, and we show what asking would take. A live
-interactive tracks every series.
+Professional growth forecasts provide a record against which to assess expectations of AI-driven economic acceleration. We examine the joint evolution of forecast levels, stated uncertainty and high-growth probabilities in the US and ECB Surveys of Professional Forecasters. The data extend through 2026Q3; our main historical comparisons hold the survey quarter and calendar horizon fixed. Between 2015–19 and 2025–26, mean next-year US GDP forecasts fell from `{python} val('US next year', '2015–19', 'mean')`% to `{python} val('US next year', '2025–26', 'mean')`%, while reconstructed pooled standard deviation rose from `{python} val('US next year', '2015–19', 'total_sd')` to `{python} val('US next year', '2025–26', 'total_sd')` percentage points. Reported probability of growth above 4% fell from `{python} prob('US next year', '2015–19')` to `{python} prob('US next year', '2025–26')`. Similar central forecasts coexist with a qualification in the euro area: its four-year-ahead probability above 4% increased from `{python} prob('ECB longer term', '2015–19')` to `{python} prob('ECB longer term', '2025–26')`. The reported range probabilities and reconstructed distributions show limited movement toward very rapid growth, rather than universal stability. This is evidence about the overall growth outlook within the surveyed horizons, not an estimate of AI's effect or proof that forecasters ignore AI. We bound extreme-growth probabilities directly from reported bins, retain the COVID episode, and distinguish this evidence from longer-horizon and conditional AI scenarios.
 
-## Introduction
+## The question: where would a growth transformation appear?
 
-In the first quarter of 2026, the forecasters in the US Survey of
-Professional Forecasters put a median of `{python} v['med_ny']`% on next
-year's real GDP growth, with an interquartile range of
-`{python} v['iqr_ny']` points across their stated distributions. Asked
-about average growth over the next ten years, the same panel's answers had
-a median of `{python} v['med_10y']`% and an interquartile range of
-`{python} v['iqr_10y']` points. The decade answer is tighter than the
-one-year answer — and no survey asked the decade question as a
-distribution. The ten-year numbers are point forecasts; the histograms
-stop three years out.
+A forecast median near 2% need not imply confidence that growth will stay near 2%. Someone who assigns a small but consequential probability to a large acceleration could report an ordinary median alongside an unusual upper tail. Assessing divergence in beliefs about AI and growth therefore requires more than comparing central estimates. It requires looking at distributions and how they have changed.
 
-That gap matters more now than at any point in the surveys' history.
-Published estimates of what artificial intelligence will do to growth over
-roughly the coming decade run from under 0.1 percentage points a year
-[@acemoglu2024] through 1.5 points [@briggsKodnani2023] — with a
-0.07–1.24-point spread inside a single framework [@aghionBunel2024] — to
-above 30 points [@davidson2021; @erdilBesiroglu2023]. Compilations put the
-full published range at roughly 0.1–30 points a year, almost entirely as
-point estimates [@shenk2026; @cunningham2025]. The one large elicitation,
-run by the Forecasting Research Institute with the Federal Reserve Bank of
-Chicago, collected medians and two quantiles, once [@karger2026]. The
-instruments that would discipline this debate — surveys that make
-professionals state distributions and then score them — exist, run
-quarterly, and have five decades of track record. They stop at year three
-in the US and year five in the euro area.
+The Surveys of Professional Forecasters offer that evidence. Their respondents report probabilities over ranges of GDP growth. These distributions allow us to ask three related questions. Have central forecasts moved toward faster growth? Have the distributions widened? Has more probability moved into high-growth outcomes? Our contribution is a reproducible answer across US and euro-area horizons, with a twenty-year historical perspective and an explicit treatment of what the bins can identify.
 
-This paper assembles that track record in full. We compute one
-construction — the law-of-total-variance decomposition of pooled survey
-histograms [@wallis2005; @boeroSmithWallis2008] — for every density
-variable, every horizon, and every round of the two long-running
-professional surveys, `{python} v['n_measures']` round-target
-distributions in all, and evaluate every one against realized outcomes
-where a verified realization concept exists (`{python} v['n_cal']`
-forecast-outcome pairs). The distinction we track back to 1968 is
-Zarnowitz and Lambros's [-@zarnowitzLambros1987]: *disagreement* — the
-spread between forecasters' means — is not *uncertainty* — the spread each
-forecaster reports around their own mean.
+The dominant pattern is the absence of a large upward shift. Central forecasts are generally below their pre-COVID levels. Uncertainty rose around COVID and subsequently declined, although some measures remain above their earlier levels. The high-growth tail is small in aggregate, with an increase in the euro area that deserves attention. This combination provides more evidence about the expected growth outlook than the narrow dispersion of long-run point forecasts alone.
 
-::: {.callout-note title="Draft note"}
-Contribution list and positioning paragraph drafted in the planning
-skeleton (`paper/PAPER.md`); nearest antecedents:
-@damicoOrphanides2008 (US long series, inflation, ends 2008),
-@clementsRichTracy2022 (both surveys, in prose), @allayioti2024 (ECB
-25-year retrospective, one survey).
-:::
+The interpretation is conditional on the claim being compared. Forecasts that place substantial unconditional probability on rapid US or euro-area growth by the late 2020s or early 2030s face a measurable contrast with these distributions. Scenarios in which advanced AI eventually produces explosive global growth ask a different question. We separate those comparisons rather than place heterogeneous projections on a single numerical scale.
 
-## The elicitation landscape
+## Data and comparison design
 
-Two surveys regularly ask professional forecasters for probability
-distributions over macroeconomic outcomes. The US SPF has collected
-histograms since 1968Q4 — for nominal GNP growth at first, real GNP from
-1981Q3, real GDP from 1992Q1 — for output growth and the GDP price index
-throughout, joined by fourth-quarter-over-fourth-quarter core CPI and core
-PCE inflation in 2007Q1 and the unemployment rate in 2009Q2
-[@spfDocumentation2026]. Density horizons ran to the next calendar year
-until 2009Q2 and to three years out since. The ten-year variables — real
-GDP growth, CPI, PCE — are point forecasts only. The ECB SPF has run
-quarterly since 1999Q1: densities for HICP inflation, real GDP growth, and
-unemployment (core HICP since 2017Q1) at current-year through
-year-after-next calendar targets, rolling one- and two-year horizons, and
-a longer-term calendar year four years ahead in Q1/Q2 rounds and five
-ahead in Q3/Q4 [@garcia2003; @allayioti2024].
+The underlying pipeline produces `{python} f'{len(m):,}'` density summaries across all available variables and `{python} f'{len(cal):,}'` forecast–outcome pairs. This paper focuses on real GDP growth. US real GDP density forecasts begin in 1992; earlier nominal and real GNP observations remain available in the tracker but do not enter these growth comparisons. ECB GDP densities begin in 1999 [@spfDocumentation2026; @allayioti2024].
 
-The rest of the survey landscape collects points. The NY Fed's consumer
-survey elicits household densities to three years; Consensus Economics
-elicits by-range probabilities at one year and publishes its 5–10-year
-forecasts as points; Livingston (since 1946) and Blue Chip are point
-products; the FOMC's projections come with fan charts built from
-historical errors, not elicited beliefs. The two long-horizon precedents
-are one-off quantile elicitations [@christensenGillinghamNordhaus2018;
-@karger2026]. No survey anywhere regularly elicits probability
-distributions over ten-year-ahead growth.
+Our main series are the US next-calendar-year and three-calendar-years-ahead distributions, and the ECB longer-term distribution. We select Q1 rounds throughout. This keeps the calendar horizon fixed and makes the ECB longer-term series a forecast four years ahead. In Q3 and Q4, that question instead refers to a year five years ahead. These are annual growth rates in the target year, not growth averaged over the intervening years.
 
-## Measures
+The main period comparison is 2015–19 versus 2025–26: five pre-COVID Q1 observations and two recent Q1 observations. We show the full trajectory from 2006 where available; US year +3 starts later. The figures retain 2020–24. That window includes both pandemic disruption and the US wide-bin regime from 2020Q2 through 2024Q1. It is a descriptive separation, not a claim that all deviations in those years were caused by COVID.
 
-Each forecaster attaches probabilities to bins. We place each bin's mass
-at its midpoint, give open tails the width of the adjacent bin, keep
-responses whose probabilities sum to within two points of 100, and
-renormalize. For forecaster $i$, the histogram yields a mean $m_i$ and a
-variance $v_i$. The law of total variance splits the pooled mixture
-[@wallis2005]:
+The companion table also reports 2010–19, 2010–14, 2020–24 and 2023–26 windows and an all-round sensitivity. For that sensitivity, we average within survey year before averaging across years. Thus the three available rounds in 2026 do not automatically give that year less weight than a complete year. All-round comparisons nevertheless mix within-year horizon lengths. The panel can change between rounds; these comparisons do not identify within-person updating or a causal effect of the arrival of generative AI. We do not perform an equivalence test or interpret a short recent sample as proof of an unchanged process.
 
-$$\text{total variance} = \mathbb{E}[v_i] + \operatorname{Var}(m_i).$$
+## Central forecasts and uncertainty
 
-The first term is the average uncertainty forecasters state individually;
-the second is disagreement, the only term visible in point-forecast data
-[@zarnowitzLambros1987; @lahiriSheng2010]. We report the square roots, the
-between share, and quantiles of the pooled mixture. The interquartile
-range of the mixture doubles as a robustness measure: bin-scheme changes
-move midpoint-based SDs mechanically [@shojaSoofi2017;
-@knuppelPavlova2026], and the 2020Q2 US bin widening is the worked
-example.
+Table 1 compares means and spreads at fixed horizons. Standard deviation refers to the pooled predictive distribution; the interquartile range is the distance between its 25th and 75th percentiles. Neither is the dispersion of point forecasts across people.
 
-Targets are calendar years, so a "next year" forecast made in Q1 and one
-made in Q4 differ in horizon by three quarters [@ganicsRossiSekhposyan2024].
-We treat round-target pairs explicitly and show the within-year shrinkage —
-current-year uncertainty falls 24–41% from Q1 to Q4, depending on the
-variable — rather than averaging over it [@clementsRichTracy2025].
+```{python}
+#| label: tbl-levels
+#| tbl-cap: "Q1 forecast levels and spreads, 2015–19 versus 2025–26. Each cell shows earlier → recent; means are percentages and spreads are percentage points."
+rows = []
+for name, label in zip(NAMES, LABELS):
+    rows.append([label, *[f"{val(name,'2015–19',field)} → {val(name,'2025–26',field)}" for field in ['mean','total_sd','iqr']]])
+table(["Forecast", "Mean", "Pooled SD", "Pooled IQR"], rows)
+```
 
-Coverage rates test the density at two thresholds; proper scores evaluate
-all of it [@gneitingRaftery2007; @boeroSmithWallis2011]. The pooled CDF is
-piecewise linear, so the continuous ranked probability score has an exact
-closed form, and pinball losses at the published quantile levels decompose
-it by tail. We score every calibrated round against two no-lookahead
-benchmarks — expanding-window climatology and a Gaussian centered on the
-consensus with historical-error RMSE — and against the average individual
-forecaster. One structural note: the pooled CDF is the mean of individual
-CDFs and the CRPS is convex in the CDF, so the pool beats the average
-individual on every observation by construction; the empirical content is
-the size of that gain (`{python} v['crps_gain']`% on average, 3.5–18.7%
-by cell) and where it thins.
+Mean growth forecasts decline in all three comparisons. The reconstructed widths do not show a radically broader range of outcomes under the stated within-bin and tail assumptions. The US next-year standard deviation rises moderately, while the three-year-ahead and ECB four-year-ahead standard deviations move less. The interquartile ranges at the two longer horizons are slightly narrower. These facts support limited overall movement toward faster and more uncertain growth; they do not support saying every distributional feature is unchanged.
 
-## Five stylized facts
+![GDP forecast means and reconstructed pooled 90% intervals, Q1 rounds. Gray shading marks 2020–24; the dotted line marks late 2022 as a visual reference, not a treatment date. US year +3 is unavailable before its introduction.](figures/growth-outlook.png){#fig-outlook width=95%}
 
-::: {.callout-note title="Draft note"}
-Each fact gets a figure from the pipeline. Inline values below compute
-from `outputs/` at render; the balanced-sample term-structure and
-post-2021 ECB comparisons cite the pipeline reports
-(`SOL_REPORT.md`, `SCORES_REPORT.md`) pending their move into computed
-chunks.
-:::
+The longer historical record also cautions against describing central forecasts as literally constant over twenty years. The US ten-year median point forecast fell from `{python} f'{rg10.loc[2006,"median"]:.1f}'`% in 2006 to `{python} f'{rg10.loc[2026,"median"]:.1f}'`% in 2026. That forecast concerns average annual growth over a decade. Its cross-sectional spread measures disagreement about a point estimate, not predictive uncertainty over ten years. We therefore report its level separately and make no claim of an inverted uncertainty term structure from comparing it with a one-year distribution.
 
-**Stated growth uncertainty is stable — and its pandemic spike decayed on
-both continents, while euro-area inflation uncertainty has not come
-home.** The pooled SD of next-year US growth was `{python} v['t1992']`
-points in 1992 and averaged `{python} v['mean_1992_2020']` through 2020;
-it peaked at `{python} v['t2021']` in 2021 and stands at
-`{python} v['t2026']` in 2026 (decade means: `{python} v['dec_1019']`
-over 2010–19, `{python} v['dec_2024']` over 2020–24). Euro-area growth
-uncertainty spiked higher and decayed as fast. Euro-area inflation
-uncertainty did not: the one-year series remains a third above its
-pre-2021 level in 2026.
+![Predictive SD and IQR at three fixed horizons, alongside the US ten-year median point forecast. The final panel is a different outcome and contains no elicited predictive interval.](figures/growth-spread.png){#fig-spread width=95%}
 
-**Disagreement is the minority share everywhere, but not uniformly.** The
-median between share is about a sixth for growth
-(US `{python} v['sh_usgdp']`%, euro area `{python} v['sh_ecbgdp']`%) and
-euro-area prices (`{python} v['sh_hicp']`%), and a quarter to a third for
-unemployment and the US inflation densities
-(core CPI `{python} v['sh_usccpi']`%, core PCE `{python} v['sh_uscpce']`%).
-The spread visible in point forecasts understates stated uncertainty
-two-to-threefold across the whole panorama [@richTracy2010;
-@giordaniSoderlind2003].
+## The upper tail: small probabilities, with a euro-area increase
 
-**Stated uncertainty rises with horizon only until year two — then
-plateaus, and for growth it inverts.** US growth within-SD climbs from the
-current year to two years out, then gains a point in the hundredths place
-at three. In the euro area, total growth uncertainty is mildly higher at
-the one-year rolling horizon than at the four-to-five-year horizon. Only
-unemployment keeps steepening. And the ten-year US point forecasts invert
-the term structure outright: IQR `{python} v['iqr_10y']` for the decade
-against `{python} v['iqr_ny']` for next year in 2026.
+We compute probabilities above 3%, 4%, 5% and 10%. These thresholds are transparent descriptions of outcomes, not definitions of transformative AI. For historical comparisons, 4% is especially useful because it is a common literal bin edge in the displayed series. Its exceedance probability does not require a within-bin interpolation assumption.
 
-**The US distributions are roughly calibrated on average; the euro area's
-are overconfident; both fail in tails, in clusters.** A ±1σ band around
-the consensus covered `{python} v['cov_n']` next-year US growth outcomes
-(`{python} v['cov_pct']`%) over 1993–2025 — textbook — but the misses
-cluster: six straight target years around the late-1990s productivity
-boom, then 2008–09, then 2020–21. Euro-area one-sigma coverage runs
-49–57% by variable [@kennyKostkaMasera2014; @kennyKostkaMasera2015].
-Scored properly, the densities beat climatology everywhere (US growth
-+`{python} v['skill_clim_usgdp']`% mean CRPS skill) but beat the
-consensus-plus-track-record Gaussian only for US growth
-(+`{python} v['skill_gauss_usgdp']`%) and the euro area; for US inflation
-and unemployment, the elicited shape adds nothing beyond the point
-forecast wrapped in its own error history [@clements2018;
-@knuppelKruger2022]. The pinball decomposition puts the 2008–09 growth
-losses in the lower tail and the 2020–22 inflation losses in the upper
-tail by factors of five to nine.
+```{python}
+#| label: tbl-tails
+#| tbl-cap: "High-growth probabilities from literal bins, Q1 rounds. Ranges are identification bounds, not sampling confidence intervals."
+rows = []
+for name, label in zip(NAMES, LABELS):
+    for period in ['2015–19', '2025–26']:
+        rows.append([label, period, *[prob(name,period,threshold) for threshold in [4,5,10]]])
+table(["Forecast", "Period", "Above 4%", "Above 5%", "Above 10%"], rows)
+```
 
-**The euro area asks the question the US doesn't — and after 2021 the
-long answer moved less than the short one, but it moved.** The ECB
-longer-term density's total SD rose about 31% after 2021, against 59% at
-one year; its consensus moved from 1.8% to 2.0% while the one-year
-consensus moved from 1.6% to 2.3% [@gornickaMeyler2022;
-@deVincentHumphreys2019]. Stated long-run uncertainty now sits at its
-series high exactly where the US elicits nothing.
+The US probability above 4% declines at both horizons. The ECB's four-year-ahead probability rises from `{python} prob('ECB longer term','2015–19')` to `{python} prob('ECB longer term','2025–26')`. That increase is substantial relative to its starting value, while remaining small in absolute probability. A conclusion that the upper tail did not change anywhere would miss it.
 
-## The elicitation gap
+The more extreme thresholds illustrate a measurement limit. In the ECB's recent scheme, all growth at or above 4% shares one open bin. Its entire probability could lie below 5%, above 10%, or somewhere between. We can bound the probability of those events, but cannot distinguish them. The newer US scheme also places 5% inside a finite bin, widening the identified range relative to earlier schemes. An apparent precision gain from fitting a distribution inside those bins would come from an assumption rather than another survey response.
 
-::: {.callout-note title="Draft note"}
-Section drafted at beat level. The argument: put the verified 0.1–30pp/yr
-published range [@shenk2026; @cunningham2025] and its anchors
-[@acemoglu2024; @briggsKodnani2023; @aghionBunel2024; @davidson2021;
-@erdil2025gate; @korinekSuh2024] against the inventory of section 2;
-@karger2026 as the one-off flagship; @chowHalperinMazlish2026 extracting
-long-horizon growth beliefs from asset prices precisely because no survey
-elicits them. The observation the paper owns: the instruments that would
-discipline this debate exist, run quarterly, have 50 years of calibration
-record — and stop at year three (US) or five (euro area).
-:::
+![Upper and lower bounds on growth probabilities, Q1 rounds. Where they coincide, the probability is identified at a literal bin edge. The shaded range reflects bin resolution, not uncertainty about the estimated population mean.](figures/growth-upper-tails.png){#fig-tails width=95%}
 
-## What better elicitation would look like
+The most recent all-round observation is also informative. In 2026Q3, pooled probability above 4% is `{python} f'{100*latest_u.probability_lower:.2f}'`% for next-year US growth and `{python} f'{100*latest_e.probability_lower:.2f}'`% for ECB longer-term growth, now targeting 2031. In the ECB round, `{python} int(latest_e.n_positive_lower)` of `{python} int(latest_e.n)` retained respondents assign positive probability to that bin. A small pooled tail does not mean every respondent rules out high growth.
 
-::: {.callout-note title="Draft note"}
-Design beats, not advocacy: extend one existing survey block to a
-ten-year growth density (the ECB's longer-term question shows a panel
-will answer it, and its 2023 special survey asked whether ten-year
-expectations would differ [@allayioti2024]); bins wide enough to be
-honest about tails (the 2020 widening as precedent [@ecbSpf2020q2]);
-ship the question with the scoring rule that disciplines it — CRPS with
-pinball components — because the record shows stated densities break at
-regime shifts and the AI question is a regime-shift question; pair each
-long-horizon density with the respondent's AI-adoption assumption so the
-0.1–30 range becomes decomposable.
-:::
+## Comparison with AI growth forecasts
+
+The most relevant comparison is with elicited economic distributions, because similar medians can conceal different tails. Karger et al. [-@karger2026] elicit US growth beliefs for five-year annualized growth over 2025–29 and 2045–49. Their Figure 5 fits pooled distributions to individual quantiles. For AI experts in 2025–29, the probability above 10% is displayed as 0.0% unconditionally and 3.5% conditional on rapid AI progress. For 2045–49, those figures are 1.4% and 10.4%. These plotted values are rounded. This source does not establish a large unconditional near-term extreme-tail disagreement with SPF. The averaging interval, elicitation and population also differ; a conditional distribution needs scenario probabilities before comparison with unconditional beliefs.
+
+Other prominent estimates differ more fundamentally in outcome or horizon:
+
+| Source | Outcome and interpretation | Relation to this paper |
+|---|---|---|
+| @acemoglu2024 | Task-based estimate of AI's contribution to productivity over ten years | An incremental productivity effect, not a probability distribution for annual GDP growth |
+| @davidson2021 | Possibility of global growth above 30% per year before 2100 | Shows why extreme outcomes matter; lies beyond the SPF geography and horizon |
+| @erdilBesiroglu2023 | Arguments for explosive growth from broad AI automation | Connects assumptions about automation to growth regimes; does not supply a matched annual US SPF probability |
+
+The contribution of the SPF evidence is specific. The observable professional outlook has not shifted toward substantially faster growth in the center, and its reported upper-tail mass places quantitative limits on high-growth outcomes within its horizons. This would contrast with beliefs assigning appreciable unconditional probability to such outcomes over those same horizons. The present source comparison does not identify a single commensurable probability difference between two populations, and we do not manufacture one by treating global, conditional or century-scale scenarios as US annual forecasts.
+
+There are several ways the outlook could remain broadly similar while respondents revise their views about AI. Positive AI effects could offset demographic or other economic headwinds. Respondents could expect deployment after the forecast horizon. A subset could revise upward while others revise downward. Survey bins and rounding could obscure changes in very small probabilities. These are possible explanations, not mechanisms established by the data. Establishing them requires matched questions and respondent-level evidence on AI assumptions.
+
+## What the historical calibration adds
+
+Historical evaluation helps assess how much evidential weight to place on the stated probabilities. It does not establish which view of AI is correct. For Q1 next-year US GDP, a band of one pooled standard deviation around the mean covers `{python} int(cg.inside_1sd.sum())` of `{python} len(cg)` outcomes. The pooled 90% interval covers `{python} int(cg.inside_pooled_90.sum())` of `{python} len(cg)` (`{python} f'{100*cg.inside_pooled_90.mean():.1f}'`%). The latter falls below its nominal coverage. One-standard-deviation coverage is not a general calibration test for an arbitrary non-Gaussian distribution. The misses include major economic disruptions and the late-1990s growth acceleration.
+
+We also evaluate entire distributions with the continuous ranked probability score (CRPS) [@gneitingRaftery2007]. For each benchmark, skill is one minus mean forecast CRPS divided by mean benchmark CRPS on the same eligible observations. This compares average loss directly. Averaging per-observation percentage skill gives a different weighting of outcomes, so we retain it as a sensitivity rather than interpret its sign as a definitive finding about useful information.
+
+```{python}
+#| label: tbl-scores
+#| tbl-cap: "GDP CRPS skill against expanding benchmarks, all scored horizons. Positive values favor the survey. Each benchmark uses its own matched eligible sample."
+rows=[]
+for survey, variable, label in [('us','PRGDP','US GDP'),('ecb','rgdp','Euro-area GDP')]:
+    for benchmark in ['climatology','gaussian']:
+        r=b[(b.survey==survey)&(b.variable==variable)&(b.benchmark==benchmark)].iloc[0]
+        rows.append([label,benchmark,int(r.n),f'{100*r.skill_ratio_of_means:.1f}%',f'{100*r.mean_row_skill:.1f}%'])
+table(['Series','Benchmark','Rows','Ratio of mean CRPS','Mean row skill'],rows)
+```
+
+Forecast–outcome pairs can share a realized target, and rolling outcomes overlap. These summaries are descriptive and do not establish statistical significance. The Gaussian benchmark learns the RMSE of prior forecast errors; climatology uses prior outcomes. Both require ten historical observations. Completed target periods must precede the forecast quarter, but actual historical publication dates and vintages are not reconstructed. This is an expanding-window evaluation with archived or newly acquired revised outcomes, not a real-time backtest.
+
+## Measurement and reproducibility
+
+Within a round, we retain respondent histograms with probabilities between 0 and 100 and totals strictly within two percentage points of 100. Partial missing entries count as zero; entirely missing histograms are excluded. Retained probabilities are normalized and respondents receive equal weight. This rejects two negative ECB entries in 2023Q1 as well as invalid total-probability responses.
+
+For moments, quantiles and scores, probability is uniform inside each finite bin. An open tail receives the width of its nearest finite positive-width bin. Literal gaps between bins receive zero probability. If bin $b$ has midpoint $x_b$ and width $w_b$, respondent $i$ has
+
+$$
+\mu_i=\sum_b p_{ib}x_b,\qquad
+v_i=\sum_b p_{ib}\left((x_b-\mu_i)^2+\frac{w_b^2}{12}\right).
+$$
+
+The equal-weight empirical mixture has variance
+
+$$
+V=\frac{1}{n}\sum_i v_i+\frac{1}{n}\sum_i(\mu_i-\bar\mu)^2.
+$$
+
+The first component is average individual uncertainty; the second is disagreement [@wallis2005; @zarnowitzLambros1987]. The denominator is $n$, because the object is the finite empirical pool. Using a sample-variance correction would estimate a different object. Independent numerical-integration tests check the identity against the pooled distribution. The reported within SD is the square root of average individual variance, not average individual SD.
+
+For high-growth probabilities, we dispense with finite-tail closure. If a threshold falls inside a bin, its entire mass contributes to the upper bound and none to the lower bound. Bins entirely above the threshold contribute to both. At exact edges we assume continuous outcomes, so a singleton boundary has no probability mass. Averaging respondent bounds yields pooled bounds. An optional uniform interpolation is emitted only when the threshold is outside both open tails; it is not used for the headline bounds. Small mass in an open tail does not bound the magnitude of growth conditional on reaching that tail. Consequently, the bins alone do not identify an unrestricted mean or variance: the level and width results depend on the reconstruction, while the exceedance bounds do not.
+
+These distinctions matter across survey redesigns. Neither SD nor IQR is fully invariant to changing bins. Common-edge probabilities provide the cleanest historical tail comparison. Very small reported probabilities are also limited by respondent rounding; zero reported mass is evidence about the elicited answer, not proof that the respondent's latent subjective probability is exactly zero.
+
+Annual US outcomes use the archived BEA series. Annual ECB GDP outcomes use growth in sums of complete quarterly GDP levels, replacing the earlier approximation that averaged quarterly year-over-year rates. Calendar inflation uses the official annual-average index-growth series, published to 0.1 percentage point. Rolling observations retain the archived files. The annual companion data were retrieved on 5 September 2026; original rolling retrieval dates are unrecorded. The GDP levels reproduce the archived quarterly growth values, while inflation's annual status can differ from archived monthly estimate flags. URLs, hashes, precision and verification checks are recorded in `data/raw/ecb_annual_realizations_sources.json`.
+
+The repository contains raw snapshots, reusable parsers, independent numerical tests, `growth_tails.csv`, period comparisons, score summaries, figure-generation code and the Quarto manuscript. Regenerating the analysis requires the pipeline build, the research figure build, the tracker data build and the manuscript render. The local research companion at `site/growth/index.html` provides baseline, round and threshold controls; the [source repository](https://github.com/MaxGhenis/forecast-uncertainty) contains the existing public release.
 
 ## Conclusion
 
-::: {.callout-note title="Draft note"}
-One page: the 2026 pair again — `{python} v['iqr_ny']`pp next year,
-`{python} v['iqr_10y']`pp for the decade — with the whole panorama behind
-it.
-:::
+The strongest evidence is the joint behavior of forecast levels, widths and tails. The professional outlook in these surveys remains centered on modest growth, with limited movement toward much faster outcomes at available horizons. That statement survives looking beyond point estimates. It requires a qualification: the ECB's small longer-term high-growth tail has increased.
 
-## Data and limitations {.unnumbered}
-
-All measures compute from the public microdata of the Philadelphia Fed SPF
-[@spfDocumentation2026] and the ECB SPF, with bin schemes taken from each
-survey's documentation for every era. Realizations are latest-vintage
-[@stark2010]; real-time-vintage evaluation is future work. Forecasts of a
-shared outcome are correlated, so miss counts and score comparisons are
-descriptive. Benchmark windows are expanding with a ten-observation
-minimum; euro-area annual histories are short. The pipeline, tests, and
-every series behind the live interactive are open source at
-<https://github.com/MaxGhenis/forecast-uncertainty>.
-
-## References {.unnumbered}
-
-::: {#refs}
-:::
+This record makes the professional baseline for comparisons of near-term growth beliefs concrete. It cannot establish that respondents have neglected AI or resolve projections beyond the surveyed horizons. A direct comparison would ask professional macroeconomic forecasters and AI specialists for distributions over the same US annual and multi-year growth outcomes, on the same dates, both unconditionally and conditional on stated AI capabilities. The existing surveys provide a measurable baseline for that comparison.

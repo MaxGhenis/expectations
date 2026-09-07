@@ -10,3 +10,7 @@ data/raw/ecb_spf/
 lane2-note.md
 lane*-note.md
 paper/out/
+paper/figures/
+paper/.quarto/
+paper/index.typ
+paper/index.quarto_ipynb

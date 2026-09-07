@@ -137,15 +137,24 @@ def _quantile_name(quantile: float) -> str:
 def filter_probability_rows(
     probabilities: np.ndarray,
 ) -> tuple[np.ndarray, dict[str, int]]:
-    """Apply the survey response filter and normalize retained rows to one."""
+    """Keep valid percentage histograms and normalize each retained row to one.
+
+    Partial missing responses are interpreted as zero.  Every supplied value must
+    be finite and in [0, 100], and the row total must be strictly within two
+    percentage points of 100.  Invalid values are rejected, never clipped.
+    """
     values = np.asarray(probabilities, dtype=float)
     if values.ndim != 2:
         raise ValueError("Probabilities must be a two-dimensional array")
     all_nan = np.isnan(values).all(axis=1)
     nonempty = values[~all_nan]
-    filled = np.nan_to_num(nonempty, nan=0.0)
+    filled = np.where(np.isnan(nonempty), 0.0, nonempty)
+    valid_values = (np.isfinite(filled) & (filled >= 0.0) & (filled <= 100.0)).all(
+        axis=1
+    )
+    filled = np.where(valid_values[:, None], filled, 0.0)
     sums = filled.sum(axis=1)
-    valid = np.abs(sums - 100.0) < 2.0
+    valid = valid_values & (np.abs(sums - 100.0) < 2.0)
     kept = filled[valid]
     if kept.size:
         kept = kept / kept.sum(axis=1, keepdims=True)
@@ -164,11 +173,32 @@ def round_stats(
     midpoints: Sequence[float],
     intervals: Sequence[tuple[float | None, float | None]] | None = None,
 ) -> dict[str, float | int]:
-    """Compute within, between, total, and pooled-distribution statistics."""
+    """Decompose the variance of the equally weighted respondent mixture.
+
+    With intervals, each bin is uniform over its finite bounds, consistently with
+    pooled quantiles and CRPS.  Without intervals, mass is at the supplied
+    midpoints.  Disagreement uses population variance across the retained
+    respondents, including zero for a single respondent, so within plus between
+    is exactly the empirical mixture variance.
+    """
     mids = np.asarray(midpoints, dtype=float)
     values = np.asarray(probabilities, dtype=float)
-    if values.ndim != 2 or values.shape[1] != mids.size:
+    if mids.ndim != 1 or values.ndim != 2 or values.shape[1] != mids.size:
         raise ValueError("Probabilities and midpoints have incompatible shapes")
+    if not np.isfinite(mids).all():
+        raise ValueError("Midpoints must be finite")
+    bin_variances = np.zeros_like(mids)
+    if intervals is not None:
+        if len(intervals) != mids.size:
+            raise ValueError("Intervals and midpoints have incompatible shapes")
+        bounds = finite_intervals(intervals)
+        if not np.isfinite(bounds).all():
+            raise ValueError("Interval bounds must be finite after closing tails")
+        centers = bounds.mean(axis=1)
+        if not np.allclose(mids, centers, rtol=0.0, atol=1e-12):
+            raise ValueError("Midpoints must match the interval centers")
+        mids = centers
+        bin_variances = np.square(bounds[:, 1] - bounds[:, 0]) / 12.0
     weights, counts = filter_probability_rows(values)
     result: dict[str, float | int] = {"n": counts["rows_kept"], **counts}
     if not len(weights):
@@ -188,12 +218,11 @@ def round_stats(
         return result
 
     individual_means = (weights * mids).sum(axis=1)
-    individual_variances = (weights * mids**2).sum(axis=1) - individual_means**2
-    individual_variances = np.maximum(individual_variances, 0.0)
+    individual_variances = (
+        weights * (np.square(mids - individual_means[:, None]) + bin_variances)
+    ).sum(axis=1)
     within_variance = float(individual_variances.mean())
-    between_variance = (
-        float(individual_means.var(ddof=1)) if len(individual_means) > 1 else np.nan
-    )
+    between_variance = float(individual_means.var(ddof=0))
     total_variance = within_variance + between_variance
     result.update(
         {

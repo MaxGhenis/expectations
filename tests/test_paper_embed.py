@@ -25,8 +25,11 @@ def test_version_param_lockstep():
 
 def test_iframe_hardening():
     html = WRAPPER.read_text()
-    iframe = re.search(r"<iframe[^>]+>", html, re.S).group(0)
-    assert 'sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"' in iframe
+    iframe = re.search(r"<iframe[^>]+>", html, re.DOTALL).group(0)
+    assert (
+        'sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"'
+        in iframe
+    )
     assert 'referrerpolicy="same-origin"' in iframe
     assert 'loading="lazy"' in iframe
     assert "title=" in iframe
@@ -37,3 +40,11 @@ def test_manuscript_numbers_are_computed():
     the abstract's row count appears only if the setup chunk executed."""
     render = (WEB / "index.html").read_text()
     assert "3,695" in render or "3,687" in render
+
+
+def test_equations_render_without_iframe_scripts():
+    """The sandbox blocks MathJax; equations must already contain native math."""
+    render = (WEB / "index.html").read_text()
+    assert '<math display="block"' in render
+    assert 'xmlns="http://www.w3.org/1998/Math/MathML"' in render
+    assert '<span class="math display">\\[' not in render

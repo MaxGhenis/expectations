@@ -6,6 +6,7 @@ import pytest
 
 from forecast_uncertainty.build import add_recession_realizations, aggregate_density
 from forecast_uncertainty.ecb_spf import parse_ecb_round
+from forecast_uncertainty.measures import finite_intervals
 from forecast_uncertainty.realizations import (
     calibration_table,
     load_ecb_realizations,
@@ -18,34 +19,117 @@ SEED = ROOT / "tests" / "fixtures" / "seed"
 
 
 @pytest.fixture(scope="module")
-def prgdp_measures():
-    measures, _ = aggregate_density(parse_us_density("PRGDP"))
+def prgdp_density():
+    return parse_us_density("PRGDP")
+
+
+@pytest.fixture(scope="module")
+def prgdp_measures(prgdp_density):
+    measures, _ = aggregate_density(prgdp_density)
     return measures
 
 
-def test_next_year_q1_prgdp_matches_seed(prgdp_measures):
+@pytest.fixture(scope="module")
+def q1_next_year_reference_moments(prgdp_density):
+    """Retain the historical midpoint calculation without changing its fixtures.
+
+    Also integrate the pooled uniform histogram directly, independently of
+    round_stats, for checking the corrected production moments and coverage.
+    """
+    density = prgdp_density[
+        (prgdp_density["quarter"] == 1)
+        & (prgdp_density["horizon_class"] == "next_year")
+    ]
+    records = []
+    for year, group in density.groupby("year"):
+        bins = (
+            group[["bin_index", "midpoint", "lower", "upper"]]
+            .drop_duplicates()
+            .sort_values("bin_index")
+        )
+        probabilities = group.pivot(
+            index="response_index", columns="bin_index", values="probability"
+        ).to_numpy()
+        probabilities = probabilities[~np.isnan(probabilities).all(axis=1)]
+        probabilities = np.nan_to_num(probabilities)
+        probabilities = probabilities[np.abs(probabilities.sum(axis=1) - 100.0) < 2.0]
+        weights = probabilities / probabilities.sum(axis=1, keepdims=True)
+        midpoints = bins["midpoint"].to_numpy()
+        individual_means = weights @ midpoints
+        legacy_within = np.mean(weights @ midpoints**2 - individual_means**2)
+        legacy_between = individual_means.var(ddof=1)
+        intervals = [
+            (None if pd.isna(lower) else lower, None if pd.isna(upper) else upper)
+            for lower, upper in bins[["lower", "upper"]].itertuples(
+                index=False, name=None
+            )
+        ]
+        bounds = finite_intervals(intervals)
+        lower, upper = bounds.T
+        pooled = weights.mean(axis=0)
+        uniform_mean = pooled @ ((lower + upper) / 2.0)
+        uniform_second = pooled @ ((lower**2 + lower * upper + upper**2) / 3.0)
+        records.append(
+            {
+                "year": year,
+                "n": len(weights),
+                "within_sd": np.sqrt(legacy_within),
+                "disagreement": np.sqrt(legacy_between),
+                "total_sd": np.sqrt(legacy_within + legacy_between),
+                "share_between": legacy_between / (legacy_within + legacy_between),
+                "uniform_mean": uniform_mean,
+                "uniform_total_sd": np.sqrt(uniform_second - uniform_mean**2),
+            }
+        )
+    return pd.DataFrame(records).set_index("year")
+
+
+def test_legacy_next_year_q1_prgdp_reconstruction_matches_seed(
+    q1_next_year_reference_moments,
+):
     expected = pd.read_csv(SEED / "spf_uncertainty_disagreement.csv")
+    aligned = q1_next_year_reference_moments.loc[expected["YEAR"]]
+
+    np.testing.assert_array_equal(aligned["n"], expected["n"])
+    for actual_column, expected_column in (
+        ("within_sd", "within_sd"),
+        ("disagreement", "dis"),
+        ("total_sd", "total"),
+        ("share_between", "share_between"),
+    ):
+        np.testing.assert_allclose(
+            aligned[actual_column], expected[expected_column], rtol=0, atol=1e-9
+        )
+
+
+def test_next_year_q1_prgdp_matches_integrated_uniform_mixture(
+    prgdp_measures, q1_next_year_reference_moments
+):
     actual = prgdp_measures[
         (prgdp_measures["quarter"] == 1)
         & (prgdp_measures["horizon_class"] == "next_year")
     ].set_index("year")
-    aligned = actual.loc[expected["YEAR"]]
+    expected = q1_next_year_reference_moments.loc[actual.index]
 
+    np.testing.assert_array_equal(actual["n"], expected["n"])
     np.testing.assert_allclose(
-        aligned["within_sd"], expected["within_sd"], rtol=0, atol=1e-9
+        actual["mean"], expected["uniform_mean"], rtol=0, atol=1e-12
     )
     np.testing.assert_allclose(
-        aligned["disagreement"], expected["dis"], rtol=0, atol=1e-9
+        actual["total_sd"], expected["uniform_total_sd"], rtol=0, atol=1e-12
     )
     np.testing.assert_allclose(
-        aligned["total_sd"], expected["total"], rtol=0, atol=1e-9
+        actual["disagreement"] ** 2,
+        expected["disagreement"] ** 2 * (expected["n"] - 1) / expected["n"],
+        rtol=0,
+        atol=1e-12,
     )
-    np.testing.assert_allclose(
-        aligned["share_between"], expected["share_between"], rtol=0, atol=1e-9
-    )
+    assert (actual["within_sd"] > expected["within_sd"]).all()
 
 
-def test_next_year_q1_prgdp_calibration_flags_match_seed(prgdp_measures):
+def test_next_year_q1_prgdp_calibration_preserves_seed_errors(
+    prgdp_measures, q1_next_year_reference_moments
+):
     expected = pd.read_csv(SEED / "spf_errors.csv")
     calibration = calibration_table(prgdp_measures, load_us_realizations())
     actual = calibration[
@@ -57,7 +141,13 @@ def test_next_year_q1_prgdp_calibration_flags_match_seed(prgdp_measures):
 
     np.testing.assert_allclose(aligned["realized"], expected["g"], rtol=0, atol=1e-12)
     np.testing.assert_allclose(aligned["error"], expected["err"], rtol=0, atol=1e-12)
-    assert aligned["inside_1sd"].astype(bool).tolist() == expected["inside"].tolist()
+    moments = q1_next_year_reference_moments.loc[expected["YEAR"]]
+    legacy_inside = np.abs(expected["err"].to_numpy()) <= moments["total_sd"].to_numpy()
+    assert legacy_inside.tolist() == expected["inside"].tolist()
+    uniform_inside = (
+        np.abs(aligned["error"].to_numpy()) <= moments["uniform_total_sd"].to_numpy()
+    )
+    assert aligned["inside_1sd"].astype(bool).tolist() == uniform_inside.tolist()
 
 
 def test_documented_round_coverage_and_core_starts():
@@ -92,8 +182,8 @@ def test_hicpx_realizations_support_calendar_and_rolling_calibration():
     assert len(core) == 377
     assert core.loc["2024Dec", "realized"] == pytest.approx(2.7)
     assert core.loc["2024Dec", "observation_status"] == "A"
-    assert core.loc["2025", "realized"] == pytest.approx(2.425)
-    assert core.loc["2025", "observation_status"] == "A+E"
+    assert core.loc["2025", "realized"] == pytest.approx(2.4)
+    assert core.loc["2025", "observation_status"] == "A"
 
     forecasts = pd.DataFrame(
         [
@@ -113,27 +203,69 @@ def test_hicpx_realizations_support_calendar_and_rolling_calibration():
 
     assert calibration["target_period"].tolist() == ["2024Dec", "2025"]
     estimated = calibration["observation_status"].str.contains("E", na=False)
-    assert estimated.tolist() == [False, True]
+    assert estimated.tolist() == [False, False]
 
 
 def test_generated_hicpx_calibration_coverage():
+    """Stored calibration must agree with filtered, reconstructed source data.
+
+    Historical counts used midpoint dispersion and retained one negative source
+    probability; they are not golden values for the corrected distribution.
+    """
+    frames = []
+    for path in sorted((ROOT / "data" / "raw" / "ecb_spf").glob("*.csv")):
+        density = parse_ecb_round(path)
+        core_density = density[density["variable"] == "hicpx"]
+        if not core_density.empty:
+            frames.append(core_density)
+    measures, _ = aggregate_density(pd.concat(frames, ignore_index=True))
+    reconstructed = calibration_table(measures, load_ecb_realizations())
+
     calibration = pd.read_csv(ROOT / "outputs" / "calibration.csv")
     core = calibration[
         (calibration["survey"] == "ecb") & (calibration["variable"] == "hicpx")
     ]
-
-    assert len(core) == 176
-    assert (int(core["inside_1sd"].sum()), int(core["inside_pooled_90"].sum())) == (
-        106,
-        128,
+    keys = ["year", "quarter", "target_period"]
+    columns = [
+        "n",
+        "total_sd",
+        "q05",
+        "q95",
+        "realized",
+        "inside_1sd",
+        "inside_pooled_90",
+        "observation_status",
+    ]
+    assert not core.empty
+    pd.testing.assert_frame_equal(
+        core.set_index(keys)[columns].sort_index(),
+        reconstructed.set_index(keys)[columns].sort_index(),
+        check_dtype=False,
+        rtol=0.0,
+        atol=1e-12,
     )
 
-    actual_only = core[~core["observation_status"].str.contains("E", na=False)]
-    assert len(actual_only) == 156
-    assert (
-        int(actual_only["inside_1sd"].sum()),
-        int(actual_only["inside_pooled_90"].sum()),
-    ) == (90, 108)
+
+@pytest.mark.parametrize("variable, respondent", [("hicpx", "115"), ("rgdp", "107")])
+def test_ecb_negative_source_cells_drop_their_response(variable, respondent):
+    density = parse_ecb_round(ROOT / "data" / "raw" / "ecb_spf" / "2023Q1.csv")
+    negative = density[(density["variable"] == variable) & (density["probability"] < 0)]
+    assert len(negative) == 1
+    assert negative.iloc[0]["respondent"] == respondent
+    group = density[
+        (density["variable"] == variable)
+        & (density["target_period"] == negative.iloc[0]["target_period"])
+    ]
+    probabilities = group.pivot(
+        index="respondent", columns="bin_index", values="probability"
+    ).fillna(0.0)
+    legacy_retained = (probabilities.sum(axis=1) - 100.0).abs() < 2.0
+    assert legacy_retained.loc[respondent]
+
+    measures, coverage = aggregate_density(group)
+
+    assert measures.iloc[0]["n"] == int(legacy_retained.sum()) - 1
+    assert coverage.iloc[0]["rows_dropped"] >= 1
 
 
 def test_generated_scores_match_calibration_and_flag_benchmark_windows():

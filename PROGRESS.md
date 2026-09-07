@@ -10,11 +10,12 @@ The completed `ai-growth-divergence` revision is preserved in an isolated contin
 - Inspected source status, branch, remotes, worktrees and cached base before edits.
 - Archived the full binary working diff, index diff and all 57 changed/untracked files with SHA-256 hashes under `/Users/maxghenis/capacity-sprint-20260907/spf-closure/snapshot/`.
 - Restored the snapshot into this isolated continuation and verified every file hash before edits.
+- Preserved the completed research files verbatim; the only closure edit so far is this progress preface.
 - Confirmed `auto_reset.enabled=false` and the no-reset hold; no resets or paid compute are authorized.
 
 ## Next
 
-- Commit the preserved research revision, then run the existing test/lint checks once.
+- Run the existing test/lint checks once against the preserved revision.
 - Verify generated tables/figures from committed local snapshots and inspect the rendered manuscript.
 - Fix only actual failures; record validation, research qualifications and remaining submission/release decisions.
 - Prepare a draft PR and an offline PR handoff if GitHub remains unavailable. Do not submit, publish or merge.

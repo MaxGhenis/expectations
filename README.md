@@ -1,57 +1,60 @@
-# forecast-uncertainty
+# Growth expectations in the AI era
 
-**Live tracker: https://forecast-uncertainty.vercel.app · working paper:
-https://forecast-uncertainty.vercel.app/paper/**
+How have professional GDP forecast levels, uncertainty and high-growth probabilities changed as AI has advanced?
 
-What do professional forecasters say they don't know? This repo computes
-elicited (stated) macroeconomic forecast uncertainty from the probability
-distributions that forecasters themselves report, across every variable,
-horizon, and round of the two surveys that collect them:
+This revision centers the US and ECB Surveys of Professional Forecasters' growth outlooks. It compares Q1 surveys at fixed calendar horizons, preserves the COVID episode, and calculates upper-tail probability bounds from literal survey bins. It retains the broader all-variable tracker and calibration pipeline.
 
-- **US SPF** (Philadelphia Fed, quarterly): density forecasts for real
-  output growth (PRGDP), GDP price inflation (PRPGDP), unemployment
-  (PRUNEMP), core CPI (PRCCPI), core PCE (PRCPCE), and recession
-  probability (RECESS), plus 10-year point forecasts (RGDP10, CPI10,
-  PCE10).
-- **ECB SPF** (quarterly since 1999Q1): density forecasts for euro-area
-  HICP and core HICP inflation, real GDP growth, and unemployment at
-  one-year, two-year, and longer-term horizons.
+The paper finds limited movement toward rapid growth, with a qualification: the ECB's small high-growth tail increased. This is a descriptive result about overall growth beliefs. It does not establish AI's causal contribution or a matched unconditional disagreement with every AI scenario. See [revision findings and corrections](RESEARCH_REVISION.md).
 
-For each (survey, variable, round, target) it decomposes pooled
-uncertainty by the law of total variance:
+## Read and explore
 
-```
-total variance = mean within-forecaster variance + between-forecaster variance
-                 (individual uncertainty)          (disagreement)
-```
+- Manuscript source: [paper/index.qmd](paper/index.qmd)
+- Rendered manuscript: [HTML](site/paper/web/index.html) and [PDF](site/paper/web/index.pdf)
+- Research companion: `site/growth/` — baseline, survey-round and threshold comparisons
+- Full tracker: `site/index.html` — decomposition, fan, calibration, term structure and scores
+- Existing public release: [tracker](https://forecast-uncertainty.vercel.app) and [paper](https://forecast-uncertainty.vercel.app/paper/). The local revision is not automatically deployed.
 
-and evaluates calibration and proper scores against realized outcomes, including
-strictly expanding-window climatology and Gaussian benchmarks.
+## Reproduce
 
-## Layout
-
-- `data/raw/` — downloaded source files (see `data/raw/download.sh`)
-- `data/docs/` — survey documentation (bin schemes) as PDF + extracted text
-- `src/forecast_uncertainty/` — parsing, measures, scores, benchmarks,
-  realizations, and build
-- `outputs/` — tidy CSVs consumed by the paper and the interactive, including
-  `scores.csv`
-- `tests/` — pytest suite, incl. golden-value tests against the seed
-  pipeline (`tests/fixtures/seed/`)
-
-## Usage
+Python 3.13+ and `uv` are required. Rendering the manuscript also requires Quarto with Typst support. The lockfile pins the Python environment; Matplotlib and Jupyter are development dependencies for research artifacts.
 
 ```bash
-uv sync
-uv run python -m forecast_uncertainty.build   # writes outputs/*.csv
-uv run pytest
+uv sync --dev
+unzip -q -o data/raw/ecb_spf_individual_forecasts.zip -d data/raw/ecb_spf
+uv run python -m forecast_uncertainty.build
+uv run python scripts/build_research.py
+uv run python site/gen_data.py
+bash scripts/build_paper.sh
+uv run pytest -q
+uv run ruff check src tests scripts site/gen_data.py
+uv run ruff format --check src tests scripts site/gen_data.py
+uv run python -m http.server 8769 --directory site
 ```
 
-## Data sources
+Open `http://localhost:8769/growth/`. The paper build installs its Jupyter kernel inside this checkout's `.venv`, avoiding dependence on a global kernel or another checkout. The PDF and HTML embed the computed tables and charts.
 
-- Philadelphia Fed SPF individual files:
-  https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/survey-of-professional-forecasters
-- ECB SPF microdata (rounds 1999Q1–present):
-  https://www.ecb.europa.eu/stats/ecb_surveys/survey_of_professional_forecasters/html/index.en.html
-- Realizations: BEA/BLS via DBnomics; euro area via the ECB Data Portal
-  API. Latest vintage (see limitations in the paper draft).
+## Outputs and methods
+
+- `measures.csv`: empirical pooled moments, quantiles and disagreement. Moments, quantiles and CRPS consistently use uniform finite bins and adjacent-width closure of open tails.
+- `growth_tails.csv`: real GDP probabilities above 3%, 4%, 5% and 10%, with literal-bin lower/upper bounds. These bounds never close an open tail. Boundary points have zero mass under a continuous-outcome convention. Bounds are not statistical confidence intervals.
+- `growth_comparison.csv`: fixed-Q1 and equal-year-weight all-round comparisons across documented windows.
+- `benchmark_summary.csv`: ratio of mean CRPS on matched eligible observations, with mean row-level skill retained as a sensitivity.
+- `calibration.csv`, `scores.csv`, `coverage.csv`, `longrun_points.csv`, `recess.csv`: full-survey supporting data.
+
+Each retained respondent receives equal weight within a round. Nonfinite and out-of-range probabilities are rejected, partial missing cells count as zero, and totals must be strictly within two points of 100 before normalization. The mixture decomposition uses population variance across respondent means (`ddof=0`) and includes within-bin variance. Its moments remain conditional on the tail reconstruction; small open-tail probability does not cap the possible magnitude of growth in that tail.
+
+The full archive covers US density variables PRGDP, PRPGDP, PRUNEMP, PRCCPI and PRCPCE, plus recession probabilities and long-run point forecasts; ECB densities cover GDP, HICP, core HICP and unemployment. Historical US output concepts remain labeled separately. Only real GDP enters the current research comparisons.
+
+## Source snapshots
+
+Raw survey files and original outcome snapshots are committed. Rebuilding is offline once dependencies are installed. This revision adds official annual ECB outcome inputs with a reproducible acquisition script:
+
+```bash
+uv run python scripts/download_ecb_annual_realizations.py
+```
+
+That command refreshes annual companion inputs and their [provenance manifest](data/raw/ecb_annual_realizations_sources.json); it is not needed for reproducing the committed snapshot. Annual GDP uses growth in complete quarterly-level sums. Annual HICP/HICPX use official annual-average index-growth observations at publisher precision. Archived rolling outcomes remain unchanged. These are revised-data snapshots, not a real-time forecast evaluation.
+
+Primary sources: [Philadelphia Fed SPF](https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/survey-of-professional-forecasters), [ECB SPF](https://www.ecb.europa.eu/stats/ecb_surveys/survey_of_professional_forecasters/html/index.en.html), BEA/BLS via archived DBnomics files, and the ECB Data Portal. AI-comparator source details are in [paper/AI_COMPARATORS.md](paper/AI_COMPARATORS.md).
+
+Older planning documents and reports are retained with supersession notices. Their numerical claims should not be substituted for the regenerated outputs.

@@ -1,4 +1,4 @@
-"""Latest-vintage realization series and forecast-calibration helpers.
+"""Archived realization series and forecast-calibration helpers.
 
 The local files contain revised observations, not the real-time vintages that were
 available when forecasts were submitted.  Loaders therefore expose source metadata
@@ -8,6 +8,7 @@ and never fill incomplete calendar years or missing target concepts.
 from __future__ import annotations
 
 import calendar
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -152,11 +153,13 @@ def _load_us_realizations(
 def load_ecb_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
     """Return calendar-year and rolling-period ECB SPF realizations.
 
-    Calendar-year values are arithmetic averages of the complete set of local
-    monthly or quarterly year-on-year observations, matching the supplied source
-    series and the SPF's calendar-year-average convention.  Rolling targets use the
-    exact target month or quarter.  Observation statuses are retained so rows
-    containing ECB estimates can be identified in calibration sensitivity checks.
+    Calendar GDP growth uses the ratio of consecutive complete years' summed
+    quarterly GDP levels. Calendar inflation uses the official annual-average
+    index-growth series (AVR), published to 0.1 percentage point. Neither averages
+    subannual year-on-year growth rates. Annual unemployment remains the mean of
+    twelve monthly rates. Rolling targets retain their archived source snapshots;
+    annual companion retrieval dates and the unknown rolling retrieval dates are
+    distinguished in source metadata. Observation statuses follow each source.
     """
     directory = Path(raw_dir)
     specifications = (
@@ -165,36 +168,33 @@ def load_ecb_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame
             directory / "ecb_ea_hicp_yoy_monthly.csv",
             "monthly",
             "year_on_year_hicp_inflation",
-            "ECB Data Portal ICP.M.U2.N.000000.4.ANR (latest vintage)",
+            "ECB Data Portal ICP.M.U2.N.000000.4.ANR",
         ),
         (
             "hicpx",
             directory / "ecb_ea_hicpx_yoy_monthly.csv",
             "monthly",
             "year_on_year_hicpx_inflation",
-            "ECB Data Portal ICP.M.U2.N.XEF000.4.ANR (latest vintage)",
+            "ECB Data Portal ICP.M.U2.N.XEF000.4.ANR",
         ),
         (
             "rgdp",
             directory / "ecb_ea_rgdp_yoy_quarterly.csv",
             "quarterly",
             "year_on_year_real_gdp_growth",
-            (
-                "ECB Data Portal "
-                "MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY "
-                "(latest vintage)"
-            ),
+            ("ECB Data Portal MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY"),
         ),
         (
             "unemp",
             directory / "ecb_ea_unemployment_monthly.csv",
             "monthly",
             "unemployment_rate",
-            "ECB Data Portal LFSI.M.I9.S.UNEHRT.TOTAL0.15_74.T (latest vintage)",
+            "ECB Data Portal LFSI.M.I9.S.UNEHRT.TOTAL0.15_74.T",
         ),
     )
     frames: list[pd.DataFrame] = []
     for variable, path, frequency, concept, source in specifications:
+        source += " (archived snapshot; original retrieval date unrecorded)"
         observations = _load_ecb_series(path)
         frames.append(
             _ecb_rolling_rows(
@@ -205,16 +205,91 @@ def load_ecb_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame
                 source=source,
             )
         )
-        frames.append(
-            _ecb_annual_rows(
+        if variable == "unemp":
+            annual = _ecb_annual_rows(
                 observations,
                 variable=variable,
                 frequency=frequency,
                 concept=f"calendar_year_average_{concept}",
                 source=source,
             )
-        )
+        else:
+            annual = _load_ecb_calendar_growth(directory, variable=variable)
+            # Preserve the existing outcome history's complete calendar targets;
+            # missing companion years must fail rather than silently drop scores.
+            expected_years = set(
+                _complete_period_statuses(observations, frequency=frequency)
+            )
+            missing_years = expected_years.difference(annual["target_period"])
+            if missing_years:
+                raise ValueError(
+                    f"Missing ECB {variable} annual companion years: "
+                    f"{sorted(missing_years)}"
+                )
+            annual = annual[annual["target_period"].isin(expected_years)]
+        frames.append(annual)
     return _finish_realizations(pd.concat(frames, ignore_index=True))
+
+
+def _load_ecb_calendar_growth(directory: Path, *, variable: str) -> pd.DataFrame:
+    if variable == "rgdp":
+        filename = "ecb_ea_rgdp_level_quarterly.csv"
+        expected_key = "MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N"
+    else:
+        filename = f"ecb_ea_{variable}_growth_annual.csv"
+        item = "000000" if variable == "hicp" else "XEF000"
+        expected_key = f"ICP.A.U2.N.{item}.4.AVR"
+    observations, source = _load_verified_ecb_companion(
+        directory, filename=filename, expected_key=expected_key
+    )
+    if variable == "rgdp":
+        return _ecb_level_annual_rows(
+            observations,
+            variable=variable,
+            frequency="quarterly",
+            concept="annual_average_real_gdp_growth",
+            source=source,
+        )
+    if not observations["TIME_PERIOD"].str.fullmatch(r"\d{4}").all():
+        raise ValueError(f"Invalid annual ECB periods in {filename}")
+    values = observations.set_index("TIME_PERIOD")["OBS_VALUE"]
+    frame = _annual_rows(
+        values,
+        survey="ecb_spf",
+        variable=variable,
+        start_year=0,
+        concept=f"annual_average_{variable}_index_growth",
+        source=source + "; official AVR rounded to 0.1 percentage point",
+    )
+    statuses = observations.set_index("TIME_PERIOD")["OBS_STATUS"]
+    frame["observation_status"] = frame["target_period"].map(statuses)
+    return frame
+
+
+def _load_verified_ecb_companion(
+    directory: Path, *, filename: str, expected_key: str
+) -> tuple[pd.DataFrame, str]:
+    manifest = json.loads(
+        (directory / "ecb_annual_realizations_sources.json").read_text()
+    )
+    entry = manifest["sources"][filename]
+    path = directory / filename
+    flow, series = expected_key.split(".", 1)
+    expected_url = (
+        f"https://data-api.ecb.europa.eu/service/data/{flow}/{series}?format=csvdata"
+    )
+    if entry["series_key"] != expected_key or entry["url"] != expected_url:
+        raise ValueError(f"Unexpected ECB annual source identity for {filename}")
+    if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+        raise ValueError(f"ECB annual source checksum mismatch for {filename}")
+    keys = pd.read_csv(path, usecols=["KEY"])["KEY"]
+    if keys.empty or not keys.eq(expected_key).all():
+        raise ValueError(f"Unexpected ECB series key in {filename}")
+    source = (
+        f"ECB Data Portal {expected_key} (annual companion retrieved "
+        f"{manifest['retrieved_at_utc']}; rolling archive retrieval date unrecorded)"
+    )
+    return _load_ecb_series(path), source
 
 
 def load_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
@@ -528,6 +603,45 @@ def _ecb_annual_rows(
         source=source,
     )
     frame["observation_status"] = frame["target_period"].map(statuses).astype("string")
+    return frame
+
+
+def _ecb_level_annual_rows(
+    observations: pd.DataFrame,
+    *,
+    variable: str,
+    frequency: str,
+    concept: str,
+    source: str,
+) -> pd.DataFrame:
+    """Growth in annual levels, requiring both full consecutive years.
+
+    The ratio of two complete annual means equals the ratio of their sums;
+    this implements both annual-average price-index growth and summed GDP growth.
+    Status flags include every source observation in numerator and denominator.
+    """
+    if (observations["OBS_VALUE"] <= 0).any():
+        raise ValueError("Annual growth requires strictly positive ECB levels")
+    levels = observations.set_index("TIME_PERIOD")["OBS_VALUE"]
+    annual = _complete_period_averages(levels, frequency=frequency)
+    growth = _annual_growth(annual)
+    statuses = _complete_period_statuses(observations, frequency=frequency)
+    frame = _annual_rows(
+        growth,
+        survey="ecb_spf",
+        variable=variable,
+        start_year=0,
+        concept=concept,
+        source=source,
+    )
+    frame["observation_status"] = frame["target_period"].map(
+        lambda year: "+".join(
+            sorted(
+                set(statuses[year].split("+"))
+                | set(statuses[str(int(year) - 1)].split("+"))
+            )
+        )
+    )
     return frame
 
 
