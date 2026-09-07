@@ -2,26 +2,26 @@
 
 ## State
 
-The completed `ai-growth-divergence` revision is preserved in an isolated continuation on `ai-growth-divergence-closure-20260907`. The source checkout remains untouched. This closure does not change the research question or model choices. Remote verification is blocked by unavailable GitHub DNS/network access; the starting commit is the exact source HEAD and cached `origin/main`, `ade2384f269d72456ec65fc4d0e4172b14c650d9`.
+The completed revision is committed in the isolated `/Users/maxghenis/forecast-uncertainty-spf-closure-20260907` worktree on `ai-growth-divergence-closure-20260907`. Local validation is complete; live-base verification, a normal Quarto re-render and remote draft-PR creation remain blocked by sandbox networking/socket restrictions. Nothing was published, submitted or merged. The source checkout remains at its original HEAD and dirty state.
 
 ## Done
 
-- Read global instructions and `RESEARCH_REVISION.md`; no project AGENTS/CLAUDE files are present.
-- Inspected source status, branch, remotes, worktrees and cached base before edits.
-- Archived the full binary working diff, index diff and all 57 changed/untracked files with SHA-256 hashes under `/Users/maxghenis/capacity-sprint-20260907/spf-closure/snapshot/`.
-- Restored the snapshot into this isolated continuation and verified every file hash before edits.
-- The preserved revision passed all 130 tests (three known spreadsheet header/footer warnings), Ruff lint and formatting.
-- Full revision whitespace checking found publisher CRLF and generated SVG trailing spaces, missed when those files were untracked. Publisher bytes are retained with explicit Git attributes; SVG output now has deterministic IDs, no creation timestamp and no trailing whitespace. Repeated figure builds are byte-identical; normalized SVG structure and all PNG pixels are unchanged.
-- Preserved the completed research files verbatim; later closure changes concern artifact packaging and verification only.
-- Confirmed `auto_reset.enabled=false` and the no-reset hold; no resets or paid compute are authorized.
+- Read global instructions and `RESEARCH_REVISION.md`; no project AGENTS/CLAUDE files were present. Inspected Git state, remotes, worktrees and cached base before edits.
+- Archived binary working/index diffs and all 57 changed/untracked files with SHA-256 hashes in `/Users/maxghenis/capacity-sprint-20260907/spf-closure/snapshot/`; verified the restored continuation byte for byte.
+- Committed the progress checkpoint and complete research revision separately. Source HEAD and cached `origin/main` were `ade2384f269d72456ec65fc4d0e4172b14c650d9`; live fetch failed. An initial progress-only commit mistakenly made in the source worktree was reversed immediately; HEAD, status, both diffs and all source hashes were verified identical to the snapshot.
+- Ran the existing suite once: 130 tests passed (three spreadsheet header/footer warnings), Ruff lint and formatting passed.
+- Reproduced all nine output CSVs, companion JSON and three PNG figures exactly from the local snapshots. Tracker content matches except build/file-time metadata. Verified all five new ECB source hashes.
+- Corrected actual packaging issues: recognize publisher CRLF without changing bytes; emit deterministic SVG identifiers, omit creation dates and strip generated trailing whitespace. Repeated figure builds match byte for byte; normalized SVG structure and PNG bytes are unchanged. Full revision whitespace checks pass.
+- Executed all four original manuscript Python chunks without a socket: three generated tables match HTML exactly, 23 inline computed values occur in HTML/PDF, two MathML equations and three embedded figures are present. Visually inspected all eight PDF pages. JavaScript syntax checks pass; retained prior browser/independent-review evidence without repeating it.
+- Wrote `SUBMISSION_READINESS.md` and prepared a draft PR title/body plus an offline handoff in the lane directory. Normal Quarto rendering failed at Jupyter local socket binding; preserved HTML/PDF bytes remain unchanged.
+- Confirmed automatic resets stay disabled and the no-reset hold stays enabled; used no resets, paid overflow, new paid compute or external messaging.
 
 ## Next
 
-- Complete manuscript calculation and preserved-render inspection; the normal Quarto re-render is blocked by sandbox denial of Jupyter local socket binding.
-- Verify generated tables/figures from committed local snapshots and inspect the rendered manuscript.
-- Offline full-pipeline reproduction matches all nine output CSVs and companion JSON exactly; tracker data matches apart from file-time/build-date metadata.
-- Fix only actual failures; record validation, research qualifications and remaining submission/release decisions.
-- Prepare a draft PR and an offline PR handoff if GitHub remains unavailable. Do not submit, publish or merge.
+1. Verify live ownership, remote permissions and existing PRs; fetch current main and integrate any change safely in this continuation. GitHub was unreachable (`Could not resolve host: github.com`).
+2. Run `bash scripts/build_paper.sh` where Jupyter can bind local sockets, inspect any artifact diff and commit any coherent change. This sandbox returned `PermissionError: [Errno 1] Operation not permitted`.
+3. Push this continuation and create the prepared draft PR after live checks. Follow the lane's `PR_HANDOFF.md`; no force push, merge, publication or submission is authorized.
+4. Max chooses the outlet/release route and approves final framing and release. Keep the current model choices and 2026Q3 snapshot unless a separate refresh is authorized.
 
 ---
 
