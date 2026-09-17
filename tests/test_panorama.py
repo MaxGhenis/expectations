@@ -297,6 +297,16 @@ def test_written_tables_match_the_module(
         assert written.exists(), f"{stem}.csv is missing; run scripts/build_panorama.py"
         fresh = tmp_path / f"{stem}.csv"
         frame.to_csv(fresh, index=False)
-        assert fresh.read_text() == written.read_text(), (
-            f"{stem}.csv is stale; run scripts/build_panorama.py"
-        )
+        # Compare values, not bytes: the last float digit differs across platforms.
+        try:
+            pd.testing.assert_frame_equal(
+                pd.read_csv(fresh),
+                pd.read_csv(written),
+                check_exact=False,
+                rtol=1e-9,
+                atol=1e-12,
+            )
+        except AssertionError as error:
+            raise AssertionError(
+                f"{stem}.csv is stale; run scripts/build_panorama.py"
+            ) from error
