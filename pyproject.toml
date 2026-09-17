@@ -1,5 +1,5 @@
 [project]
-name = "forecast-uncertainty"
+name = "expectations"
 version = "0.1.0"
 description = "Elicited macroeconomic forecast uncertainty: US SPF and ECB SPF density forecasts, decomposed and pooled over time"
 requires-python = ">=3.13"

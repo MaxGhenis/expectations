@@ -1,7 +1,7 @@
-# forecast-uncertainty
+# expectations
 
-**Live tracker: https://forecast-uncertainty.vercel.app · working paper:
-https://forecast-uncertainty.vercel.app/paper/**
+**Live tracker: https://maxghenis.com/expectations/ · working paper:
+https://maxghenis.com/expectations/paper/**
 
 What do professional forecasters say they don't know? This repo computes
 elicited (stated) macroeconomic forecast uncertainty from the probability

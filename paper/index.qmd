@@ -15,7 +15,7 @@ format:
     number-sections: true
 execute:
   echo: false
-jupyter: forecast-uncertainty
+jupyter: expectations
 ---
 
 ```{python}
@@ -351,7 +351,7 @@ shared outcome are correlated, so miss counts and score comparisons are
 descriptive. Benchmark windows are expanding with a ten-observation
 minimum; euro-area annual histories are short. The pipeline, tests, and
 every series behind the live interactive are open source at
-<https://github.com/MaxGhenis/forecast-uncertainty>.
+<https://github.com/MaxGhenis/expectations>.
 
 ## References {.unnumbered}
 
