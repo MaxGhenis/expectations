@@ -1,5 +1,5 @@
 #!/bin/bash
-# Raw data downloads for the forecast-uncertainty pipeline.
+# Raw data downloads for the expectations pipeline.
 # Sources: Philadelphia Fed SPF individual files + documentation; ECB SPF
 # microdata; FRED realization series. Run from data/raw/.
 set -uo pipefail
