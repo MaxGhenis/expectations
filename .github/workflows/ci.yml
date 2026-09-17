@@ -12,6 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --dev
-      - run: uv run ruff format --check src tests site/gen_data.py
-      - run: uv run ruff check src tests site/gen_data.py
+      - run: uv run ruff format --check src tests scripts site/gen_data.py
+      - run: uv run ruff check src tests scripts site/gen_data.py
+      - run: unzip -q data/raw/ecb_spf_individual_forecasts.zip -d data/raw/ecb_spf
       - run: uv run pytest -q

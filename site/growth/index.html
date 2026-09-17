@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Growth expectations in the AI era</title>
+<meta name="description" content="GDP forecast levels, uncertainty and high-growth probabilities in the US and ECB Surveys of Professional Forecasters.">
+<style>
+:root { color-scheme: light; --ink:#142531; --muted:#53616b; --line:#dce2e6; --blue:#2469a8; }
+* { box-sizing:border-box; }
+body { margin:0; background:#fafbf9; color:var(--ink); font:16px/1.6 system-ui,sans-serif; }
+main { max-width:1080px; margin:auto; padding:36px 24px 70px; }
+nav { display:flex; flex-wrap:wrap; gap:24px; margin-bottom:48px; font-size:14px; }
+a { color:var(--blue); text-underline-offset:3px; }
+.eyebrow { text-transform:uppercase; font-size:12px; letter-spacing:.12em; font-weight:700; color:var(--blue); }
+h1 { font-size:clamp(32px,5vw,54px); line-height:1.12; letter-spacing:-.035em; max-width:760px; margin:16px 0 24px; }
+.lede { max-width:760px; font-size:20px; color:var(--muted); }
+h2 { margin:48px 0 10px; font-size:25px; letter-spacing:-.02em; }
+p { max-width:810px; }
+.controls { display:flex; flex-wrap:wrap; gap:20px; border-top:1px solid var(--line); padding-top:20px; margin-top:28px; }
+label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:5px; }
+select { font:inherit; font-size:15px; color:var(--ink); border:1px solid #b7c2ca; border-radius:4px; background:white; padding:9px 12px; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; min-width:650px; border-collapse:collapse; margin:24px 0; font-size:14px; font-variant-numeric:tabular-nums; }
+th,td { padding:12px 10px; border-bottom:1px solid var(--line); text-align:right; }
+th:first-child,td:first-child { text-align:left; min-width:180px; }
+th { font-weight:600; vertical-align:bottom; }
+.note,figcaption { font-size:13px; color:var(--muted); max-width:850px; }
+figure { margin:26px 0 42px; }
+img { display:block; max-width:100%; height:auto; background:white; }
+figcaption { margin-top:12px; }
+details { padding:20px 0; border-top:1px solid var(--line); }
+summary { cursor:pointer; font-weight:600; }
+footer { border-top:1px solid var(--line); margin-top:40px; padding-top:20px; font-size:13px; color:var(--muted); }
+:focus-visible { outline:3px solid var(--blue); outline-offset:3px; }
+@media(max-width:640px) { main { padding:24px 16px 50px; } nav { margin-bottom:32px; } .lede { font-size:18px; } }
+</style>
+</head>
+<body><main>
+<nav aria-label="Research navigation"><a href="../">Full forecast tracker</a><a href="paper/">Working paper</a><a href="paper/web/index.pdf?v=r3-20260905">Download PDF</a></nav>
+<p class="eyebrow">Survey evidence · US and euro area · through 2026Q3</p>
+<h1>Growth expectations in the AI era</h1>
+<p class="lede">Professional GDP forecasts show little shift toward faster growth or much greater uncertainty. Their upper tails help reveal how much room remains for unusually rapid growth.</p>
+<p>The evidence concerns the overall growth outlook. These surveys do not ask respondents to attribute their forecasts to AI. A comparison with AI scenarios must match the economy, outcome, horizon and assumptions.</p>
+
+<h2>Compare the outlook before and after COVID</h2>
+<p>Each cell shows the earlier period → 2025–26. The default uses Q1 surveys at a fixed calendar horizon. Change the baseline, survey rounds or growth threshold to inspect sensitivity.</p>
+<div class="controls">
+<label>Earlier period<select id="baseline"><option value="2015–19">2015–19</option><option value="2010–19">2010–19</option><option value="2010–14">2010–14</option><option value="2020–24">2020–24 (COVID period)</option></select></label>
+<label>Survey rounds<select id="rounds"><option value="Q1">Q1 only</option><option value="all (equal year weight)">All rounds, equal year weight</option></select></label>
+<label>Growth threshold<select id="threshold"><option value="4">Above 4%</option><option value="3">Above 3%</option><option value="5">Above 5%</option><option value="10">Above 10%</option></select></label>
+</div>
+<div class="table-wrap" id="comparison" aria-live="polite">Loading computed comparisons…</div>
+<p class="note" id="sample-note"></p>
+<p class="note">A probability range is the lower and upper bound allowed by the reported bins. It is not a confidence interval. For example, a survey bin covering all growth above 4% cannot distinguish 5% growth from 10% growth. We never impose a zero probability by closing that open tail.</p>
+
+<h2>Forecast levels and uncertainty over time</h2>
+<figure><img src="../figures/growth-outlook.png" width="1584" height="1620" alt="Three time-series panels show Q1 GDP forecast means and pooled 90 percent intervals for US next-year, US three-year-ahead and euro-area four-year-ahead growth."><figcaption>Q1 survey rounds. Bands are reconstructed 5th–95th percentiles, not confidence intervals for the mean. Gray shading marks 2020–24, including the wide-bin era in the US; the dotted line marks late 2022 as a visual reference, not an identified treatment date.</figcaption></figure>
+<figure><img src="../figures/growth-spread.png" width="1656" height="1152" alt="Pooled GDP forecast standard deviations and interquartile ranges alongside the US ten-year median point forecast."><figcaption>SD and IQR describe the pooled predictive distribution. The ten-year panel contains point forecasts of average annual growth, so it does not measure ten-year predictive uncertainty. COVID and bin changes remain visible.</figcaption></figure>
+
+<h2>What remains in the upper tail?</h2>
+<figure><img src="../figures/growth-upper-tails.png" width="1656" height="1476" alt="Bounds on probabilities of growth above four and five percent over time for three survey horizons."><figcaption>Solid and dashed lines are upper and lower probability bounds. Shading between them is uncertainty caused by bin resolution. US probabilities above 4% declined between the five 2015–19 Q1 rounds and the two 2025–26 rounds. Some ECB upper-tail probabilities increased from a low base; the paper reports that increase rather than treating every tail as unchanged.</figcaption></figure>
+
+<details><summary>What these forecasts tell us about AI</summary><p>Stable medians alone could coexist with a small chance of a boom. The combination of central forecasts, reconstructed distribution widths and directly bounded upper-tail probabilities is more informative. It limits the reported probability of fast growth within the surveyed horizons. Small open-tail probability does not bound how large growth could be in that tail. These results also do not identify beliefs about AI arriving after those horizons, offsetting economic forces, or the reasons for a respondent’s forecast.</p><p>The US density horizon reaches three calendar years ahead. The ECB’s longer-term question reaches four years ahead in Q1/Q2 and five years ahead in Q3/Q4. Neither supplies a ten-year GDP density. AI scenarios conditional on advanced AI arriving, global outcomes and changes in GDP levels cannot be compared directly with these unconditional regional growth probabilities. The paper audits those comparisons and does not claim an established, matched disagreement between two populations.</p></details>
+<details><summary>Data and methods</summary><p>Respondents receive equal weight within each round. Invalid probabilities are excluded and retained histograms are normalized. Moments, quantiles and CRPS use a uniform distribution within each finite bin; open tails are closed at one adjacent-bin width for those reconstructed statistics. High-growth probability bounds use the literal open bins instead. All-round period summaries average within year before averaging across years. The underlying panel can change between rounds.</p><p>Annual ECB GDP outcomes use the ECB's published annual growth rate; annual inflation uses the official annual-average index-growth series. Realizations are current or archived latest-vintage snapshots, not a real-time evaluation. The paper documents acquisition dates and score aggregation.</p></details>
+<footer>Source: Philadelphia Fed and ECB Surveys of Professional Forecasters. The primary figures use Q1 rounds through 2026Q1; all-round comparisons extend through 2026Q3. <a href="paper/">Read the methods and source comparisons</a> · <a href="https://github.com/MaxGhenis/expectations">Source repository</a></footer>
+</main>
+<script>
+const ids = ['baseline','rounds','threshold'];
+let records;
+const format = value => Number(value).toFixed(2);
+function probability(row) {
+  const lo = 100 * row.probability_lower, hi = 100 * row.probability_upper;
+  if (Math.abs(lo-hi) < 1e-8) return format(lo) + '%';
+  return format(lo) + '–' + format(hi) + '%';
+}
+function render() {
+  const baseline=document.getElementById('baseline').value;
+  const rounds=document.getElementById('rounds').value;
+  const threshold=Number(document.getElementById('threshold').value);
+  const selected=records.filter(r=>r.rounds===rounds && r.threshold===threshold);
+  const names=[...new Set(selected.map(r=>r.series))];
+  const rows=names.map(name=> {
+    const earlier=selected.find(r=>r.series===name&&r.window===baseline);
+    const recent=selected.find(r=>r.series===name&&r.window==='2025–26');
+    if(!earlier||!recent) return '';
+    const label=name==='ECB longer term' ? (rounds==='Q1' ? 'ECB four years ahead' : 'ECB four–five years ahead') : name;
+    return `<tr><td>${label}</td><td>${format(earlier.mean)} → ${format(recent.mean)}</td><td>${format(earlier.total_sd)} → ${format(recent.total_sd)}</td><td>${probability(earlier)} → ${probability(recent)}</td></tr>`;
+  }).join('');
+  document.getElementById('comparison').innerHTML=`<table><caption>${baseline} → 2025–26</caption><thead><tr><th scope="col">Forecast</th><th scope="col">Mean growth (%)</th><th scope="col">Pooled SD (pp)</th><th scope="col">Probability above ${threshold}%</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('sample-note').textContent=rounds==='Q1' ? 'Recent period: two Q1 rounds, 2025 and 2026. A small descriptive comparison, not a statistical equivalence test.' : 'Each survey year has equal weight; 2026 includes Q1–Q3. Within-year horizon lengths vary, and ECB longer-term horizons alternate between four and five years.';
+  const params=new URLSearchParams(ids.map(id=>[id,document.getElementById(id).value]));
+  history.replaceState(null,'','#'+params);
+}
+fetch('data.json').then(r=>{if(!r.ok)throw Error(r.status);return r.json();}).then(data=>{
+  records=data.comparison;
+  const params=new URLSearchParams(location.hash.slice(1));
+  ids.forEach(id=>{ const select=document.getElementById(id); if([...select.options].some(o=>o.value===params.get(id)))select.value=params.get(id); select.addEventListener('change',render); });
+  render();
+}).catch(()=>{document.getElementById('comparison').textContent='The comparison data could not load. Open this page through a web server, or use the tables in the working paper.';});
+</script>
+</body></html>

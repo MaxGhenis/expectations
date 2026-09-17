@@ -1,7 +1,7 @@
 survey,variable,rounds_parsed,first_round,last_round,target_groups,rows_kept,rows_dropped,rows_all_nan,note
 ecb,hicp,111,1999Q1,2026Q3,633,27698,3,7870,
-ecb,hicpx,39,2017Q1,2026Q3,234,6455,3,5395,
-ecb,rgdp,111,1999Q1,2026Q3,633,27120,3,8481,
+ecb,hicpx,39,2017Q1,2026Q3,234,6454,4,5395,
+ecb,rgdp,111,1999Q1,2026Q3,633,27119,4,8481,
 ecb,unemp,111,1999Q1,2026Q3,633,24980,9,9879,
 us,CPI10,140,1991Q4,2026Q3,140,4664,0,0,not subject to histogram sum filter
 us,PCE10,79,2007Q1,2026Q3,79,2506,0,0,not subject to histogram sum filter

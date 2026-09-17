@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from forecast_uncertainty.benchmarks import add_benchmark_scores
+from forecast_uncertainty.growth import growth_tail_table
 from forecast_uncertainty.measures import round_stats
 from forecast_uncertainty.realizations import (
     calibration_table,
@@ -227,7 +228,7 @@ def build_outputs(
     raw_dir: str | Path = RAW_DIR,
     output_dir: str | Path = OUTPUT_DIR,
 ) -> dict[str, pd.DataFrame]:
-    """Run the complete local pipeline and write the six deliverable CSVs."""
+    """Run the local pipeline, including GDP tail probability bounds."""
     from forecast_uncertainty.ecb_spf import parse_ecb_round
     from forecast_uncertainty.us_spf import (
         DENSITY_VARIABLES,
@@ -281,11 +282,10 @@ def build_outputs(
     realizations = load_realizations(raw)
     recess = add_recession_realizations(recess, realizations)
     calibration = _sort_round_targets(calibration_table(measures, realizations))
-    distribution_scores = score_density_calibration(
-        calibration,
-        pd.concat(score_density_frames, ignore_index=True),
-    )
+    all_densities = pd.concat(score_density_frames, ignore_index=True)
+    distribution_scores = score_density_calibration(calibration, all_densities)
     scores = _sort_round_targets(add_benchmark_scores(distribution_scores, raw_dir=raw))
+    growth_tails = _sort_round_targets(growth_tail_table(all_densities))
 
     coverage = pd.concat(
         [
@@ -304,6 +304,7 @@ def build_outputs(
         "calibration.csv": calibration,
         "scores.csv": scores,
         "coverage.csv": coverage,
+        "growth_tails.csv": growth_tails,
     }
     for filename, frame in outputs.items():
         frame.to_csv(destination / filename, index=False)

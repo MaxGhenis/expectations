@@ -1,3 +1,5 @@
+> Historical development document. Superseded for current findings and methods by the September 2026 growth-beliefs revision: see `RESEARCH_REVISION.md`, `paper/index.qmd`, and regenerated `outputs/`. Numbers below may use the former midpoint/sample-variance convention and approximate annual outcomes.
+
 # Ground-truth sheet
 
 Every claim the paper may state, with its verification status. Writers cite
