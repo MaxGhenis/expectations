@@ -1,5 +1,7 @@
 # Submission and release readiness
 
+> Dated record of the 7 September 2026 closure. The 17 September revision supersedes its counts and scope: the repository now carries two papers (the panorama at `paper/index.qmd`, the growth note at `paper/growth/index.qmd`), seven pinned ECB sources, and regenerated outputs. See `README.md`.
+
 The September 2026 revision is preserved and locally validated on `ai-growth-divergence-closure-20260907`. It is ready for substantive review through a draft PR. Submission, publication and merging remain pending.
 
 The paper supports a descriptive professional-growth baseline: central forecasts declined, reconstructed uncertainty changed modestly, US probabilities above 4% fell, and the ECB's small longer-term tail increased. Retain the following qualifications in any submission or release:

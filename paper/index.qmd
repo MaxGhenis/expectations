@@ -1,0 +1,765 @@
+---
+title: "What do forecasters say they don't know?"
+subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r3"
+author:
+  - name: Max Ghenis
+date: 2026-09-17
+bibliography: references.bib
+csl: chicago-author-date.csl
+bibliography-title: References
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: cosmo
+    embed-resources: true
+    html-math-method: mathml
+    format-links: false
+  typst:
+    number-sections: true
+    fontsize: 10pt
+    papersize: a4
+execute:
+  echo: false
+jupyter: forecast-uncertainty-local
+---
+
+```{python}
+#| include: false
+from pathlib import Path
+
+import pandas as pd
+from IPython.display import Markdown, display
+
+ROOT = next(
+    p
+    for p in [Path.cwd(), *Path.cwd().parents]
+    if (p / "outputs" / "measures.csv").exists()
+)
+OUT = ROOT / "outputs"
+m = pd.read_csv(OUT / "measures.csv")
+s = pd.read_csv(OUT / "scores.csv")
+cal = pd.read_csv(OUT / "calibration.csv")
+lr = pd.read_csv(OUT / "longrun_points.csv")
+seed_fan = pd.read_csv(ROOT / "tests" / "fixtures" / "seed" / "spf_nextyear_consensus.csv")
+
+# Panorama tables. Every summary stated in this manuscript reads one of these,
+# so the prose cannot drift from the pipeline. They are written by
+# scripts/build_panorama.py from src/forecast_uncertainty/panorama.py, whose
+# docstring records the sample, balancing and skill conventions.
+PANORAMA = ("1", "2", "3", "4", "5", "5_clusters", "6", "7", "7_gain", "8", "9", "10")
+pan = {name: pd.read_csv(OUT / f"panorama_{name}.csv") for name in PANORAMA}
+p1 = pan["1"].set_index(["survey", "variable"]).sort_index()
+p2 = pan["2"].set_index(["survey", "variable"]).sort_index()
+p3 = pan["3"].set_index(["survey", "variable", "horizon_key"]).sort_index()
+p5 = pan["5"].set_index(["survey", "variable", "sample"]).sort_index()
+p6 = pan["6"].set_index(["survey", "variable", "horizon_key"]).sort_index()
+p7 = pan["7"].set_index(["survey", "variable"]).sort_index()
+
+
+def table(headers, rows):
+    """Render a Markdown table so Quarto keeps it in both HTML and PDF."""
+    head = "| " + " | ".join(headers) + " |"
+    rule = "|" + "|".join(["---"] * len(headers)) + "|"
+    body = "\n".join("| " + " | ".join(map(str, row)) + " |" for row in rows)
+    display(Markdown("\n".join([head, rule, body])))
+
+
+def num(value, digits=2):
+    return f"{value:.{digits}f}"
+
+
+def pct(value, digits=0):
+    return f"{abs(value):.{digits}f}"
+
+
+def arrow(early, late, digits=1):
+    return f"{num(early, digits)} \u2192 {num(late, digits)}"
+
+
+# US next-year growth, Q1 rounds (the seed-validated series).
+g = m[
+    (m.survey == "us") & (m.variable == "PRGDP") & (m.quarter == 1)
+    & (m.horizon_class == "next_year") & (m.year >= 1992)
+].set_index("year")
+tot = g.total_sd
+pre = tot.loc[1992:2020]
+dec_1019 = tot.loc[2010:2019].mean()
+dec_2024 = tot.loc[2020:2024].mean()
+
+# Coverage: Q1 next-year US growth.
+cg = cal[
+    (cal.survey == "us") & (cal.variable == "PRGDP") & (cal.quarter == 1)
+    & (cal.horizon_class == "next_year")
+]
+cov = cg.inside_1sd.mean()
+cov_row = p5.loc[("us", "PRGDP", "Q1 next year")]
+
+# The 2026 pair: across-forecaster spread of density means (next year) against
+# the ten-year point forecasts. Both are cross-sectional spreads of central
+# tendencies (disagreement), not predictive intervals.
+ny26 = seed_fan[seed_fan.t == 2026].iloc[0]
+iqr_ny = ny26.p75 - ny26.p25
+rg10 = lr[(lr.variable == "RGDP10") & (lr.year == 2026)].iloc[0]
+
+# Longest run of consecutive missed target years in the Q1 next-year series,
+# the series the coverage sentence describes.
+missed = sorted((cg.loc[~cg.inside_1sd.astype(bool), "year"] + 1).astype(int))
+best_run, run_start = (0, None, None), None
+for i, year in enumerate(missed):
+    if i == 0 or year != missed[i - 1] + 1:
+        run_start = year
+    if year - run_start + 1 > best_run[0]:
+        best_run = (year - run_start + 1, run_start, year)
+WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
+
+# Proper scores. Skill is the ratio-of-means definition; the pooling gain is
+# the same ratio applied to the average individual forecaster.
+crps_gain = 100 * (1 - s.crps_pooled.mean() / s.crps_individual_mean.mean())
+gain_cells = pan["7_gain"].gain_pct
+gauss_losers = p7[p7.skill_pct_gaussian < 0]
+ecb_coverage = pan["5"]
+ecb_coverage = ecb_coverage[
+    (ecb_coverage.survey == "ecb") & (ecb_coverage["sample"] == "all horizons")
+].inside_1sd_pct
+inflation_tails = pan["8"]
+inflation_tails = inflation_tails[
+    (inflation_tails.window == "2020\u201322")
+    & inflation_tails.variable.isin(["PRPGDP", "PRCCPI", "PRCPCE", "hicp", "hicpx"])
+].ratio_95_over_05
+
+lt = p6.loc[("ecb", "hicp", "longer_term")]
+roll = p6.loc[("ecb", "hicp", "rolling_1y")]
+
+# Report order for the panorama tables: US variables, then euro area.
+ORDER = [
+    ("us", "PRGDP"),
+    ("us", "PRPGDP"),
+    ("us", "PRUNEMP"),
+    ("us", "PRCCPI"),
+    ("us", "PRCPCE"),
+    ("ecb", "hicp"),
+    ("ecb", "hicpx"),
+    ("ecb", "rgdp"),
+    ("ecb", "unemp"),
+]
+
+v = dict(
+    t1992=num(tot.loc[1992]),
+    mean_1992_2020=num(pre.mean()),
+    t2021=num(tot.loc[2021]),
+    t2026=num(tot.loc[2026]),
+    dec_1019=num(dec_1019),
+    dec_2024=num(dec_2024),
+    cov_pct=num(100 * cov, 1),
+    cov_n=f"{int(cg.inside_1sd.sum())} of {len(cg)}",
+    cov_years=str(int(cov_row.last_event_year - cov_row.first_event_year + 1)),
+    cov_span=f"{int(cov_row.first_event_year)}\u2013{int(cov_row.last_event_year)}",
+    iqr_ny=num(iqr_ny, 1),
+    iqr_10y=num(rg10.iqr, 1),
+    med_10y=num(rg10["median"], 1),
+    med_ny=num(ny26["median"], 1),
+    iqr_ny_pooled=num(g.loc[2026, "iqr"], 1),
+    sh_usgdp=num(p2.loc[("us", "PRGDP"), "median"], 0),
+    sh_hicp=num(p2.loc[("ecb", "hicp"), "median"], 0),
+    sh_ecbgdp=num(p2.loc[("ecb", "rgdp"), "median"], 0),
+    sh_usccpi=num(p2.loc[("us", "PRCCPI"), "median"], 0),
+    sh_uscpce=num(p2.loc[("us", "PRCPCE"), "median"], 0),
+    sh_growth_lo=num(
+        p2.loc[[("us", "PRGDP"), ("ecb", "rgdp")], "median"].min(), 1
+    ),
+    sh_growth_hi=num(
+        p2.loc[[("us", "PRGDP"), ("ecb", "rgdp")], "median"].max(), 1
+    ),
+    sh_max=num(p2["median"].max(), 0),
+    ratio_lo=num(p2.median_total_over_disagreement.min(), 1),
+    ratio_hi=num(p2.median_total_over_disagreement.max(), 1),
+    hicp_gap=pct(p1.loc[("ecb", "hicp"), "pct_2026_vs_through_2020"]),
+    hicp_gap_1019=pct(
+        100
+        * (
+            p1.loc[("ecb", "hicp"), "value_2026"]
+            / p1.loc[("ecb", "hicp"), "mean_2010_2019"]
+            - 1
+        )
+    ),
+    shrink_lo=pct(pan["4"].pct_change_q1_q4.max()),
+    shrink_hi=pct(pan["4"].pct_change_q1_q4.min()),
+    crps_gain=num(crps_gain, 1),
+    gain_lo=num(gain_cells.min(), 1),
+    gain_hi=num(gain_cells.max(), 1),
+    skill_clim_usgdp=num(p7.loc[("us", "PRGDP"), "skill_pct_climatology"], 0),
+    skill_gauss_usgdp=num(p7.loc[("us", "PRGDP"), "skill_pct_gaussian"], 1),
+    gauss_losers=", ".join(
+        f"{row.label} {num(row.skill_pct_gaussian, 1)}%"
+        for row in gauss_losers.itertuples()
+    ),
+    ecb_cov_lo=num(ecb_coverage.min(), 0),
+    ecb_cov_hi=num(ecb_coverage.max(), 0),
+    run_len=WORDS.get(best_run[0], str(best_run[0])),
+    run_span=f"{best_run[1]}\u2013{best_run[2]}",
+    gauss_lo=num(p7.skill_pct_gaussian.min(), 1),
+    gauss_hi=num(p7.skill_pct_gaussian.max(), 1),
+    clim_lo=num(p7.skill_pct_climatology.min(), 0),
+    clim_hi=num(p7.skill_pct_climatology.max(), 0),
+    prgdp_h2=num(p3.loc[("us", "PRGDP", "h2"), "within_sd"]),
+    prgdp_h3=num(p3.loc[("us", "PRGDP", "h3"), "within_sd"]),
+    prgdp_h3_gain=num(
+        p3.loc[("us", "PRGDP", "h3"), "within_sd"]
+        - p3.loc[("us", "PRGDP", "h2"), "within_sd"]
+    ),
+    ecb_roll1_total=num(p3.loc[("ecb", "rgdp", "rolling_1y"), "total_sd"]),
+    ecb_lt_total=num(p3.loc[("ecb", "rgdp", "longer_term"), "total_sd"]),
+    lt_sd_pct=pct(lt.pct_change_total_sd),
+    roll_sd_pct=pct(roll.pct_change_total_sd),
+    lt_cons_early=num(lt.consensus_through_2020, 1),
+    lt_cons_late=num(lt.consensus_2021_2026, 1),
+    roll_cons_early=num(roll.consensus_through_2020, 1),
+    roll_cons_late=num(roll.consensus_2021_2026, 1),
+    lt_high=num(lt.series_high_total_sd),
+    lt_high_year=str(int(lt.series_high_year)),
+    lt_2026=num(lt.total_sd_2026),
+    pin_lo=num(inflation_tails.min(), 1),
+    pin_hi=num(inflation_tails.max(), 1),
+    n_measures=f"{len(m):,}",
+    n_cal=f"{len(cal):,}",
+)
+```
+
+## Abstract {.unnumbered}
+
+Professional forecasters state their own uncertainty four times a year. Since
+1968 the US Survey of Professional Forecasters has collected probability
+distributions — not just point forecasts — for output growth and inflation,
+and the ECB's survey has done the same for the euro area since 1999. We pool
+every reported histogram by the law of total variance, decomposing total
+uncertainty into the average forecaster's stated uncertainty and the
+disagreement between forecasters, for every variable, horizon, and survey
+round — `{python} v['n_measures']` round-target distributions. Five findings
+organize the panorama. Stated growth uncertainty is stable: its pandemic
+spike decayed by 2026 on both continents, while euro-area inflation
+uncertainty remains `{python} v['hicp_gap_1019']`% above its
+2010–19 average. Disagreement — the
+only uncertainty visible in point-forecast data — is the minority share
+everywhere: a median `{python} v['sh_growth_lo']`–`{python} v['sh_growth_hi']`% of
+total variance for growth, at most `{python} v['sh_max']`% for any variable. Stated uncertainty stops rising with horizon by year two. Past year
+three in the US and year five in the euro area, no survey elicits a
+distribution at all: the ten-year questions collect point forecasts, and
+their spread measures how much forecasters agree, which says nothing about
+how sure any of them is.
+The US distributions are roughly calibrated on average
+(`{python} v['cov_pct']`% one-sigma coverage over `{python} v['cov_years']` years); the euro
+area's are overconfident; both fail in clusters at regime shifts, in the
+tail the regime moved toward. Scored properly, the densities beat
+climatology everywhere and roughly tie a Gaussian built from the consensus
+and its own error history (`{python} v['gauss_lo']`% to
++`{python} v['gauss_hi']`% CRPS skill). Density elicitation stops three to five
+years out. Published estimates of AI's growth effects span roughly 0.1 to
+30 percentage points a year [@shenk2026; @cunningham2025] at the horizons
+no survey asks about, and we show what asking would take. A live
+interactive tracks every series.
+
+## Introduction
+
+In the first quarter of 2026, the forecasters in the US Survey of
+Professional Forecasters put a median of `{python} v['med_ny']`% on next
+year's real GDP growth, and they said how sure they were: the middle half
+of their pooled probability distribution spans `{python} v['iqr_ny_pooled']`
+points. Asked about average growth over the next ten years, the same panel
+gave a median of `{python} v['med_10y']`% and nothing else. The survey
+collects no distribution for the decade. The ten-year answers sit within
+`{python} v['iqr_10y']` points of each other, which shows that the
+forecasters agree, and agreement is a different quantity from confidence.
+The histograms stop three years out.
+
+That gap matters more now than at any point in the surveys' history.
+Published estimates of what artificial intelligence will do to growth over
+roughly the coming decade run from under 0.1 percentage points a year
+[@acemoglu2024] through 1.5 points [@briggsKodnani2023] — with a
+0.07–1.24-point spread inside a single framework [@aghionBunel2024] — to
+above 30 points [@davidson2021; @erdilBesiroglu2023]. Compilations put the
+full published range at roughly 0.1–30 points a year, almost entirely as
+point estimates [@shenk2026; @cunningham2025]. The one large elicitation,
+run by the Forecasting Research Institute with the Federal Reserve Bank of
+Chicago, collected medians and two quantiles, once [@karger2026]. The
+instruments that would discipline this debate — surveys that make
+professionals state distributions and then score them — exist, run
+quarterly, and have five decades of track record. They stop at year three
+in the US and year five in the euro area.
+
+This paper assembles that track record in full. We compute one
+construction — the law-of-total-variance decomposition of pooled survey
+histograms [@wallis2005; @boeroSmithWallis2008] — for every density
+variable, every horizon, and every round of the two long-running
+professional surveys, `{python} v['n_measures']` round-target
+distributions in all, and evaluate every one against realized outcomes
+where a verified realization concept exists (`{python} v['n_cal']`
+forecast-outcome pairs). The distinction we track back to 1968 is
+Zarnowitz and Lambros's [-@zarnowitzLambros1987]: *disagreement* — the
+spread between forecasters' means — is not *uncertainty* — the spread each
+forecaster reports around their own mean.
+
+::: {.callout-note title="Draft note"}
+Contribution list and positioning paragraph drafted in the planning
+skeleton (`paper/PAPER.md`); nearest antecedents:
+@damicoOrphanides2008 (US long series, inflation, ends 2008),
+@clementsRichTracy2022 (both surveys, in prose), @allayioti2024 (ECB
+25-year retrospective, one survey).
+:::
+
+## The elicitation landscape
+
+Two surveys regularly ask professional forecasters for probability
+distributions over macroeconomic outcomes. The US SPF has collected
+histograms since 1968Q4 — for nominal GNP growth at first, real GNP from
+1981Q3, real GDP from 1992Q1 — for output growth and the GDP price index
+throughout, joined by fourth-quarter-over-fourth-quarter core CPI and core
+PCE inflation in 2007Q1 and the unemployment rate in 2009Q2
+[@spfDocumentation2026]. Density horizons ran to the next calendar year
+until 2009Q2 and to three years out since. The ten-year variables — real
+GDP growth, CPI, PCE — are point forecasts only. The ECB SPF has run
+quarterly since 1999Q1: densities for HICP inflation, real GDP growth, and
+unemployment (core HICP since 2017Q1) at current-year through
+year-after-next calendar targets, rolling one- and two-year horizons, and
+a longer-term calendar year four years ahead in Q1/Q2 rounds and five
+ahead in Q3/Q4 [@garcia2003; @allayioti2024].
+
+The rest of the survey landscape collects points. The NY Fed's consumer
+survey elicits household densities to three years; Consensus Economics
+elicits by-range probabilities at one year and publishes its 5–10-year
+forecasts as points; Livingston (since 1946) and Blue Chip are point
+products; the FOMC's projections come with fan charts built from
+historical errors, not elicited beliefs. The two long-horizon precedents
+are one-off quantile elicitations [@christensenGillinghamNordhaus2018;
+@karger2026]. No survey anywhere regularly elicits probability
+distributions over ten-year-ahead growth.
+
+## Measures
+
+Each forecaster attaches probabilities to bins. We spread each bin's mass
+uniformly inside the bin, give open tails the width of the adjacent bin,
+keep responses whose probabilities lie between 0 and 100 and sum to within
+two points of 100, and renormalize. Moments, quantiles, and scores all use
+this one distribution, so a respondent's variance carries the within-bin
+term $w_b^2/12$, and disagreement is the population variance across
+respondent means — the pooled mixture's variance then equals the two parts
+exactly. For forecaster $i$, the histogram yields a mean $m_i$ and a
+variance $v_i$. The law of total variance splits the pooled mixture
+[@wallis2005]:
+
+$$\text{total variance} = \mathbb{E}[v_i] + \operatorname{Var}(m_i).$$
+
+The first term is the average uncertainty forecasters state individually;
+the second is disagreement, the only term visible in point-forecast data
+[@zarnowitzLambros1987; @lahiriSheng2010]. We report the square roots, the
+between share, and quantiles of the pooled mixture. The interquartile
+range of the mixture doubles as a robustness measure: bin-scheme changes
+move midpoint-based SDs mechanically [@shojaSoofi2017;
+@knuppelPavlova2026], and the 2020Q2 US bin widening is the worked
+example (@tbl-bins).
+
+```{python}
+#| label: tbl-bins
+#| tbl-cap: "The wide-bin era, averaging every round and horizon in each window equally, and the clean 2024Q1-to-Q2 scheme boundary at the next-year horizon. Moments move further than the pooled IQR, which is the signature of coarser bins rather than of belief alone."
+rows = []
+for r in pan["10"].itertuples():
+    rows.append(
+        [
+            r.label,
+            r.period,
+            r.n_rounds,
+            num(r.within_sd, 3),
+            num(r.total_sd, 3),
+            num(r.iqr, 3),
+            num(r.total_over_iqr, 3),
+        ]
+    )
+table(
+    ["Variable", "Window", "Rounds", "Within SD", "Total SD", "Pooled IQR", "Total/IQR"],
+    rows,
+)
+```
+
+Targets are calendar years, so a "next year" forecast made in Q1 and one
+made in Q4 differ in horizon by three quarters [@ganicsRossiSekhposyan2024].
+We treat round-target pairs explicitly and show the within-year shrinkage —
+current-year uncertainty falls
+`{python} v['shrink_lo']`–`{python} v['shrink_hi']`% from Q1 to Q4, depending
+on the variable (@tbl-shrinkage) — rather than averaging over it [@clementsRichTracy2025].
+
+```{python}
+#| label: tbl-shrinkage
+#| tbl-cap: "Mean current-year total SD by survey quarter, 2010-19 rounds. The fixed calendar event arrives whatever the round, so the fall from Q1 to Q4 is the value of one year of information."
+rows = []
+for key in ORDER:
+    r = pan["4"].set_index(["survey", "variable"]).loc[key]
+    rows.append(
+        [
+            r.label,
+            num(r.total_sd_q1, 3),
+            num(r.total_sd_q2, 3),
+            num(r.total_sd_q3, 3),
+            num(r.total_sd_q4, 3),
+            f"-{pct(r.pct_change_q1_q4, 1)}%",
+        ]
+    )
+table(["Variable", "Q1", "Q2", "Q3", "Q4", "Q1 to Q4"], rows)
+```
+
+Coverage rates test the density at two thresholds; proper scores evaluate
+all of it [@gneitingRaftery2007; @boeroSmithWallis2011]. The pooled CDF is
+piecewise linear, so the continuous ranked probability score has an exact
+closed form, and pinball losses at the published quantile levels decompose
+it by tail. We score every calibrated round against two no-lookahead
+benchmarks — expanding-window climatology and a Gaussian centered on the
+consensus with historical-error RMSE — and against the average individual
+forecaster. One structural note: the pooled CDF is the mean of individual
+CDFs and the CRPS is convex in the CDF, so the pool beats the average
+individual on every observation by construction; the empirical content is
+the size of that gain (`{python} v['crps_gain']`% on average,
+`{python} v['gain_lo']`–`{python} v['gain_hi']`% by cell) and where it thins.
+
+## Five stylized facts
+
+::: {.callout-note title="Draft note"}
+Each fact still wants a figure. Every inline value and table below computes
+at render from `outputs/panorama_*.csv`, including the balanced-sample term
+structure and the post-2021 ECB comparison; the historical pipeline reports
+(`SOL_REPORT.md`, `SCORES_REPORT.md`) are superseded records, not sources.
+:::
+
+**Stated growth uncertainty is stable — and its pandemic spike decayed on
+both continents, while euro-area inflation uncertainty has not come
+home.** The pooled SD of next-year US growth was `{python} v['t1992']`
+points in 1992 and averaged `{python} v['mean_1992_2020']` through 2020;
+it peaked at `{python} v['t2021']` in 2021 and stands at
+`{python} v['t2026']` in 2026 (decade means: `{python} v['dec_1019']`
+over 2010–19, `{python} v['dec_2024']` over 2020–24). Euro-area growth
+uncertainty spiked higher and decayed as fast. Euro-area inflation
+uncertainty did not: the one-year series remains
+`{python} v['hicp_gap']`% above its pre-2021 level in 2026 (@tbl-stability).
+
+```{python}
+#| label: tbl-stability
+#| tbl-cap: "Total SD of the headline series: US Q1 next-calendar-year rounds, and for the ECB the annual mean of the quarterly rolling-one-year rounds. US real GDP and GDP prices use the 1992 onward real-GDP sample."
+rows = []
+for key in ORDER:
+    r = p1.loc[key]
+    rows.append(
+        [
+            r.label,
+            f"{r.first_year}-{r.last_year}",
+            num(r.mean_through_2020, 3),
+            num(r.mean_2010_2019, 3),
+            num(r.mean_2020_2024, 3),
+            f"{num(r.peak_value, 3)} ({r.peak_year})",
+            num(r.value_2026, 3),
+        ]
+    )
+table(
+    ["Series", "Years", "Through 2020", "2010-19", "2020-24", "Peak", "2026"],
+    rows,
+)
+```
+
+**Disagreement is the minority share everywhere, but not uniformly.** The
+median between share is about a sixth for growth
+(US `{python} v['sh_usgdp']`%, euro area `{python} v['sh_ecbgdp']`%) and
+euro-area prices (`{python} v['sh_hicp']`%), and a quarter to a third for
+unemployment and the US inflation densities
+(core CPI `{python} v['sh_usccpi']`%, core PCE `{python} v['sh_uscpce']`%;
+@tbl-disagreement). The spread visible in point forecasts understates stated
+uncertainty by a median factor of
+`{python} v['ratio_lo']` to `{python} v['ratio_hi']` across the whole panorama [@richTracy2010;
+@giordaniSoderlind2003].
+
+```{python}
+#| label: tbl-disagreement
+#| tbl-cap: "Distribution of the between-forecaster share of total variance across round-targets, in percent. The last column is the median ratio of pooled total SD to disagreement SD: the factor by which point-forecast spread understates stated uncertainty."
+rows = []
+for key in ORDER:
+    r = p2.loc[key]
+    rows.append(
+        [
+            r.label,
+            int(r.n_rounds),
+            num(r.decile_10, 1),
+            num(r.decile_50, 1),
+            num(r.decile_90, 1),
+            num(r.share_at_or_below_20, 1),
+            num(r.median_total_over_disagreement, 2),
+        ]
+    )
+table(
+    [
+        "Series",
+        "Round-targets",
+        "1st decile",
+        "Median",
+        "9th decile",
+        "At or below 20%",
+        "Total/disagreement",
+    ],
+    rows,
+)
+```
+
+**Stated uncertainty rises with horizon only until year two — then
+plateaus, and for growth it inverts.** US growth within-SD climbs from the
+current year to two years out (`{python} v['prgdp_h2']`), then gains
+`{python} v['prgdp_h3_gain']` at three (`{python} v['prgdp_h3']`). In the
+euro area, total growth uncertainty is mildly higher at the one-year rolling
+horizon (`{python} v['ecb_roll1_total']`) than at the four-to-five-year
+horizon (`{python} v['ecb_lt_total']`). Only unemployment keeps steepening
+(@tbl-term, @tbl-term-ecb). Past year three the US record stops. The
+ten-year questions collect point forecasts; their interquartile range
+(`{python} v['iqr_10y']` points in 2026) measures agreement among
+forecasters, and no density stands behind it.
+
+```{python}
+#| label: tbl-term
+#| tbl-cap: "US balanced Q1 term structure, `within SD/total SD` by horizon in years, over the Q1 window in brackets. Each window keeps only the rounds carrying every horizon it offers, so no cell is an average over a different set of rounds than its neighbour."
+rows = []
+for key in [("us", v_) for v_ in ("PRGDP", "PRUNEMP", "PRPGDP", "PRCCPI", "PRCPCE")]:
+    cell = p3.loc[key]
+    window = cell["sample"].iloc[0].removeprefix("Q1 ")
+    row = [f"{cell.label.iloc[0]} ({window})", int(cell.n_rounds.iloc[0])]
+    for horizon in ("h0", "h1", "h2", "h3"):
+        if horizon in cell.index:
+            row.append(
+                f"{num(cell.loc[horizon, 'within_sd'], 3)}/"
+                f"{num(cell.loc[horizon, 'total_sd'], 3)}"
+            )
+        else:
+            row.append("--")
+    rows.append(row)
+table(["Variable", "Rounds", "h=0", "h=1", "h=2", "h=3"], rows)
+```
+
+```{python}
+#| label: tbl-term-ecb
+#| tbl-cap: "ECB round-balanced term structure, `within SD/total SD` by horizon class. Rounds enter only if they carry all three modern horizons, and duplicate early longer-term targets are averaged within the round first."
+rows = []
+for key in [("ecb", v_) for v_ in ("hicp", "hicpx", "rgdp", "unemp")]:
+    cell = p3.loc[key]
+    row = [cell.label.iloc[0], int(cell.n_rounds.iloc[0])]
+    for horizon in ("rolling_1y", "rolling_2y", "longer_term"):
+        row.append(
+            f"{num(cell.loc[horizon, 'within_sd'], 3)}/"
+            f"{num(cell.loc[horizon, 'total_sd'], 3)}"
+        )
+    rows.append(row)
+table(["Variable", "Rounds", "Rolling 1y", "Rolling 2y", "Longer term"], rows)
+```
+
+**The US distributions are roughly calibrated on average; the euro area's
+are overconfident; both fail in tails, in clusters.** A ±1σ band around
+the consensus covered `{python} v['cov_n']` next-year US growth outcomes
+(`{python} v['cov_pct']`%) over `{python} v['cov_span']` — textbook — but the
+misses cluster: `{python} v['run_len']` straight target years
+(`{python} v['run_span']`) around the late-1990s productivity boom, then
+2008–09, then 2020–21. Euro-area one-sigma coverage runs
+`{python} v['ecb_cov_lo']`–`{python} v['ecb_cov_hi']`% by variable
+(@tbl-coverage) [@kennyKostkaMasera2014; @kennyKostkaMasera2015].
+Scored properly, the densities beat climatology everywhere (US growth
++`{python} v['skill_clim_usgdp']`% CRPS skill; @tbl-skill) and roughly tie
+the consensus-plus-track-record Gaussian: skill runs from
+`{python} v['gauss_lo']`% to +`{python} v['gauss_hi']`%, with
+`{python} v['gauss_losers']` on the losing side and US growth at
++`{python} v['skill_gauss_usgdp']`%. Most of what the elicited densities
+know, the point forecast and its error history already carry, and for
+several variables the sign of the comparison turns on how forecast rows are
+weighted [@clements2018; @knuppelKruger2022]. The pinball decomposition puts the 2008–09 growth
+losses in the lower tail and the 2020–22 inflation losses in the upper
+tail by factors of `{python} v['pin_lo']` to `{python} v['pin_hi']`
+(@tbl-tails).
+
+```{python}
+#| label: tbl-coverage
+#| tbl-cap: "Interval coverage on every calibrated round-target, and on the comparable one-year rows. Forecasts of a shared outcome are correlated, so these are descriptive counts rather than tests."
+rows = []
+for key in ORDER:
+    for sample in ("all horizons", "Q1 next year", "rolling 1y"):
+        if (*key, sample) not in p5.index:
+            continue
+        r = p5.loc[(*key, sample)]
+        rows.append(
+            [
+                r.label,
+                sample,
+                int(r.n),
+                f"{int(r.inside_1sd)} ({num(r.inside_1sd_pct, 1)}%)",
+                f"{int(r.inside_pooled_90)} ({num(r.inside_pooled_90_pct, 1)}%)",
+                f"{int(r.first_event_year)}-{int(r.last_event_year)}",
+            ]
+        )
+table(
+    ["Series", "Sample", "n", "Inside +/-1 SD", "Inside pooled 90%", "Outcome years"],
+    rows,
+)
+```
+
+```{python}
+#| label: tbl-skill
+#| tbl-cap: "CRPS skill against two no-lookahead benchmarks, as one minus the ratio of mean losses on matched eligible rows, with row-level mean skill as the sensitivity in brackets. The last column is the pooled distribution's gain over the average individual forecaster."
+rows = []
+for key in ORDER:
+    r = p7.loc[key]
+    rows.append(
+        [
+            r.label,
+            int(r.n_climatology),
+            f"{num(r.skill_pct_climatology, 1)}% [{num(r.row_skill_pct_climatology, 1)}%]",
+            int(r.n_gaussian),
+            f"{num(r.skill_pct_gaussian, 1)}% [{num(r.row_skill_pct_gaussian, 1)}%]",
+            f"{num(r.gain_pct, 1)}%",
+        ]
+    )
+table(
+    [
+        "Series",
+        "n clim.",
+        "Climatology skill",
+        "n Gauss.",
+        "Gaussian skill",
+        "Pooling gain",
+    ],
+    rows,
+)
+```
+
+```{python}
+#| label: tbl-tails
+#| tbl-cap: "Mean pinball loss at the 05 and 95 quantile levels inside each clustered-event window, pooling every calibrated horizon. A window is assigned by the realization's event year, not the forecast round."
+rows = []
+for r in pan["8"].itertuples():
+    rows.append(
+        [
+            r.window,
+            r.label,
+            int(r.n),
+            num(r.pinball_05, 3),
+            num(r.pinball_95, 3),
+            r.larger_tail,
+        ]
+    )
+table(["Outcome years", "Series", "n", "Pinball 05", "Pinball 95", "Larger tail"], rows)
+```
+
+```{python}
+#| label: tbl-pit
+#| tbl-cap: "Probability integral transform of the pooled distribution at the realization. Under ideal calibration each decile would hold about 10% of rows, so mass in the two extreme deciles is the underdispersion signal."
+rows = []
+for key in ORDER:
+    r = pan["9"].set_index(["survey", "variable"]).loc[key]
+    rows.append(
+        [
+            r.label,
+            int(r.n),
+            num(r.mean_pit, 3),
+            num(r.decile_1, 1),
+            num(r.decile_10, 1),
+            num(r.share_extreme_deciles, 1),
+        ]
+    )
+table(
+    ["Series", "n", "Mean PIT", "Lowest decile", "Highest decile", "Both extremes"],
+    rows,
+)
+```
+
+**The euro area asks the question the US doesn't — and after 2021 the
+long answer moved less than the short one, but it moved.** The ECB
+longer-term density's total SD rose about `{python} v['lt_sd_pct']`% after
+2021, against `{python} v['roll_sd_pct']`% at one year; its consensus moved
+from `{python} v['lt_cons_early']`% to `{python} v['lt_cons_late']`% while the
+one-year consensus moved from `{python} v['roll_cons_early']`% to
+`{python} v['roll_cons_late']`% [@gornickaMeyler2022;
+@deVincentHumphreys2019]. Stated long-run uncertainty peaked at
+`{python} v['lt_high']` in `{python} v['lt_high_year']` and stands at
+`{python} v['lt_2026']` in 2026, still well above its pre-2021 level, at the
+horizon where the US elicits nothing (@tbl-longterm).
+
+```{python}
+#| label: tbl-longterm
+#| tbl-cap: "ECB one-year and longer-term uncertainty and consensus, through 2020 against 2021-26. Both horizons are read from the same round-balanced panel, so neither change is averaged over a different set of rounds."
+rows = []
+for r in pan["6"].itertuples():
+    rows.append(
+        [
+            r.label,
+            "Rolling 1y" if r.horizon_key == "rolling_1y" else "Longer term",
+            arrow(r.total_sd_through_2020, r.total_sd_2021_2026, 3),
+            f"{'+' if r.pct_change_total_sd >= 0 else '-'}{pct(r.pct_change_total_sd, 1)}%",
+            arrow(r.consensus_through_2020, r.consensus_2021_2026, 2),
+            f"{num(r.series_high_total_sd, 3)} ({int(r.series_high_year)})",
+            num(r.total_sd_2026, 3),
+        ]
+    )
+table(
+    [
+        "Variable",
+        "Horizon",
+        "Total SD",
+        "Change",
+        "Consensus",
+        "Series high",
+        "2026",
+    ],
+    rows,
+)
+```
+
+## The elicitation gap
+
+::: {.callout-note title="Draft note"}
+Section drafted at beat level. The argument: put the verified 0.1–30pp/yr
+published range [@shenk2026; @cunningham2025] and its anchors
+[@acemoglu2024; @briggsKodnani2023; @aghionBunel2024; @davidson2021;
+@erdil2025gate; @korinekSuh2024] against the inventory of section 2;
+@karger2026 as the one-off flagship; @chowHalperinMazlish2026 extracting
+long-horizon growth beliefs from asset prices precisely because no survey
+elicits them. The observation the paper owns: the instruments that would
+discipline this debate exist, run quarterly, have 50 years of calibration
+record — and stop at year three (US) or five (euro area).
+:::
+
+## What better elicitation would look like
+
+::: {.callout-note title="Draft note"}
+Design beats, not advocacy: extend one existing survey block to a
+ten-year growth density (the ECB's longer-term question shows a panel
+will answer it, and its 2023 special survey asked whether ten-year
+expectations would differ [@allayioti2024]); bins wide enough to be
+honest about tails (the 2020 widening as precedent [@ecbSpf2020q2]);
+ship the question with the scoring rule that disciplines it — CRPS with
+pinball components — because the record shows stated densities break at
+regime shifts and the AI question is a regime-shift question; pair each
+long-horizon density with the respondent's AI-adoption assumption so the
+0.1–30 range becomes decomposable.
+:::
+
+## Conclusion
+
+::: {.callout-note title="Draft note"}
+One page: the 2026 pair again — for next year, a median and
+`{python} v['iqr_ny_pooled']` points of stated spread; for the decade, a
+median and no distribution — with the whole panorama behind it.
+:::
+
+## Data and limitations {.unnumbered}
+
+All measures compute from the public microdata of the Philadelphia Fed SPF
+[@spfDocumentation2026] and the ECB SPF, with bin schemes taken from each
+survey's documentation for every era. Realizations are latest-vintage
+[@stark2010]; real-time-vintage evaluation is future work. Forecasts of a
+shared outcome are correlated, so miss counts and score comparisons are
+descriptive. Benchmark windows are expanding with a ten-observation
+minimum; euro-area annual histories are short. The pipeline, tests, and
+every series behind the live interactive are open source at
+<https://github.com/MaxGhenis/expectations>.
+
+## References {.unnumbered}
+
+::: {#refs}
+:::
