@@ -4,6 +4,7 @@ import pytest
 from forecast_uncertainty.measures import (
     filter_probability_rows,
     finite_intervals,
+    histogram_quantiles,
     round_stats,
 )
 
@@ -172,3 +173,15 @@ def test_pooled_quantiles_are_uniform_within_bins_and_report_iqr():
     assert stats["q50"] == pytest.approx(0.5)
     assert stats["q75"] == pytest.approx(1.0)
     assert stats["iqr"] == pytest.approx(1.0)
+
+
+def test_quantiles_require_normalized_weights_instead_of_rescaling_them():
+    """Rescaling a normalized histogram would decide bin-edge quantiles by rounding."""
+    intervals = [(None, 0.0), (0.0, 1.0), (1.0, None)]
+
+    assert histogram_quantiles([0.25, 0.5, 0.25], intervals, [0.75]) == pytest.approx(
+        [1.0]
+    )
+    with pytest.raises(ValueError, match="must sum to one"):
+        histogram_quantiles([25.0, 50.0, 25.0], intervals, [0.75])
+    assert np.isnan(histogram_quantiles([0.0, 0.0, 0.0], intervals, [0.75])).all()

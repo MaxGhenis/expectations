@@ -259,3 +259,34 @@ def test_actual_us_source_preserves_gdp_and_its_open_tail():
     # One of 28 respondents places 1% in the source's open >=9% bin.
     assert tails.loc[10, "probability_upper"] == pytest.approx(0.01 / 28)
     assert np.isnan(tails.loc[10, "probability_uniform"])
+
+
+def test_bin_edges_within_float_noise_are_treated_as_edges():
+    """Representation error on an intended edge must not create a straddle."""
+    probabilities = [[20, 40, 30, 10], [0, 80, 20, 0]]
+    thresholds = [3.9, 4.0, 6.0]
+    columns = [
+        "probability_lower",
+        "probability_upper",
+        "probability_uniform",
+        "n_positive_lower",
+        "n_positive_upper",
+        "open_tail_threshold",
+    ]
+
+    def tails(intervals):
+        return (
+            growth_tail_table(density_frame(intervals, probabilities), thresholds)
+            .set_index("threshold")[columns]
+            .astype(float)
+        )
+
+    exact = tails([(None, 0), (0, 3.9), (4, 5.9), (6, None)])
+    perturbed = tails(
+        [(None, 0), (0, 3.9 + 4e-13), (4 - 3e-13, 5.9), (6 - 2e-13, None)]
+    )
+
+    pd.testing.assert_frame_equal(exact, perturbed, rtol=0.0, atol=0.0)
+    assert exact.loc[4.0, "probability_lower"] == pytest.approx(0.3)
+    assert exact.loc[4.0, "probability_upper"] == pytest.approx(0.3)
+    assert exact.loc[6.0, "probability_lower"] == pytest.approx(0.05)

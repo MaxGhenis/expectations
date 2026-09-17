@@ -46,3 +46,26 @@ def test_period_comparisons_balance_years_and_separate_round_selection():
     assert recent.loc["all (equal year weight)", "mean"] == 6.0
     assert recent.loc["Q1", "n_round_targets"] == 2
     assert recent.loc["all (equal year weight)", "n_years"] == 2
+
+
+def test_zero_benchmark_loss_row_is_excluded_from_both_summaries():
+    """A benchmark loss of zero leaves row skill undefined, so n must drop it."""
+    frame = pd.DataFrame(
+        {
+            "survey": ["us"] * 3,
+            "variable": ["PRGDP"] * 3,
+            "crps_pooled": [0.2, 5.0, 1.0],
+            "crps_gaussian": [0.1, 10.0, 0.0],
+            "skill_vs_gaussian": [-1.0, 0.5, None],
+            "crps_climatology": [0.1, 10.0, 0.0],
+            "skill_vs_climatology": [-1.0, 0.5, None],
+        }
+    )
+    summary = benchmark_summary(frame)
+
+    for _, row in summary.iterrows():
+        assert row.n == 2
+        assert row.benchmark_crps == pytest.approx(10.1 / 2)
+        assert row.pooled_crps == pytest.approx(5.2 / 2)
+        assert row.skill_ratio_of_means == pytest.approx(1 - 5.2 / 10.1)
+        assert row.mean_row_skill == pytest.approx(-0.25)

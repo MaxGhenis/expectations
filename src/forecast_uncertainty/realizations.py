@@ -45,6 +45,29 @@ _US_CALIBRATION_START_YEARS = {
 }
 _US_FULL_HISTORY_START_YEARS = {variable: 0 for variable in _US_CALIBRATION_START_YEARS}
 
+# Official annual companion series: pinned key, emitted concept, precision note.
+# GDP uses the publisher's own annual growth rate rather than any aggregation of
+# quarterly levels; the manifest records that it equals growth in sums of the
+# non-adjusted quarterly levels and how far the superseded adjusted-level sums
+# departed from it.
+_ECB_ANNUAL_COMPANIONS = {
+    "rgdp": (
+        "MNA.A.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR_R_B1GQ.Y.GOY",
+        "official_annual_real_gdp_growth_rate",
+        "official annual growth rate, non-adjusted, previous-year prices",
+    ),
+    "hicp": (
+        "ICP.A.U2.N.000000.4.AVR",
+        "annual_average_hicp_index_growth",
+        "official AVR rounded to 0.1 percentage point",
+    ),
+    "hicpx": (
+        "ICP.A.U2.N.XEF000.4.AVR",
+        "annual_average_hicpx_index_growth",
+        "official AVR rounded to 0.1 percentage point",
+    ),
+}
+
 
 def load_us_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
     """Return documented US SPF realization mappings in tidy form.
@@ -153,13 +176,27 @@ def _load_us_realizations(
 def load_ecb_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
     """Return calendar-year and rolling-period ECB SPF realizations.
 
-    Calendar GDP growth uses the ratio of consecutive complete years' summed
-    quarterly GDP levels. Calendar inflation uses the official annual-average
-    index-growth series (AVR), published to 0.1 percentage point. Neither averages
-    subannual year-on-year growth rates. Annual unemployment remains the mean of
-    twelve monthly rates. Rolling targets retain their archived source snapshots;
-    annual companion retrieval dates and the unknown rolling retrieval dates are
-    distinguished in source metadata. Observation statuses follow each source.
+    Calendar GDP growth is the publisher's official annual growth rate, and
+    calendar inflation the official annual-average index-growth series (AVR),
+    published to 0.1 percentage point. Neither is reconstructed from subannual
+    observations: growth in summed quarterly levels and mean subannual
+    year-on-year growth are both distinct from the published annual rate.
+    Annual unemployment remains the mean of twelve monthly rates, as no official
+    annual companion is archived for it. Rolling targets retain their archived
+    source snapshots; per-source annual companion retrieval dates and the unknown
+    rolling retrieval dates are distinguished in source metadata.
+
+    ``observation_status`` reports every published flag behind a value, so a
+    provisional input is never hidden by a final aggregate flag:
+
+    * ``hicp``, ``hicpx``, ``rgdp`` calendar years: the union of the official
+      annual observation's own status and the archived subannual statuses for
+      the same calendar year, when that archive year is complete. A calendar
+      year published after the frozen archive ends keeps the annual
+      observation's own status alone.
+    * ``unemp`` calendar years: the union of the twelve monthly archive
+      statuses, which are also the only source of the value.
+    * Rolling targets: the status of that single archived observation.
     """
     directory = Path(raw_dir)
     specifications = (
@@ -215,51 +252,80 @@ def load_ecb_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame
             )
         else:
             annual = _load_ecb_calendar_growth(directory, variable=variable)
-            # Preserve the existing outcome history's complete calendar targets;
-            # missing companion years must fail rather than silently drop scores.
-            expected_years = set(
-                _complete_period_statuses(observations, frequency=frequency)
+            archive_statuses = _complete_period_statuses(
+                observations, frequency=frequency
             )
-            missing_years = expected_years.difference(annual["target_period"])
-            if missing_years:
-                raise ValueError(
-                    f"Missing ECB {variable} annual companion years: "
-                    f"{sorted(missing_years)}"
-                )
-            annual = annual[annual["target_period"].isin(expected_years)]
+            annual = _corroborated_annual_companion(
+                annual, archive_statuses, variable=variable
+            )
         frames.append(annual)
     return _finish_realizations(pd.concat(frames, ignore_index=True))
 
 
-def _load_ecb_calendar_growth(directory: Path, *, variable: str) -> pd.DataFrame:
-    if variable == "rgdp":
-        filename = "ecb_ea_rgdp_level_quarterly.csv"
-        expected_key = "MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N"
+def _corroborated_annual_companion(
+    annual: pd.DataFrame, archive_statuses: dict[str, str], *, variable: str
+) -> pd.DataFrame:
+    """Keep the archive's calendar targets and any later published year.
+
+    Missing companion years must fail rather than silently drop scores, so every
+    complete year of the frozen rolling archive has to be present. Companion
+    years the archive cannot corroborate are then kept or dropped by position:
+    every year from the archive's first complete year onwards is kept, including
+    a complete year published after the archive ends, while earlier years have
+    no subannual snapshot behind them at all and are dropped. Statuses take the
+    union of the annual observation's own flag and the archive's flags for that
+    year.
+    """
+    expected_years = set(archive_statuses)
+    missing_years = expected_years.difference(annual["target_period"])
+    if missing_years:
+        raise ValueError(
+            f"Missing ECB {variable} annual companion years: {sorted(missing_years)}"
+        )
+    if expected_years:
+        first_expected = min(int(year) for year in expected_years)
+        annual = annual[annual["target_year"] >= first_expected].copy()
     else:
-        filename = f"ecb_ea_{variable}_growth_annual.csv"
-        item = "000000" if variable == "hicp" else "XEF000"
-        expected_key = f"ICP.A.U2.N.{item}.4.AVR"
+        annual = annual.copy()
+    annual["observation_status"] = [
+        _union_statuses(own, archive_statuses.get(year))
+        for year, own in zip(
+            annual["target_period"], annual["observation_status"], strict=True
+        )
+    ]
+    return annual
+
+
+def _union_statuses(*statuses: object) -> str:
+    """Join every distinct observation flag behind one emitted value."""
+    flags = {
+        flag
+        for status in statuses
+        if status is not None and not pd.isna(status)
+        for flag in str(status).split("+")
+        if flag.strip()
+    }
+    if not flags:
+        raise ValueError("Realization rows require at least one observation status")
+    return "+".join(sorted(flags))
+
+
+def _load_ecb_calendar_growth(directory: Path, *, variable: str) -> pd.DataFrame:
+    """Read one verified official annual growth series at publisher precision."""
+    expected_key, concept, qualifier = _ECB_ANNUAL_COMPANIONS[variable]
+    filename = f"ecb_ea_{variable}_growth_annual.csv"
     observations, source = _load_verified_ecb_companion(
         directory, filename=filename, expected_key=expected_key
     )
-    if variable == "rgdp":
-        return _ecb_level_annual_rows(
-            observations,
-            variable=variable,
-            frequency="quarterly",
-            concept="annual_average_real_gdp_growth",
-            source=source,
-        )
     if not observations["TIME_PERIOD"].str.fullmatch(r"\d{4}").all():
         raise ValueError(f"Invalid annual ECB periods in {filename}")
-    values = observations.set_index("TIME_PERIOD")["OBS_VALUE"]
     frame = _annual_rows(
-        values,
+        observations.set_index("TIME_PERIOD")["OBS_VALUE"],
         survey="ecb_spf",
         variable=variable,
         start_year=0,
-        concept=f"annual_average_{variable}_index_growth",
-        source=source + "; official AVR rounded to 0.1 percentage point",
+        concept=concept,
+        source=f"{source}; {qualifier}",
     )
     statuses = observations.set_index("TIME_PERIOD")["OBS_STATUS"]
     frame["observation_status"] = frame["target_period"].map(statuses)
@@ -285,9 +351,12 @@ def _load_verified_ecb_companion(
     keys = pd.read_csv(path, usecols=["KEY"])["KEY"]
     if keys.empty or not keys.eq(expected_key).all():
         raise ValueError(f"Unexpected ECB series key in {filename}")
+    retrieved = entry.get("retrieved_at_utc")
+    if not retrieved:
+        raise ValueError(f"Missing ECB annual source retrieval date for {filename}")
     source = (
         f"ECB Data Portal {expected_key} (annual companion retrieved "
-        f"{manifest['retrieved_at_utc']}; rolling archive retrieval date unrecorded)"
+        f"{retrieved}; rolling archive retrieval date unrecorded)"
     )
     return _load_ecb_series(path), source
 
@@ -444,6 +513,13 @@ def _load_ecb_series(path: Path) -> pd.DataFrame:
         raise ValueError(f"Missing ECB realization period or value in {path}")
     if observations["TIME_PERIOD"].duplicated().any():
         raise ValueError(f"Duplicate ECB realization periods in {path}")
+    # A blank flag would otherwise reach status unions as the string "nan".
+    observations["OBS_STATUS"] = observations["OBS_STATUS"].str.strip()
+    if (
+        observations["OBS_STATUS"].isna().any()
+        or observations["OBS_STATUS"].eq("").any()
+    ):
+        raise ValueError(f"Missing ECB observation status in {path}")
     return observations.sort_values("TIME_PERIOD").reset_index(drop=True)
 
 
@@ -616,8 +692,11 @@ def _ecb_level_annual_rows(
 ) -> pd.DataFrame:
     """Growth in annual levels, requiring both full consecutive years.
 
-    The ratio of two complete annual means equals the ratio of their sums;
-    this implements both annual-average price-index growth and summed GDP growth.
+    The ratio of two complete annual means equals the ratio of their sums. No
+    emitted realization is built this way: every calendar-year outcome now comes
+    from a published annual series. This remains the reconstruction that
+    cross-checks those published series against their own subannual levels,
+    which is how the official annual inflation rate is verified in the tests.
     Status flags include every source observation in numerator and denominator.
     """
     if (observations["OBS_VALUE"] <= 0).any():
@@ -635,12 +714,7 @@ def _ecb_level_annual_rows(
         source=source,
     )
     frame["observation_status"] = frame["target_period"].map(
-        lambda year: "+".join(
-            sorted(
-                set(statuses[year].split("+"))
-                | set(statuses[str(int(year) - 1)].split("+"))
-            )
-        )
+        lambda year: _union_statuses(statuses[year], statuses[str(int(year) - 1)])
     )
     return frame
 
@@ -665,8 +739,7 @@ def _complete_period_statuses(
             range(1, expected + 1)
         ):
             continue
-        unique = sorted(set(group["status"]))
-        output[str(year)] = unique[0] if len(unique) == 1 else "+".join(unique)
+        output[str(year)] = _union_statuses(*group["status"])
     return output
 
 

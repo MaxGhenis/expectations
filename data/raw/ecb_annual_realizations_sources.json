@@ -1,15 +1,37 @@
 {
-  "retrieved_at_utc": "2026-09-05T22:58:20.979042+00:00",
+  "retrieved_at_utc": "2026-09-17T19:38:41.832415+00:00",
   "notes": [
-    "Annual GDP is growth in sums of four quarterly chain-linked volume levels, calendar and seasonally adjusted, fixed EA20 composition.",
+    "Annual real GDP growth is the official ECB annual growth rate (MNA ... EUR_R_B1GQ.Y.GOY, titled 'Gross domestic product at market prices, annual growth rate'), non-adjusted, previous-year prices, fixed EA20 composition. It replaces growth in sums of calendar-and-seasonally-adjusted quarterly levels, which is not the published annual rate.",
+    "Verification records that the official annual rate equals growth in sums of the non-adjusted quarterly levels, and how far the superseded adjusted-level sums departed from it.",
+    "The ECB annual rate is not identical to Eurostat's published EA20 annual growth (nama_10_gdp, B1GQ, CLV_PCH_PRE); verification records the year-by-year deviation and the years that differ at one decimal. Both are official publications of different aggregates, so neither is a rounding of the other.",
     "Annual HICP and HICPX use official annual-average index growth (AVR), rounded by the publisher to 0.1 percentage point; not mean monthly year-on-year growth.",
     "Monthly HICP indexes are retained to verify annual growth wherever both full years exist. HICPX index months are missing in 1997\u20132000; published annual AVR avoids losing those calendar benchmark targets.",
     "Existing rolling raw files are preserved. Their original retrieval dates are unrecorded; do not infer identical vintages from this companion retrieval date.",
     "GDP companion level implied quarterly year-on-year growth is compared with the archived rolling values in verification; retrieval date alone does not establish vintage equality.",
-    "Calendar inflation statuses are those of the official annual observation, and can differ from statuses in the archived monthly growth series.",
+    "Calendar inflation values are the official annual observations. Their emitted status is the union of the official annual status and the archived subannual statuses for the same year, so a provisional month is not hidden by a final annual flag.",
     "Legacy ICP flow is discontinued; the new HICP flow is not spliced into this 1997\u20132025 outcome history."
   ],
   "sources": {
+    "ecb_ea_rgdp_growth_annual.csv": {
+      "series_key": "MNA.A.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR_R_B1GQ.Y.GOY",
+      "url": "https://data-api.ecb.europa.eu/service/data/MNA/A.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR_R_B1GQ.Y.GOY?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/MNA/MNA.A.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR_R_B1GQ.Y.GOY",
+      "sha256": "19f348fb7e7405ffdc8d382e67cb0b8289ad50e6e15bae3aea7f063983228442",
+      "observations": 30,
+      "first_period": "1996",
+      "last_period": "2025",
+      "retrieved_at_utc": "2026-09-17T19:38:41.832415+00:00",
+      "metadata": {
+        "TITLE": "Gross domestic product at market prices, annual growth rate",
+        "COMMENT_TS": "Gross domestic product at market prices - Euro area 20 (fixed composition) as of 1 January 2023 - Domestic (home or reference area), Total economy, Euro; ratio to gross domestic product, Previous year prices, Contribution to growth rate, over 1 year, Neither seasonally adjusted nor calendar adjusted data",
+        "REF_AREA": "I9",
+        "ADJUSTMENT": "N",
+        "FREQ": "A",
+        "UNIT_MEASURE": "EUR_R_B1GQ",
+        "UNIT_MULT": "0",
+        "DECIMALS": "2"
+      }
+    },
     "ecb_ea_rgdp_level_quarterly.csv": {
       "series_key": "MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N",
       "url": "https://data-api.ecb.europa.eu/service/data/MNA/Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N?format=csvdata",
@@ -18,11 +40,33 @@
       "observations": 125,
       "first_period": "1995-Q1",
       "last_period": "2026-Q1",
+      "retrieved_at_utc": "2026-09-05T22:58:20.979042+00:00",
       "metadata": {
         "TITLE": "Gross domestic product at market prices, volume",
         "COMMENT_TS": "Gross domestic product at market prices - Euro area 20 (fixed composition) as of 1 January 2023 - Domestic (home or reference area), Total economy, Euro, Chain linked volume (rebased), , Calendar and seasonally adjusted data",
         "REF_AREA": "I9",
         "ADJUSTMENT": "Y",
+        "FREQ": "Q",
+        "UNIT_MEASURE": "EUR",
+        "UNIT_MULT": "6",
+        "REF_YEAR_PRICE": "2015",
+        "DECIMALS": "2"
+      }
+    },
+    "ecb_ea_rgdp_level_nsa_quarterly.csv": {
+      "series_key": "MNA.Q.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N",
+      "url": "https://data-api.ecb.europa.eu/service/data/MNA/Q.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/MNA/MNA.Q.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N",
+      "sha256": "c900493dbc40534ccfab9265152e915b180df24c305f82e7341355a7129c3bdf",
+      "observations": 125,
+      "first_period": "1995-Q1",
+      "last_period": "2026-Q1",
+      "retrieved_at_utc": "2026-09-17T19:38:41.832415+00:00",
+      "metadata": {
+        "TITLE": "Gross domestic product at market prices, volume",
+        "COMMENT_TS": "Gross domestic product at market prices - Euro area 20 (fixed composition) as of 1 January 2023 - Domestic (home or reference area), Total economy, Euro, Chain linked volume (rebased), , Neither seasonally adjusted nor calendar adjusted",
+        "REF_AREA": "I9",
+        "ADJUSTMENT": "N",
         "FREQ": "Q",
         "UNIT_MEASURE": "EUR",
         "UNIT_MULT": "6",
@@ -38,6 +82,7 @@
       "observations": 360,
       "first_period": "1996-01",
       "last_period": "2025-12",
+      "retrieved_at_utc": "2026-09-05T22:58:20.979042+00:00",
       "metadata": {
         "TITLE": "HICP - Overall index",
         "TITLE_COMPL": "Euro area (changing composition) - HICP - Overall index, Index, Eurostat, Neither seasonally nor working day adjusted",
@@ -58,6 +103,7 @@
       "observations": 313,
       "first_period": "1996-01",
       "last_period": "2025-12",
+      "retrieved_at_utc": "2026-09-05T22:58:20.979042+00:00",
       "metadata": {
         "TITLE": "HICP - All-items excluding energy and food",
         "TITLE_COMPL": "Euro area (changing composition) - HICP - All-items excluding energy and food, Index, Eurostat, Neither seasonally nor working day adjusted",
@@ -78,6 +124,7 @@
       "observations": 29,
       "first_period": "1997",
       "last_period": "2025",
+      "retrieved_at_utc": "2026-09-05T22:58:20.979042+00:00",
       "metadata": {
         "TITLE": "HICP - Overall index",
         "TITLE_COMPL": "Euro area (changing composition) - HICP - Overall index, Annual average rate of change, Eurostat, Neither seasonally nor working day adjusted",
@@ -97,6 +144,7 @@
       "observations": 35,
       "first_period": "1991",
       "last_period": "2025",
+      "retrieved_at_utc": "2026-09-05T22:58:20.979042+00:00",
       "metadata": {
         "TITLE": "HICP - All-items excluding energy and food",
         "TITLE_COMPL": "Euro area (changing composition) - HICP - All-items excluding energy and food, Annual average rate of change, Eurostat, Neither seasonally nor working day adjusted",
@@ -114,6 +162,62 @@
       "matched_periods": 121,
       "max_absolute_difference_pp": 0.0,
       "archived_rolling_sha256": "70542cf496cc72b25d568e4c119ca70813484293a90611b09b54318018e0b954"
+    },
+    "rgdp_official_annual_title": "Gross domestic product at market prices, annual growth rate",
+    "rgdp_official_annual_vs_nonadjusted_quarterly_sums": {
+      "matched_years": 30,
+      "first_year": "1996",
+      "last_year": "2025",
+      "mean_absolute_difference_pp": 1.271575437537346e-12,
+      "max_absolute_difference_pp": 7.904787935331115e-12,
+      "max_absolute_difference_year": "2002",
+      "years_differing_at_one_decimal": []
+    },
+    "rgdp_official_annual_vs_superseded_adjusted_quarterly_sums": {
+      "matched_years": 30,
+      "first_year": "1996",
+      "last_year": "2025",
+      "mean_absolute_difference_pp": 0.07521794160737985,
+      "max_absolute_difference_pp": 0.2487880162961531,
+      "max_absolute_difference_year": "2004",
+      "years_differing_at_one_decimal": [
+        "1996",
+        "1998",
+        "1999",
+        "2000",
+        "2004",
+        "2005",
+        "2006",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2017",
+        "2018",
+        "2020",
+        "2023",
+        "2025"
+      ]
+    },
+    "rgdp_official_annual_vs_eurostat_published_annual_growth": {
+      "eurostat_url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp?format=JSON&geo=EA20&na_item=B1GQ&unit=CLV_PCH_PRE",
+      "matched_years": 30,
+      "first_year": "1996",
+      "last_year": "2025",
+      "mean_absolute_difference_pp": 0.03461734238044028,
+      "max_absolute_difference_pp": 0.18752048077892325,
+      "max_absolute_difference_year": "2024",
+      "years_differing_at_one_decimal": [
+        "2012",
+        "2014",
+        "2017",
+        "2019",
+        "2024"
+      ]
     },
     "hicp_avr_vs_annual_index_growth": {
       "matched_years": 29,

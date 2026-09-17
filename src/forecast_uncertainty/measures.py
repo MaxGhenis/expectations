@@ -8,6 +8,10 @@ import numpy as np
 
 QUANTILES = (0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95)
 
+# Pooled histograms arrive normalized, so their sum may differ from one only by
+# accumulated rounding. Anything larger is an unnormalized input, not noise.
+WEIGHT_SUM_TOLERANCE = 1e-9
+
 
 def finite_intervals(
     intervals: Sequence[tuple[float | None, float | None]],
@@ -88,9 +92,17 @@ def histogram_quantiles(
 ) -> np.ndarray:
     """Return inverse-CDF values for a pooled piecewise-uniform histogram.
 
-    Two-dimensional weights are averaged across rows before normalization,
-    matching :func:`pooled_quantiles`.  The array return form is convenient for
-    dense quantile grids used to connect pinball loss and CRPS.
+    Two-dimensional weights are averaged across rows, matching
+    :func:`pooled_quantiles`.  The array return form is convenient for dense
+    quantile grids used to connect pinball loss and CRPS.
+
+    Weights must already describe a distribution summing to one, as respondent
+    rows do after :func:`filter_probability_rows`.  The sum is therefore checked
+    rather than divided out: rescaling a histogram that already sums to one only
+    perturbs the cumulative sums by rounding, which is enough to move a quantile
+    sitting exactly on a bin edge into the neighboring bin.  An all-zero or
+    nonfinite total remains the documented degenerate case and returns missing
+    values.
     """
     probabilities = np.asarray(weights, dtype=float)
     if probabilities.ndim == 2:
@@ -107,7 +119,8 @@ def histogram_quantiles(
     total = probabilities.sum()
     if not np.isfinite(total) or total <= 0:
         return np.full(levels.shape, np.nan, dtype=float)
-    probabilities = probabilities / total
+    if abs(total - 1.0) > WEIGHT_SUM_TOLERANCE:
+        raise ValueError(f"Histogram weights must sum to one, not {total}")
 
     raw_order = np.argsort(
         [-np.inf if lower is None else lower for lower, _ in intervals], kind="stable"

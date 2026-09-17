@@ -183,7 +183,9 @@ def test_hicpx_realizations_support_calendar_and_rolling_calibration():
     assert core.loc["2024Dec", "realized"] == pytest.approx(2.7)
     assert core.loc["2024Dec", "observation_status"] == "A"
     assert core.loc["2025", "realized"] == pytest.approx(2.4)
-    assert core.loc["2025", "observation_status"] == "A"
+    # The official 2025 annual observation is final, but four archived months of
+    # 2025 are estimates, and the calendar outcome must not hide them.
+    assert core.loc["2025", "observation_status"] == "A+E"
 
     forecasts = pd.DataFrame(
         [
@@ -202,8 +204,10 @@ def test_hicpx_realizations_support_calendar_and_rolling_calibration():
     calibration = calibration_table(forecasts, realizations)
 
     assert calibration["target_period"].tolist() == ["2024Dec", "2025"]
+    # The estimate flag survives the join, so a scored calendar target can be
+    # filtered on it; the single rolling December observation is final.
     estimated = calibration["observation_status"].str.contains("E", na=False)
-    assert estimated.tolist() == [False, False]
+    assert estimated.tolist() == [False, True]
 
 
 def test_generated_hicpx_calibration_coverage():

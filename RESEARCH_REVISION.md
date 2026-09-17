@@ -1,6 +1,6 @@
 # Research revision: growth expectations in the AI era
 
-Revised 5 September 2026 on branch `ai-growth-divergence`, from `origin/main` at `ade2384f269d72456ec65fc4d0e4172b14c650d9`. The original checkout is preserved. This revision has not been published to the live site.
+Revised 5 September 2026 on branch `ai-growth-divergence-closure-20260907`, from `origin/main` at `ade2384f269d72456ec65fc4d0e4172b14c650d9`. The original checkout is preserved. This revision has not been published to the live site.
 
 ## Main finding
 
@@ -23,7 +23,7 @@ The AI literature comparison is narrower than the initial hypothesis. The primar
 - Retained the existing parsers and all-variable tracker; rewrote the manuscript and added a GDP research companion.
 - Made moments consistent with the distribution used for quantiles and scoring, including uniform within-bin variance. Used population variance across respondent means for the empirical-mixture identity.
 - Rejected negative, nonfinite and above-100 probability entries before normalization. Two negative ECB responses in 2023Q1 are excluded.
-- Replaced mean quarterly year-over-year GDP growth with growth in complete annual sums of quarterly levels. Annual inflation uses official annual-average index-growth observations at publisher precision. Added raw inputs, a reproducible download script and source hashes.
+- Replaced mean quarterly year-over-year GDP growth with the ECB's published annual real GDP growth rate. Annual inflation uses official annual-average index-growth observations at publisher precision. Added raw inputs, a reproducible download script and source hashes.
 - Added literal-bin exceedance bounds above 3%, 4%, 5% and 10%. Historical nominal and real GNP observations remain in the tracker but are excluded from GDP tail outputs.
 - Replaced headline mean row-level CRPS skill with one minus the ratio of mean losses on matched eligible observations. Retained row-level skill as a sensitivity. Neither evaluation reconstructs historical release vintages.
 - Separated predictive uncertainty from disagreement among long-run point estimates. Preserved COVID observations and documented bin changes, changing panels and short recent samples.
@@ -31,7 +31,7 @@ The AI literature comparison is narrower than the initial hypothesis. The primar
 
 ## Verification
 
-The completed revision passes 130 tests, Ruff lint and formatting, and `git diff --check`. Tests independently integrate mixture moments, exercise open-tail identification, verify annual source aggregation, distinguish benchmark aggregation methods, and check that manuscript equations render inside the script-restricted embed. An independent review checked the headline calculations and corrected two interpretive overclaims before delivery; its final pass found no remaining material blocker.
+The completed revision passes 139 tests, Ruff lint and formatting, and `git diff --check`. Tests independently integrate mixture moments, exercise open-tail identification, verify annual source aggregation, distinguish benchmark aggregation methods, and check that manuscript equations render inside the script-restricted embed.
 
 The full pipeline, research figures, tracker data and Quarto HTML/PDF were rebuilt from the recorded raw snapshots. The PDF was rendered to page images and inspected; browser checks cover comparison controls, URL state, the paper links and responsive layout. Reproduction commands are in the [README](README.md).
 

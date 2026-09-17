@@ -17,6 +17,12 @@ import pandas as pd
 
 from forecast_uncertainty.measures import filter_probability_rows
 
+# Bin endpoints and thresholds are percentage growth rates parsed from survey
+# labels, so an endpoint this close to a threshold is that endpoint, not a bound
+# strictly inside the bin. Comparing them exactly would let representation error
+# turn an intended edge into a straddling bin.
+EDGE_TOLERANCE = 1e-9
+
 # Kept independent of build.py so that build can import this module.
 DENSITY_METADATA = [
     "survey",
@@ -66,8 +72,10 @@ def growth_tail_table(
     ``probability_lower`` sums mass in bins wholly above the threshold;
     ``probability_upper`` also includes mass in bins straddling it. No within-bin
     shape or finite-tail assumption enters those bounds, apart from the
-    continuous-boundary convention documented above. Gaps in the literal bin
-    labels receive no probability.
+    continuous-boundary convention documented above. Endpoints within
+    ``EDGE_TOLERANCE`` of the threshold are compared as that edge, so binary
+    representation error cannot turn an intended edge into a straddling bin.
+    Gaps in the literal bin labels receive no probability.
 
     ``probability_uniform`` interpolates only within finite bins. It is missing
     whenever the threshold lies strictly inside an open tail, even if that bin
@@ -152,9 +160,11 @@ def growth_tail_table(
             continue
         n = len(weights)
         for threshold in levels:
-            above = lower >= threshold
-            possibly_above = upper > threshold
-            straddles = (lower < threshold) & possibly_above
+            edge_lower = _snap_to_threshold(lower, threshold)
+            edge_upper = _snap_to_threshold(upper, threshold)
+            above = edge_lower >= threshold
+            possibly_above = edge_upper > threshold
+            straddles = (edge_lower < threshold) & possibly_above
             open_tail = bool(
                 np.any(straddles & (~np.isfinite(lower) | ~np.isfinite(upper)))
             )
@@ -163,8 +173,8 @@ def growth_tail_table(
             uniform = np.nan
             if not open_tail:
                 fractions = above.astype(float)
-                fractions[straddles] = (upper[straddles] - threshold) / (
-                    upper[straddles] - lower[straddles]
+                fractions[straddles] = (edge_upper[straddles] - threshold) / (
+                    edge_upper[straddles] - edge_lower[straddles]
                 )
                 uniform = float(np.mean(weights @ fractions))
             positive_lower = int(np.count_nonzero(individual_lower > 0))
@@ -185,6 +195,16 @@ def growth_tail_table(
                 }
             )
     return pd.DataFrame(rows, columns=GROWTH_TAIL_COLUMNS)
+
+
+def _snap_to_threshold(endpoints: np.ndarray, threshold: float) -> np.ndarray:
+    """Return endpoints with near-threshold values set to the threshold itself.
+
+    Infinite endpoints are never within tolerance, so open tails are untouched.
+    """
+    return np.where(
+        np.abs(endpoints - threshold) <= EDGE_TOLERANCE, threshold, endpoints
+    )
 
 
 def _literal_bounds(bins: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:

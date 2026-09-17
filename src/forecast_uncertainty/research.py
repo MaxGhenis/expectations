@@ -78,12 +78,19 @@ def period_comparisons(measures: pd.DataFrame, tails: pd.DataFrame) -> pd.DataFr
 
 
 def benchmark_summary(scores: pd.DataFrame) -> pd.DataFrame:
-    """Ratio of mean CRPS on matched rows; retain mean row skill as sensitivity."""
+    """Ratio of mean CRPS on matched rows; retain mean row skill as sensitivity.
+
+    Both statistics describe the same rows: those with a pooled score and a
+    strictly positive benchmark score. Row-level skill is undefined against a
+    benchmark loss of zero, so admitting such a row would leave ``n`` counting
+    an observation that ``mean_row_skill`` silently dropped.
+    """
     rows = []
     for (survey, variable), group in scores.groupby(["survey", "variable"]):
         for benchmark in ("climatology", "gaussian"):
             column = f"crps_{benchmark}"
             eligible = group.dropna(subset=["crps_pooled", column])
+            eligible = eligible[eligible[column] > 0]
             reference = eligible[column].mean()
             pooled = eligible.crps_pooled.mean()
             rows.append(
