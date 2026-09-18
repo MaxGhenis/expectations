@@ -190,9 +190,11 @@ const CONCEPTS = [
 ];
 // Flag colors: the US line takes the palette's red slot, the euro area its blue.
 const COMPARE_SERIES = [
-  { survey: 'us', short: 'US', color: '--series-8' },
-  { survey: 'ecb', short: 'Euro area', color: '--series-1' },
+  { survey: 'us', short: 'US', legend: 'US (US SPF)', color: '--series-8' },
+  { survey: 'ecb', short: 'Euro area', legend: 'Euro area (ECB SPF)', color: '--series-1' },
 ];
+// Horizon phrasing for the overview title, which must explain a screenshot on its own.
+const COMPARE_HORIZON_PHRASE = { current_year: 'current year', next_year: 'next year', year_after_next: 'year after next' };
 
 function addSvg(name, attrs = {}, text) {
   const node = document.createElementNS(SVG_NS, name);
@@ -504,17 +506,17 @@ function empty(title, note) {
 function overview() {
   const concept = currentConcept(), horizon = byId('compare').value, q1 = byId('rounds').value !== 'all';
   const series = COMPARE_SERIES.map(item => ({
-    ...item, color: token(item.color), label: SURVEY_LABELS[item.survey],
+    ...item, color: token(item.color), label: item.legend,
     rows: DATABASE.measures.filter(row =>
       row.survey === item.survey && row.variable === concept[item.survey] && row.horizon_class === horizon &&
       (!q1 || Number(row.quarter) === 1) &&
       (item.survey !== 'us' || !concept.usFrom || Number(row.year) >= concept.usFrom)
     ).sort((a, b) => roundTime(a) - roundTime(b)),
   }));
-  if (!series.some(item => item.rows.length)) return empty('Stated uncertainty, US and euro area', 'No density measures match these controls.');
-  const horizonLabel = (HORIZON_LABELS[horizon] || horizon).toLowerCase();
-  byId('chart-title').textContent = 'Stated uncertainty, US and euro area';
-  byId('chart-note').textContent = `Pooled total SD of each survey's ${concept.noun} densities, ${horizonLabel}. ` +
+  const title = `Uncertainty of ${concept.noun} forecasts (${COMPARE_HORIZON_PHRASE[horizon] || (HORIZON_LABELS[horizon] || horizon).toLowerCase()})`;
+  if (!series.some(item => item.rows.length)) return empty(title, 'No density measures match these controls.');
+  byId('chart-title').textContent = title;
+  byId('chart-note').textContent = "Standard deviation of each survey's pooled probability forecasts, in percentage points. " +
     (concept.detail ? `${concept.detail} ` : '') +
     (concept.usFrom ? `US series starts in ${concept.usFrom}Q1, when the SPF replaced six two-point-wide bins with one-point bins. ` : '') +
     roundsNote(false).trim();
@@ -534,7 +536,7 @@ function overview() {
     title: roundName(roundOf(time)),
     rows: series.map((item, i) => {
       const row = lookup[i].get(time);
-      return [item.label, row ? `${number(row.total_sd)}pp · n=${row.n}` : '—'];
+      return [item.short, row ? `${number(row.total_sd)}pp · n=${row.n}` : '—'];
     }),
   }));
   dataTable(
