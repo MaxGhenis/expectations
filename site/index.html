@@ -76,7 +76,7 @@
   th, td { text-align: right; padding: 3px 10px; border-bottom: 1px solid var(--grid); font-size: 12.5px; }
   th { color: var(--muted); font-weight: 600; }
   td:first-child, th:first-child { text-align: left; }
-  .view-control[hidden] { display: none; }
+  .controls label[hidden] { display: none; }
   select:focus-visible, button:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
   .empty { color: var(--text-secondary); font-size: 14px; }
   @media (max-width: 760px) {
@@ -94,10 +94,16 @@
   <a href="paper/" style="color: var(--series-1); text-decoration: none;">Working paper &rarr;</a> · <a href="growth/" style="color: var(--series-1); text-decoration: none;">Growth expectations &rarr;</a></p>
 
   <div class="controls">
-    <label>Survey
+    <label id="concept-control">Variable
+      <select id="concept"></select>
+    </label>
+    <label id="compare-control">Horizon
+      <select id="compare"></select>
+    </label>
+    <label id="survey-control">Survey
       <select id="survey"></select>
     </label>
-    <label>Variable
+    <label id="variable-control">Variable
       <select id="variable"></select>
     </label>
     <label id="horizon-control">Horizon
@@ -110,7 +116,8 @@
       <select id="measure"><option value="sd">SD decomposition</option><option value="iqr">Pooled IQR</option></select>
     </label>
     <div class="tabs" role="tablist" id="tabs">
-      <button role="tab" data-view="decomposition" aria-selected="true">Decomposition</button>
+      <button role="tab" data-view="overview" aria-selected="true">Overview</button>
+      <button role="tab" data-view="decomposition" aria-selected="false">Decomposition</button>
       <button role="tab" data-view="fan" aria-selected="false">Consensus fan</button>
       <button role="tab" data-view="calibration" aria-selected="false">Calibration</button>
       <button role="tab" data-view="term" aria-selected="false">Term structure</button>
@@ -141,7 +148,7 @@ const INNER_WIDTH = WIDTH - FRAME.l - FRAME.r;
 const INNER_HEIGHT = HEIGHT - FRAME.t - FRAME.b;
 const byId = id => document.getElementById(id);
 const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-let activeView = 'decomposition';
+let activeView = 'overview';
 
 function decodeRows(key) {
   const rows = DATA[key] || [];
@@ -169,6 +176,21 @@ const HORIZON_LABELS = {
 const HORIZON_ORDER = [
   'current_year', 'next_year', 'year_after_next', 'three_years_ahead',
   'rolling_1y', 'rolling_2y', 'longer_term',
+];
+// The overview pairs one variable from each survey. US growth and GDP-price
+// densities start in 1992Q1, when the SPF replaced six two-point-wide bins with
+// one-point bins; the earlier scheme is not comparable on this scale.
+const CONCEPTS = [
+  { id: 'growth', label: 'Real GDP growth', noun: 'real GDP growth', us: 'PRGDP', ecb: 'rgdp', usFrom: 1992 },
+  { id: 'inflation', label: 'Inflation', noun: 'inflation', us: 'PRPGDP', ecb: 'hicp', usFrom: 1992,
+    detail: 'US GDP price inflation against euro-area HICP inflation.' },
+  { id: 'core', label: 'Core inflation', noun: 'core inflation', us: 'PRCCPI', ecb: 'hicpx',
+    detail: 'US core CPI against euro-area core HICP.' },
+  { id: 'unemployment', label: 'Unemployment rate', noun: 'unemployment-rate', us: 'PRUNEMP', ecb: 'unemp' },
+];
+const COMPARE_SERIES = [
+  { survey: 'us', short: 'US', color: '--series-1' },
+  { survey: 'ecb', short: 'Euro area', color: '--series-2' },
 ];
 
 function addSvg(name, attrs = {}, text) {
@@ -415,6 +437,22 @@ function fillHorizons(preferred) {
   const fallback = ['next_year', 'rolling_1y', 'current_year'].find(id => items.some(item => item.id === id));
   fillSelect(byId('horizon'), items, preferred || fallback || (items[0] || {}).id);
 }
+function currentConcept() {
+  return CONCEPTS.find(item => item.id === byId('concept').value) || CONCEPTS[0];
+}
+function compareHorizons(concept) {
+  const shared = COMPARE_SERIES.map(item => horizons(item.survey, concept[item.survey]).map(h => h.id));
+  return HORIZON_ORDER.filter(id => shared.every(ids => ids.includes(id)))
+    .map(id => ({ id, label: HORIZON_LABELS[id] || id }));
+}
+function fillConcepts(preferred) {
+  fillSelect(byId('concept'), CONCEPTS, preferred || 'growth');
+  fillCompareHorizons();
+}
+function fillCompareHorizons(preferred) {
+  const items = compareHorizons(currentConcept());
+  fillSelect(byId('compare'), items, preferred || (items.some(item => item.id === 'next_year') ? 'next_year' : (items[0] || {}).id));
+}
 function labels() {
   const label = select => select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : '';
   return { survey: label(byId('survey')), variable: label(byId('variable')), horizon: label(byId('horizon')) };
@@ -460,6 +498,51 @@ function resetView() {
 function empty(title, note) {
   byId('chart-title').textContent = title; byId('chart-note').textContent = note;
   addSvg('text', { x: FRAME.l, y: FRAME.t + 32, 'font-size': 14, fill: token('--text-secondary') }, 'No rows match these controls.');
+}
+
+function overview() {
+  const concept = currentConcept(), horizon = byId('compare').value, q1 = byId('rounds').value !== 'all';
+  const series = COMPARE_SERIES.map(item => ({
+    ...item, color: token(item.color), label: SURVEY_LABELS[item.survey],
+    rows: DATABASE.measures.filter(row =>
+      row.survey === item.survey && row.variable === concept[item.survey] && row.horizon_class === horizon &&
+      (!q1 || Number(row.quarter) === 1) &&
+      (item.survey !== 'us' || !concept.usFrom || Number(row.year) >= concept.usFrom)
+    ).sort((a, b) => roundTime(a) - roundTime(b)),
+  }));
+  if (!series.some(item => item.rows.length)) return empty('Stated uncertainty, US and euro area', 'No density measures match these controls.');
+  const horizonLabel = (HORIZON_LABELS[horizon] || horizon).toLowerCase();
+  byId('chart-title').textContent = 'Stated uncertainty, US and euro area';
+  byId('chart-note').textContent = `Pooled total SD of each survey's ${concept.noun} densities, ${horizonLabel}. ` +
+    (concept.detail ? `${concept.detail} ` : '') +
+    (concept.usFrom ? `US series starts in ${concept.usFrom}Q1, when the SPF replaced six two-point-wide bins with one-point bins. ` : '') +
+    roundsNote(false).trim();
+  const times = [...new Set(series.flatMap(item => item.rows.map(roundTime)))].sort((a, b) => a - b);
+  const domain = makeDomain(series.flatMap(item => item.rows.map(row => row.total_sd)), true);
+  const scales = makeScales(times, domain);
+  axes(scales, domain, 'pp');
+  series.forEach(item => line(item.rows.map(row => [roundTime(row), row.total_sd]), scales, item.color));
+  setLegend(series.map(item => ({ color: item.color, label: item.label })));
+  series.forEach(item => {
+    const last = item.rows[item.rows.length - 1];
+    if (last) endpoint(roundTime(last), last.total_sd, scales, item.color, `${item.short} ${number(last.total_sd)}`);
+  });
+  const lookup = series.map(item => new Map(item.rows.map(row => [roundTime(row), row])));
+  const roundOf = time => { const year = Math.floor(time); return { year, quarter: Math.round((time - year) * 4) + 1 }; };
+  crosshair(times, scales, time => ({
+    title: roundName(roundOf(time)),
+    rows: series.map((item, i) => {
+      const row = lookup[i].get(time);
+      return [item.label, row ? `${number(row.total_sd)}pp · n=${row.n}` : '—'];
+    }),
+  }));
+  dataTable(
+    ['Forecast round', 'US total SD', 'US n', 'Euro area total SD', 'Euro area n'],
+    times.map(time => {
+      const [us, ecb] = lookup.map(map => map.get(time));
+      return [roundName(roundOf(time)), number(us && us.total_sd), us ? us.n : '—', number(ecb && ecb.total_sd), ecb ? ecb.n : '—'];
+    })
+  );
 }
 
 function decomposition() {
@@ -808,11 +891,16 @@ function termStructure() {
   );
 }
 
-const RENDERERS = { decomposition, fan, calibration, term: termStructure, scores };
+const RENDERERS = { overview, decomposition, fan, calibration, term: termStructure, scores };
 function toggleViewControls() {
+  const compare = activeView === 'overview';
+  byId('concept-control').hidden = !compare;
+  byId('compare-control').hidden = !compare;
+  byId('survey-control').hidden = compare;
+  byId('variable-control').hidden = compare;
+  byId('horizon-control').hidden = compare || activeView === 'term';
   byId('measure-control').hidden = activeView !== 'decomposition';
   byId('rounds-control').hidden = activeView === 'term';
-  byId('horizon-control').hidden = activeView === 'term';
 }
 function renderInteractive() {
   resetView(); toggleViewControls();
@@ -842,6 +930,10 @@ function applyHash() {
     const value = params.get(id);
     if (value && hasOption(byId(id), value)) byId(id).value = value;
   }
+  const concept = params.get('concept');
+  if (concept && hasOption(byId('concept'), concept)) { byId('concept').value = concept; fillCompareHorizons(); }
+  const compare = params.get('compare');
+  if (compare && hasOption(byId('compare'), compare)) byId('compare').value = compare;
   const view = params.get('view');
   if (view && RENDERERS[view]) {
     activeView = view;
@@ -853,13 +945,16 @@ function applyHash() {
 function writeHash() {
   const params = new URLSearchParams();
   params.set('view', activeView);
-  for (const id of ['survey', 'variable', 'horizon', 'rounds', 'measure']) params.set(id, byId(id).value);
+  for (const id of ['survey', 'variable', 'horizon', 'rounds', 'measure', 'concept', 'compare']) params.set(id, byId(id).value);
   history.replaceState(null, '', '#' + params.toString());
 }
 
 fillSelect(byId('survey'), surveys(), 'us');
 fillVariables('PRGDP');
 fillHorizons('next_year');
+fillConcepts('growth');
+byId('concept').addEventListener('change', () => { fillCompareHorizons(); renderInteractive(); });
+byId('compare').addEventListener('change', renderInteractive);
 byId('survey').addEventListener('change', () => { fillVariables(); renderInteractive(); });
 byId('variable').addEventListener('change', () => { fillHorizons(); renderInteractive(); });
 ['horizon', 'rounds', 'measure'].forEach(id => byId(id).addEventListener('change', renderInteractive));
@@ -877,7 +972,7 @@ if (colorMode.addEventListener) colorMode.addEventListener('change', renderInter
 applyHash();
 renderInteractive();
 writeHash();
-['survey', 'variable', 'horizon', 'rounds', 'measure'].forEach(id =>
+['survey', 'variable', 'horizon', 'rounds', 'measure', 'concept', 'compare'].forEach(id =>
   byId(id).addEventListener('change', writeHash)
 );
 byId('tabs').addEventListener('click', writeHash);
