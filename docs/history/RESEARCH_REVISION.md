@@ -16,7 +16,7 @@ The primary comparison uses Q1 rounds, holding the calendar horizon fixed. Perio
 
 The 4% threshold is identified at common literal bin edges in these comparisons. More extreme thresholds require bounds, particularly in the ECB's open upper bin. Small open-tail probability does not bound the magnitude of growth conditional on reaching the tail, so unrestricted moments remain unidentified without a tail assumption.
 
-The AI literature comparison is narrower than the initial hypothesis. The primary elicited-distribution source checked here does not establish a large unconditional near-term extreme-tail disagreement. Its conditional and distant-horizon results cannot be substituted for that comparison. See [the source audit](paper/AI_COMPARATORS.md). The manuscript presents a measurable professional baseline and identifies the matched elicitation needed to establish a direct disagreement.
+The AI literature comparison is narrower than the initial hypothesis. The primary elicited-distribution source checked here does not establish a large unconditional near-term extreme-tail disagreement. Its conditional and distant-horizon results cannot be substituted for that comparison. See [the source audit](../../paper/AI_COMPARATORS.md). The manuscript presents a measurable professional baseline and identifies the matched elicitation needed to establish a direct disagreement.
 
 ## Corrections and additions
 
@@ -33,15 +33,15 @@ The AI literature comparison is narrower than the initial hypothesis. The primar
 
 The completed revision passes 139 tests, Ruff lint and formatting, and `git diff --check`. Tests independently integrate mixture moments, exercise open-tail identification, verify annual source aggregation, distinguish benchmark aggregation methods, and check that manuscript equations render inside the script-restricted embed.
 
-The full pipeline, research figures, tracker data and Quarto HTML/PDF were rebuilt from the recorded raw snapshots. The PDF was rendered to page images and inspected; browser checks cover comparison controls, URL state, the paper links and responsive layout. Reproduction commands are in the [README](README.md).
+The full pipeline, research figures, tracker data and Quarto HTML/PDF were rebuilt from the recorded raw snapshots. The PDF was rendered to page images and inspected; browser checks cover comparison controls, URL state, the paper links and responsive layout. Reproduction commands are in the [README](../../README.md).
 
 ## Artifacts
 
-- [Manuscript source](paper/index.qmd), [rendered HTML](site/paper/web/index.html), [PDF](site/paper/web/index.pdf)
+- [Manuscript source](../../paper/index.qmd), [rendered HTML](../../site/paper/web/index.html), [PDF](../../site/paper/web/index.pdf)
 - Research companion: `site/growth/index.html`
-- [Literal-bin GDP tail probabilities](outputs/growth_tails.csv)
-- [Period comparisons](outputs/growth_comparison.csv)
-- [Benchmark score summary](outputs/benchmark_summary.csv)
-- [Annual ECB outcome provenance](data/raw/ecb_annual_realizations_sources.json)
+- [Literal-bin GDP tail probabilities](../../outputs/growth_tails.csv)
+- [Period comparisons](../../outputs/growth_comparison.csv)
+- [Benchmark score summary](../../outputs/benchmark_summary.csv)
+- [Annual ECB outcome provenance](../../data/raw/ecb_annual_realizations_sources.json)
 
 Earlier planning and review documents remain as historical records. Their supersession notices identify numerical and framing claims that should no longer be used.

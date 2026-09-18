@@ -1,9 +1,9 @@
 ---
 title: "What do forecasters say they don't know?"
-subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r3"
+subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r4"
 author:
   - name: Max Ghenis
-date: 2026-09-17
+date: 2026-09-18
 bibliography: references.bib
 csl: chicago-author-date.csl
 bibliography-title: References
@@ -12,9 +12,6 @@ format:
     toc: true
     number-sections: true
     theme: cosmo
-    embed-resources: true
-    html-math-method: mathml
-    format-links: false
     embed-resources: true
     html-math-method: mathml
     format-links: false
@@ -303,8 +300,8 @@ spread between forecasters' means — is not *uncertainty* — the spread each
 forecaster reports around their own mean.
 
 ::: {.callout-note title="Draft note"}
-Contribution list and positioning paragraph drafted in the planning
-skeleton (`paper/PAPER.md`); nearest antecedents:
+Contribution list and positioning paragraph still to come; nearest
+antecedents:
 @damicoOrphanides2008 (US long series, inflation, ends 2008),
 @clementsRichTracy2022 (both surveys, in prose), @allayioti2024 (ECB
 25-year retrospective, one survey).
@@ -427,8 +424,7 @@ the size of that gain (`{python} v['crps_gain']`% on average,
 ::: {.callout-note title="Draft note"}
 Each fact still wants a figure. Every inline value and table below computes
 at render from `outputs/panorama_*.csv`, including the balanced-sample term
-structure and the post-2021 ECB comparison; the historical pipeline reports
-(`SOL_REPORT.md`, `SCORES_REPORT.md`) are superseded records, not sources.
+structure and the post-2021 ECB comparison.
 :::
 
 **Stated growth uncertainty is stable — and its pandemic spike decayed on

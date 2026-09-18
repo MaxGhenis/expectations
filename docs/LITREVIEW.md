@@ -1,6 +1,6 @@
 # Literature review: elicited macroeconomic forecast uncertainty
 
-> Historical literature compilation, superseded in scope and AI-comparator interpretation by [the research revision](RESEARCH_REVISION.md) and [primary-source audit](paper/AI_COMPARATORS.md). In particular, the heterogeneous 0.1–30 pp range below is not a commensurable distribution of annual GDP forecasts. Use the revised manuscript for current numerical claims.
+> Historical literature compilation, superseded in scope and AI-comparator interpretation by [the research revision](history/RESEARCH_REVISION.md) and [primary-source audit](../paper/AI_COMPARATORS.md). In particular, the heterogeneous 0.1–30 pp range below is not a commensurable distribution of annual GDP forecasts. Use the revised manuscript for current numerical claims.
 
 Prepared for the working paper on the panorama of elicited macroeconomic forecast uncertainty (US SPF 1968/1992–2026 and ECB SPF 1999–2026): the law-of-total-variance decomposition of pooled survey densities into within-forecaster uncertainty and disagreement, applied to every density variable and horizon of both surveys, checked against realized errors, delivered with a live cross-survey interactive, and framed by the elicitation gap between where stated densities stop (3–5 years out) and where the AI growth debate (published range roughly 0.1–30pp/yr) needs distributions.
 

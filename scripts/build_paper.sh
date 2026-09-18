@@ -20,6 +20,8 @@ render() {
   if [ "$source_dir" != "paper" ]; then
     cp paper/references.bib paper/chicago-author-date.csl "$source_dir/"
   fi
+  # Clear the last render first, so a failed render can never sync stale output.
+  rm -f "$source_dir/out/index.html" "$source_dir/out/index.pdf"
   JUPYTER_PATH="$PWD/.venv/share/jupyter" QUARTO_PYTHON="$PWD/.venv/bin/python" \
     quarto render "$source_dir/index.qmd" --to all --execute-daemon 0
   mkdir -p "$web_dir"

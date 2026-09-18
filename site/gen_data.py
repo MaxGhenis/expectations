@@ -391,7 +391,7 @@ def main() -> None:
     measures = measures_raw.dropna(subset=["horizon_class"]).copy()
 
     # Early ECB Q1 files legitimately contain both four- and five-year
-    # longer-term targets in the same round (SOL_REPORT.md, term structure).
+    # longer-term targets in the same round (docs/history/SOL_REPORT.md, term structure).
     identity_fields = [
         "survey",
         "variable",
