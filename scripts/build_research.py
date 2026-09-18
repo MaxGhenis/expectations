@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from forecast_uncertainty.research import (
+from expectations.research import (
     GROWTH_SERIES,
     benchmark_summary,
     period_comparisons,

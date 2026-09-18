@@ -5,13 +5,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forecast_uncertainty.benchmarks import (
+from expectations.benchmarks import (
     add_benchmark_scores,
     empirical_sample_crps,
     gaussian_crps,
     period_completion_ordinal,
 )
-from forecast_uncertainty.realizations import (
+from expectations.realizations import (
     load_realization_history,
     load_us_realizations,
 )

@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from forecast_uncertainty.research import benchmark_summary, period_comparisons
+from expectations.research import benchmark_summary, period_comparisons
 
 
 def test_benchmark_summary_compares_same_rows_and_ratios_of_means():

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from forecast_uncertainty.panorama import build_all
+from expectations.panorama import build_all
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "outputs"

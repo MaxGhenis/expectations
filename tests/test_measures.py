@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from forecast_uncertainty.measures import (
+from expectations.measures import (
     filter_probability_rows,
     finite_intervals,
     histogram_quantiles,

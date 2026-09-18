@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from forecast_uncertainty.realizations import (
+from expectations.realizations import (
     DEFAULT_RAW_DIR,
     _ecb_level_annual_rows,
     _load_ecb_series,

@@ -162,7 +162,7 @@ def score_density_calibration(
     """Append pooled and average-individual scores to calibration rows.
 
     Respondent histograms go through the same response filter used by
-    :func:`forecast_uncertainty.measures.round_stats`.  The output preserves the
+    :func:`expectations.measures.round_stats`.  The output preserves the
     calibration row order and columns, then appends the distribution-score fields.
     """
     required_calibration = {

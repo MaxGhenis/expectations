@@ -24,7 +24,7 @@ format:
     papersize: a4
 execute:
   echo: false
-jupyter: forecast-uncertainty-local
+jupyter: expectations-local
 ---
 
 ```{python}

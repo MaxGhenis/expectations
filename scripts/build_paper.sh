@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 "$PWD/.venv/bin/python" -m ipykernel install --prefix "$PWD/.venv" \
-  --name forecast-uncertainty-local --display-name "Forecast uncertainty (local)"
+  --name expectations-local --display-name "Expectations (local)"
 
 render() {
   local source_dir="$1" web_dir="$2"

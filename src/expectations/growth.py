@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from forecast_uncertainty.measures import filter_probability_rows
+from expectations.measures import filter_probability_rows
 
 # Bin endpoints and thresholds are percentage growth rates parsed from survey
 # labels, so an endpoint this close to a threshold is that endpoint, not a bound

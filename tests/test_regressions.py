@@ -4,15 +4,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forecast_uncertainty.build import add_recession_realizations, aggregate_density
-from forecast_uncertainty.ecb_spf import parse_ecb_round
-from forecast_uncertainty.measures import finite_intervals
-from forecast_uncertainty.realizations import (
+from expectations.build import add_recession_realizations, aggregate_density
+from expectations.ecb_spf import parse_ecb_round
+from expectations.measures import finite_intervals
+from expectations.realizations import (
     calibration_table,
     load_ecb_realizations,
     load_us_realizations,
 )
-from forecast_uncertainty.us_spf import LONGRUN_VARIABLES, parse_us_density
+from expectations.us_spf import LONGRUN_VARIABLES, parse_us_density
 
 ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "tests" / "fixtures" / "seed"

@@ -9,14 +9,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from forecast_uncertainty.realizations import (
+from expectations.realizations import (
     DEFAULT_RAW_DIR,
     _canonical_survey,
     _canonical_target_period,
     _canonical_variable,
     load_realization_history,
 )
-from forecast_uncertainty.scores import empirical_crps, gaussian_crps
+from expectations.scores import empirical_crps, gaussian_crps
 
 MIN_BENCHMARK_OBSERVATIONS = 10
 

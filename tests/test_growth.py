@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forecast_uncertainty.growth import GROWTH_TAIL_COLUMNS, growth_tail_table
-from forecast_uncertainty.us_spf import parse_us_density
+from expectations.growth import GROWTH_TAIL_COLUMNS, growth_tail_table
+from expectations.us_spf import parse_us_density
 
 
 def density_frame(intervals, probabilities, **metadata):

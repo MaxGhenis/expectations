@@ -8,14 +8,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from forecast_uncertainty.benchmarks import add_benchmark_scores
-from forecast_uncertainty.growth import growth_tail_table
-from forecast_uncertainty.measures import round_stats
-from forecast_uncertainty.realizations import (
+from expectations.benchmarks import add_benchmark_scores
+from expectations.growth import growth_tail_table
+from expectations.measures import round_stats
+from expectations.realizations import (
     calibration_table,
     load_realizations,
 )
-from forecast_uncertainty.scores import score_density_calibration
+from expectations.scores import score_density_calibration
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = ROOT / "data" / "raw"
@@ -229,8 +229,8 @@ def build_outputs(
     output_dir: str | Path = OUTPUT_DIR,
 ) -> dict[str, pd.DataFrame]:
     """Run the local pipeline, including GDP tail probability bounds."""
-    from forecast_uncertainty.ecb_spf import parse_ecb_round
-    from forecast_uncertainty.us_spf import (
+    from expectations.ecb_spf import parse_ecb_round
+    from expectations.us_spf import (
         DENSITY_VARIABLES,
         parse_longrun_points,
         parse_us_density,

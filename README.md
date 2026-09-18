@@ -17,7 +17,7 @@ Python 3.13+ and `uv` are required. Rendering the manuscripts also requires Quar
 ```bash
 uv sync --dev
 unzip -q -o data/raw/ecb_spf_individual_forecasts.zip -d data/raw/ecb_spf
-uv run python -m forecast_uncertainty.build
+uv run python -m expectations.build
 uv run python scripts/build_research.py
 uv run python scripts/build_panorama.py
 uv run python site/gen_data.py

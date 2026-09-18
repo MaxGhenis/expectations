@@ -1,6 +1,6 @@
 import pytest
 
-from forecast_uncertainty.bins import (
+from expectations.bins import (
     BinScheme,
     ecb_intervals,
     parse_ecb_header,

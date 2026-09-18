@@ -2,7 +2,7 @@
 
 Each table is checked against an independent computation over the same
 ``outputs/*.csv`` rows, so a convention drifting inside
-``forecast_uncertainty.panorama`` cannot silently move a manuscript number.
+``expectations.panorama`` cannot silently move a manuscript number.
 """
 
 from pathlib import Path
@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from forecast_uncertainty import panorama
+from expectations import panorama
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "outputs"

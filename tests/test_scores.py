@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forecast_uncertainty.build import aggregate_density
-from forecast_uncertainty.measures import finite_intervals, histogram_quantiles
-from forecast_uncertainty.scores import (
+from expectations.build import aggregate_density
+from expectations.measures import finite_intervals, histogram_quantiles
+from expectations.scores import (
     empirical_crps,
     gaussian_crps,
     histogram_cdf,
