@@ -10,7 +10,7 @@
     --page: #f9f9f7; --surface-1: #fcfcfb;
     --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #898781;
     --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
-    --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+    --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-8: #e34948;
     --critical: #d03b3b;
   }
   @media (prefers-color-scheme: dark) {
@@ -19,7 +19,7 @@
       --page: #0d0d0d; --surface-1: #1a1a19;
       --text-primary: #ffffff; --text-secondary: #c3c2b7; --muted: #898781;
       --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
-      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-8: #e66767;
       --critical: #d03b3b;
     }
   }
@@ -28,7 +28,7 @@
     --page: #0d0d0d; --surface-1: #1a1a19;
     --text-primary: #ffffff; --text-secondary: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
-    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-8: #e66767;
     --critical: #d03b3b;
   }
   * { margin: 0; box-sizing: border-box; }
@@ -188,9 +188,10 @@ const CONCEPTS = [
     detail: 'US core CPI against euro-area core HICP.' },
   { id: 'unemployment', label: 'Unemployment rate', noun: 'unemployment-rate', us: 'PRUNEMP', ecb: 'unemp' },
 ];
+// Flag colors: the US line takes the palette's red slot, the euro area its blue.
 const COMPARE_SERIES = [
-  { survey: 'us', short: 'US', color: '--series-1' },
-  { survey: 'ecb', short: 'Euro area', color: '--series-2' },
+  { survey: 'us', short: 'US', color: '--series-8' },
+  { survey: 'ecb', short: 'Euro area', color: '--series-1' },
 ];
 
 function addSvg(name, attrs = {}, text) {
