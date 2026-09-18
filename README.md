@@ -34,7 +34,7 @@ Open `http://localhost:8769/`. The paper build installs its Jupyter kernel insid
 
 - `measures.csv`: pooled moments, quantiles and disagreement for every survey, variable, round and target. Moments, quantiles and CRPS all use one distribution: uniform within each finite bin, open tails closed at one adjacent-bin width.
 - `calibration.csv`, `scores.csv`, `benchmark_summary.csv`: outcomes, coverage flags, CRPS, pinball losses, PITs, and skill against expanding-window climatology and a Gaussian around the consensus. Skill is one minus the ratio of mean CRPS on matched eligible observations; mean row-level skill stays as a sensitivity.
-- `panorama_*.csv`: the summary tables behind the panorama paper (stability, disagreement shares, term structure, fixed-event shrinkage, coverage and miss clusters, the ECB longer-term shift, skill, tails, PITs, bin-era comparisons), written by `scripts/build_panorama.py`.
+- `panorama_*.csv`: the summary tables behind the full paper, `paper/index.qmd` (stability, disagreement shares, term structure, fixed-event shrinkage, coverage and miss clusters, the ECB longer-term shift, skill, tails, PITs, bin-era comparisons), written by `scripts/build_panorama.py`.
 - `growth_tails.csv`, `growth_comparison.csv`: real GDP probabilities above 3%, 4%, 5% and 10% with literal-bin lower and upper bounds, and fixed-Q1 and all-round period comparisons. The bounds never close an open tail, and they are identification bounds, not confidence intervals.
 - `coverage.csv`, `longrun_points.csv`, `recess.csv`: parsing coverage, ten-year point forecasts and recession probabilities.
 
