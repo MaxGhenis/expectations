@@ -278,13 +278,35 @@ function band(rows, scales, low, high) {
   const lower = valid.slice().reverse().map(row => `${scales.x(roundTime(row)).toFixed(1)},${scales.y(low(row)).toFixed(1)}`);
   addSvg('path', { d: `M${upper.concat(lower).join(' L')} Z`, fill: token('--series-1'), opacity: 0.16 });
 }
-function endpoint(xValue, yValue, scales, color, label, dy = 0) {
+// End labels queue here and are laid out together once the view has drawn every
+// series, so labels of series that end close together never overprint.
+const ENDPOINTS = [];
+function endpoint(xValue, yValue, scales, color, label) {
   if (!isNumber(xValue) || !isNumber(yValue)) return;
   addSvg('circle', { cx: scales.x(xValue), cy: scales.y(yValue), r: 3.5, fill: color });
-  addSvg('text', {
-    x: scales.x(xValue) + 8, y: scales.y(yValue) + 4 + dy,
-    'font-size': 12.5, 'font-weight': 600, fill: token('--text-secondary'),
-  }, label);
+  ENDPOINTS.push({ x: scales.x(xValue), y: scales.y(yValue), label });
+}
+function placeEndpoints() {
+  const GAP = 15, top = FRAME.t + 4, bottom = FRAME.t + INNER_HEIGHT - 4;
+  const items = ENDPOINTS.splice(0).sort((a, b) => a.y - b.y);
+  if (!items.length) return;
+  // Keep vertical order, open a minimum gap, and stay inside the plot frame.
+  items.forEach(item => { item.ly = item.y; });
+  for (let i = 1; i < items.length; i++) items[i].ly = Math.max(items[i].ly, items[i - 1].ly + GAP);
+  items[items.length - 1].ly = Math.min(items[items.length - 1].ly, bottom);
+  for (let i = items.length - 2; i >= 0; i--) items[i].ly = Math.min(items[i].ly, items[i + 1].ly - GAP);
+  items[0].ly = Math.max(items[0].ly, top);
+  for (let i = 1; i < items.length; i++) items[i].ly = Math.max(items[i].ly, items[i - 1].ly + GAP);
+  items.forEach(item => {
+    if (Math.abs(item.ly - item.y) > 5) addSvg('line', {
+      x1: item.x + 5, y1: item.y, x2: item.x + 7, y2: item.ly,
+      stroke: token('--muted'), 'stroke-width': 1, 'pointer-events': 'none',
+    });
+    addSvg('text', {
+      x: item.x + 8, y: item.ly + 4, 'font-size': 12.5, 'font-weight': 600,
+      fill: token('--text-secondary'), 'pointer-events': 'none',
+    }, item.label);
+  });
 }
 function setLegend(items) {
   const host = byId('legend');
@@ -433,7 +455,7 @@ function roundsNote(includeDuplicateAverage = true) {
     : '');
 }
 function resetView() {
-  CHART.replaceChildren(); TOOLTIP.style.display = 'none'; setLegend([]); dataTable([], []);
+  CHART.replaceChildren(); ENDPOINTS.length = 0; TOOLTIP.style.display = 'none'; setLegend([]); dataTable([], []);
 }
 function empty(title, note) {
   byId('chart-title').textContent = title; byId('chart-note').textContent = note;
@@ -464,9 +486,9 @@ function decomposition() {
   series.forEach(item => line(rows.map(row => [roundTime(row), row[item.key]]), scales, item.color));
   if (series.length > 1) setLegend(series.map(item => ({ color: item.color, label: item.label })));
   const last = rows[rows.length - 1];
-  series.forEach((item, i) => endpoint(
+  series.forEach(item => endpoint(
     roundTime(last), last[item.key], scales, item.color,
-    `${item.label.split(' ')[0]} ${number(last[item.key])}`, (i - 1) * 3
+    `${item.label.split(' ')[0]} ${number(last[item.key])}`
   ));
   const byTime = new Map(rows.map(row => [roundTime(row), row]));
   crosshair(times, scales, time => {
@@ -520,7 +542,7 @@ function fan() {
   endpoint(roundTime(last), last.median, scales, token('--series-1'), `${number(last.median, 1)}% · IQR ${number(last.iqr, 1)}`);
   if (longrun.length) {
     const end = longrun[longrun.length - 1];
-    endpoint(roundTime(end), end.median, scales, token('--series-2'), `${number(end.median, 1)}% · IQR ${number(end.iqr, 1)}`, 14);
+    endpoint(roundTime(end), end.median, scales, token('--series-2'), `${number(end.median, 1)}% · IQR ${number(end.iqr, 1)}`);
   }
   const densityByTime = new Map(rows.map(row => [roundTime(row), row]));
   const longrunByTime = new Map(longrun.map(row => [roundTime(row), row]));
@@ -661,11 +683,11 @@ function scores() {
     rows.map(row => [roundTime(row), row[item.key]]), scales, item.color
   ));
   setLegend(availableSeries.map(item => ({ color: item.color, label: item.label })));
-  availableSeries.forEach((item, i) => {
+  availableSeries.forEach(item => {
     const end = rows.slice().reverse().find(row => isNumber(row[item.key]));
     if (end) endpoint(
       roundTime(end), end[item.key], scales, item.color,
-      `${item.short} ${number(end[item.key])}`, (i - (availableSeries.length - 1) / 2) * 12
+      `${item.short} ${number(end[item.key])}`
     );
   });
   const byTime = new Map(rows.map(row => [roundTime(row), row]));
@@ -767,8 +789,8 @@ function termStructure() {
   });
   setLegend(series.map(item => ({ color: item.color, label: item.label })));
   const lastIndex = data.summary.length - 1, end = data.summary[lastIndex];
-  endpoint(lastIndex, end.total_sd, scales, token('--series-1'), `Total ${number(end.total_sd)}`, -5);
-  endpoint(lastIndex, end.within_sd, scales, token('--series-2'), `Individual ${number(end.within_sd)}`, 8);
+  endpoint(lastIndex, end.total_sd, scales, token('--series-1'), `Total ${number(end.total_sd)}`);
+  endpoint(lastIndex, end.within_sd, scales, token('--series-2'), `Individual ${number(end.within_sd)}`);
   crosshair(xs, scales, index => {
     const row = data.summary[index];
     return {
@@ -798,6 +820,7 @@ function renderInteractive() {
     empty('Forecast uncertainty', 'The generated data bundle contains no density measures.');
   } else {
     RENDERERS[activeView]();
+    placeEndpoints();
   }
   const meta = DATA.meta || {};
   const source = Array.isArray(meta.source) ? meta.source.join('; ') : (meta.source || 'Pipeline outputs');
