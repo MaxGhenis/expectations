@@ -10,7 +10,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .bins import BinScheme, ecb_intervals, parse_ecb_header
+from .bins import (
+    RECONSTRUCTION,
+    BinScheme,
+    ecb_intervals,
+    parse_ecb_header,
+    support_intervals,
+)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RAW_DIR = REPOSITORY_ROOT / "data" / "raw" / "ecb_spf"
@@ -69,8 +75,12 @@ _MONTH_NUMBER = {
 }
 
 
-def parse_ecb_round(path: str | Path) -> pd.DataFrame:
-    """Parse one stacked ECB SPF CSV into respondent-by-bin long form."""
+def parse_ecb_round(path: str | Path, convention: str = RECONSTRUCTION) -> pd.DataFrame:
+    """Parse one stacked ECB SPF CSV into respondent-by-bin long form.
+
+    ``convention`` picks how printed bin labels become continuous support; see
+    ``bins.support_intervals``.
+    """
     source = Path(path)
     year, quarter = _round_from_path(source)
     with source.open(encoding="utf-8-sig", newline="") as stream:
@@ -92,6 +102,7 @@ def parse_ecb_round(path: str | Path) -> pd.DataFrame:
             year=year,
             quarter=quarter,
             source=source,
+            convention=convention,
         )
         if not frame.empty:
             frames.append(frame)
@@ -100,7 +111,9 @@ def parse_ecb_round(path: str | Path) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)[list(OUTPUT_COLUMNS)]
 
 
-def load_ecb_spf(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
+def load_ecb_spf(
+    raw_dir: str | Path = DEFAULT_RAW_DIR, convention: str = RECONSTRUCTION
+) -> pd.DataFrame:
     """Parse all ECB individual-round CSV files in chronological order."""
     directory = Path(raw_dir)
     paths = sorted(
@@ -108,7 +121,7 @@ def load_ecb_spf(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
     )
     if not paths:
         raise FileNotFoundError(f"No ECB SPF round files found in {directory}")
-    frames = [parse_ecb_round(path) for path in paths]
+    frames = [parse_ecb_round(path, convention) for path in paths]
     nonempty = [frame for frame in frames if not frame.empty]
     if not nonempty:
         return _empty_frame()
@@ -128,6 +141,7 @@ def _parse_section(
     year: int,
     quarter: int,
     source: Path,
+    convention: str = RECONSTRUCTION,
 ) -> pd.DataFrame:
     header_index = next(
         (
@@ -153,7 +167,9 @@ def _parse_section(
 
     ordered_bins = _ordered_bins(bin_columns)
     bin_headers = [header_name for _, header_name, _ in ordered_bins]
-    intervals = ecb_intervals([bounds for _, _, bounds in ordered_bins])
+    intervals = support_intervals(
+        ecb_intervals([bounds for _, _, bounds in ordered_bins]), convention
+    )
     scheme_name = "|".join(bin_headers)
     midpoints = np.asarray(BinScheme(scheme_name, intervals).midpoints, dtype=float)
 

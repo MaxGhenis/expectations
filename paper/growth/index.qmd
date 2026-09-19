@@ -3,7 +3,7 @@ title: "Growth expectations in the AI era"
 subtitle: "Levels, uncertainty and upper tails in professional GDP forecasts"
 author:
   - name: Max Ghenis
-date: 2026-09-17
+date: 2026-09-19
 # The bib and csl are shared with the panorama manuscript in ../ ; the build
 # stages copies beside this file because Typst refuses to read a style or
 # bibliography outside its own project root.
@@ -119,11 +119,11 @@ The longer record also rules out calling central forecasts constant. The US ten-
 
 ## The upper tail
 
-We compute probabilities of growth above 3%, 4%, 5% and 10%. The thresholds describe outcomes and define nothing about transformative AI. For historical comparison 4% does the most work: it is a literal bin edge in every scheme behind the displayed series, so its exceedance probability needs no assumption about how mass spreads inside a bin.
+We compute probabilities of growth above 3%, 4%, 5% and 10%. The thresholds describe outcomes and define nothing about transformative AI. For historical comparison 4% does the most work: it is a printed lower bin label in every scheme behind the displayed series, so its exceedance probability needs no assumption about how mass spreads inside a bin.
 
 ```{python}
 #| label: tbl-tails
-#| tbl-cap: "High-growth probabilities from literal bins, Q1 rounds, 2015–19 (five rounds) against 2025–26 (two rounds). Ranges are identification bounds set by bin resolution; they are not sampling confidence intervals."
+#| tbl-cap: "High-growth probabilities from the bin edges, Q1 rounds, 2015–19 (five rounds) against 2025–26 (two rounds). Ranges are identification bounds set by bin resolution; they are not sampling confidence intervals."
 rows = []
 for name, label in zip(NAMES, LABELS):
     for period in ['2015–19', '2025–26']:
@@ -135,7 +135,7 @@ The US probability above 4% falls at both horizons between the five earlier roun
 
 The higher thresholds show what the bins cannot say. In the ECB scheme, all growth at or above 4% shares one open bin. Its entire probability could lie below 5%, above 10%, or anywhere between, so we can bound those probabilities and cannot separate them. The US scheme in force since 2024Q2 places 5% inside a finite bin, which widens the identified range relative to the earlier scheme. Fitting a distribution inside those bins would add precision from an assumption, with no new survey response behind it.
 
-![Upper and lower bounds on growth probabilities, Q1 rounds. Where the bounds coincide, a literal bin edge identifies the probability. The shaded range reflects bin resolution and says nothing about sampling error.](figures/growth-upper-tails.png){#fig-tails width=95%}
+![Upper and lower bounds on growth probabilities, Q1 rounds. Where the bounds coincide, a bin edge identifies the probability. The shaded range reflects bin resolution and says nothing about sampling error.](figures/growth-upper-tails.png){#fig-tails width=95%}
 
 The latest round tells the same story. In 2026Q3 the pooled probability above 4% is `{python} f'{100*latest_u.probability_lower:.2f}'`% for next-year US growth and `{python} f'{100*latest_e.probability_lower:.2f}'`% for ECB longer-term growth, which in that round targets 2031. In the ECB round, `{python} int(latest_e.n_positive_lower)` of `{python} int(latest_e.n)` retained respondents put positive probability in that bin. A small pooled tail leaves room for many respondents who do not rule out high growth.
 
@@ -178,7 +178,7 @@ Forecast–outcome pairs can share a realized target, and rolling outcomes overl
 
 Within a round we keep respondent histograms whose probabilities lie between 0 and 100 and sum to within two percentage points of 100. Partial missing entries count as zero, and entirely missing histograms drop out. We normalize retained probabilities and weight respondents equally. The filter rejects two negative ECB entries in 2023Q1 along with responses whose totals are invalid.
 
-For moments, quantiles and scores, probability spreads uniformly inside each finite bin. An open tail receives the width of its nearest finite bin, and literal gaps between bins receive zero probability. If bin $b$ has midpoint $x_b$ and width $w_b$, respondent $i$ has
+The questionnaires print closed one-decimal ranges ("2.0 to 2.9", then "3.0 to 3.9"). We read each range as running to the next range's lower label, so "2.0 to 2.9" covers [2, 3) and lower labels such as 4.0 stay bin edges. For moments, quantiles and scores, probability spreads uniformly inside each bin, and an open tail receives the width of its nearest finite bin. Reading the printed labels literally instead lowers every mean by about 0.05 points and leaves each comparison between periods unchanged (`outputs/reconstruction_sensitivity.csv`). If bin $b$ has midpoint $x_b$ and width $w_b$, respondent $i$ has
 
 $$
 \mu_i=\sum_b p_{ib}x_b,\qquad

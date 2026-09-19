@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Max Ghenis">
-<meta name="dcterms.date" content="2026-09-18">
+<meta name="dcterms.date" content="2026-09-19">
 
 <title>What do forecasters say they don’t know?</title>
 <style>
@@ -2211,7 +2211,7 @@ vertical-align: -.125em;
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">What do forecasters say they don’t know?</h1>
-<p class="subtitle lead">Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r4</p>
+<p class="subtitle lead">Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r5</p>
 </div>
 
 
@@ -2228,7 +2228,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 18, 2026</p>
+      <p class="date">September 19, 2026</p>
     </div>
   </div>
   
@@ -2242,12 +2242,12 @@ vertical-align: -.125em;
 
 <section id="abstract" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="abstract">Abstract</h2>
-<p>Professional forecasters state their own uncertainty four times a year. Since 1968 the US Survey of Professional Forecasters has collected probability distributions — not just point forecasts — for output growth and inflation, and the ECB’s survey has done the same for the euro area since 1999. We pool every reported histogram by the law of total variance, decomposing total uncertainty into the average forecaster’s stated uncertainty and the disagreement between forecasters, for every variable, horizon, and survey round — 3,695 round-target distributions. Five findings organize the panorama. Stated growth uncertainty is stable: its pandemic spike decayed by 2026 on both continents, while euro-area inflation uncertainty remains 34% above its 2010–19 average. Disagreement — the only uncertainty visible in point-forecast data — is the minority share everywhere: a median 14.9–15.5% of total variance for growth, at most 30% for any variable. Stated uncertainty stops rising with horizon by year two. Past year three in the US and year five in the euro area, no survey elicits a distribution at all: the ten-year questions collect point forecasts, and their spread measures how much forecasters agree, which says nothing about how sure any of them is. The US distributions are roughly calibrated on average (69.7% one-sigma coverage over 33 years); the euro area’s are overconfident; both fail in clusters at regime shifts, in the tail the regime moved toward. Scored properly, the densities beat climatology everywhere and roughly tie a Gaussian built from the consensus and its own error history (-1.3% to +9.2% CRPS skill). Density elicitation stops three to five years out. Published estimates of AI’s growth effects span roughly 0.1 to 30 percentage points a year <span class="citation" data-cites="shenk2026 cunningham2025">(<a href="#ref-shenk2026" role="doc-biblioref">Shenk 2026</a>; <a href="#ref-cunningham2025" role="doc-biblioref">Cunningham 2025</a>)</span> at the horizons no survey asks about, and we show what asking would take. A live interactive tracks every series.</p>
+<p>Professional forecasters state their own uncertainty four times a year. Since 1968 the US Survey of Professional Forecasters has collected probability distributions — not just point forecasts — for output growth and inflation, and the ECB’s survey has done the same for the euro area since 1999. We pool every reported histogram by the law of total variance, decomposing total uncertainty into the average forecaster’s stated uncertainty and the disagreement between forecasters, for every variable, horizon, and survey round — 3,695 round-target distributions. Five findings organize the panorama. Stated growth uncertainty is stable: its pandemic spike decayed by 2026 on both continents, while euro-area inflation uncertainty remains 34% above its 2010–19 average. Disagreement — the only uncertainty visible in point-forecast data — is the minority share everywhere: a median 14.7–15.3% of total variance for growth, at most 30% for any variable. Stated uncertainty stops rising with horizon by year two. Past year three in the US and year five in the euro area, no survey elicits a distribution at all: the ten-year questions collect point forecasts, and their spread measures how much forecasters agree, which says nothing about how sure any of them is. A ±1σ band around the US consensus covered 66.7% of next-year growth outcomes over 33 years, and the pooled 90% interval 78.8%; euro-area bands covered less; both surveys miss in clusters at regime shifts, in the tail the regime moved toward. Scored properly, the densities beat climatology everywhere and roughly tie a Gaussian built from the consensus and its own error history (-0.9% to +8.7% CRPS skill). Density elicitation stops three to five years out. Published scenarios of AI’s growth effects differ in outcome, horizon and conditioning <span class="citation" data-cites="shenk2026 cunningham2025">(<a href="#ref-shenk2026" role="doc-biblioref">Shenk 2026</a>; <a href="#ref-cunningham2025" role="doc-biblioref">Cunningham 2025</a>)</span>, and most concern horizons no survey density reaches; we show what asking would take. A live interactive tracks every series.</p>
 </section>
 <section id="introduction" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="introduction"><span class="header-section-number">1</span> Introduction</h2>
-<p>In the first quarter of 2026, the forecasters in the US Survey of Professional Forecasters put a median of 1.8% on next year’s real GDP growth, and they said how sure they were: the middle half of their pooled probability distribution spans 1.5 points. Asked about average growth over the next ten years, the same panel gave a median of 2.1% and nothing else. The survey collects no distribution for the decade. The ten-year answers sit within 0.2 points of each other, which shows that the forecasters agree, and agreement is a different quantity from confidence. The histograms stop three years out.</p>
-<p>That gap matters more now than at any point in the surveys’ history. Published estimates of what artificial intelligence will do to growth over roughly the coming decade run from under 0.1 percentage points a year <span class="citation" data-cites="acemoglu2024">(<a href="#ref-acemoglu2024" role="doc-biblioref">Acemoglu 2024</a>)</span> through 1.5 points <span class="citation" data-cites="briggsKodnani2023">(<a href="#ref-briggsKodnani2023" role="doc-biblioref">Briggs and Kodnani 2023</a>)</span> — with a 0.07–1.24-point spread inside a single framework <span class="citation" data-cites="aghionBunel2024">(<a href="#ref-aghionBunel2024" role="doc-biblioref">Aghion and Bunel 2024</a>)</span> — to above 30 points <span class="citation" data-cites="davidson2021 erdilBesiroglu2023">(<a href="#ref-davidson2021" role="doc-biblioref">Davidson 2021</a>; <a href="#ref-erdilBesiroglu2023" role="doc-biblioref">Erdil and Besiroglu 2023</a>)</span>. Compilations put the full published range at roughly 0.1–30 points a year, almost entirely as point estimates <span class="citation" data-cites="shenk2026 cunningham2025">(<a href="#ref-shenk2026" role="doc-biblioref">Shenk 2026</a>; <a href="#ref-cunningham2025" role="doc-biblioref">Cunningham 2025</a>)</span>. The one large elicitation, run by the Forecasting Research Institute with the Federal Reserve Bank of Chicago, collected medians and two quantiles, once <span class="citation" data-cites="karger2026">(<a href="#ref-karger2026" role="doc-biblioref">Karger et al. 2026</a>)</span>. The instruments that would discipline this debate — surveys that make professionals state distributions and then score them — exist, run quarterly, and have five decades of track record. They stop at year three in the US and year five in the euro area.</p>
+<p>In the first quarter of 2026, the forecasters in the US Survey of Professional Forecasters reported probability distributions for next year’s real GDP growth that pool to a median of 2.0%, and the distributions say how sure they were: the middle half of the pooled distribution spans 1.4 points. Asked about average growth over the next ten years, the same panel gave a median of 2.1% and nothing else. The survey collects no distribution for the decade. The ten-year answers sit within 0.2 points of each other, which shows that the forecasters agree, and agreement is a different quantity from confidence. The histograms stop three years out.</p>
+<p>That gap matters more now than at any point in the surveys’ history. Published work on what artificial intelligence will do to growth shares neither an outcome nor a horizon. <span class="citation" data-cites="acemoglu2024">Acemoglu (<a href="#ref-acemoglu2024" role="doc-biblioref">2024</a>)</span> puts the gain in total factor productivity at under 0.1 percentage points a year over a decade; <span class="citation" data-cites="briggsKodnani2023">Briggs and Kodnani (<a href="#ref-briggsKodnani2023" role="doc-biblioref">2023</a>)</span> put the boost to annual labor productivity growth near 1.5 points; <span class="citation" data-cites="aghionBunel2024">Aghion and Bunel (<a href="#ref-aghionBunel2024" role="doc-biblioref">2024</a>)</span> get 0.07 to 1.24 points of productivity growth from one framework under different readings of the evidence; <span class="citation" data-cites="davidson2021">Davidson (<a href="#ref-davidson2021" role="doc-biblioref">2021</a>)</span> and <span class="citation" data-cites="erdilBesiroglu2023">Erdil and Besiroglu (<a href="#ref-erdilBesiroglu2023" role="doc-biblioref">2023</a>)</span> study the conditions under which gross world product could grow above 30% a year, given advanced AI and at horizons running to 2100. Compilations set these side by side, almost entirely as point estimates <span class="citation" data-cites="shenk2026 cunningham2025">(<a href="#ref-shenk2026" role="doc-biblioref">Shenk 2026</a>; <a href="#ref-cunningham2025" role="doc-biblioref">Cunningham 2025</a>)</span>. A productivity increment, a conditional world-growth regime and an unconditional forecast of US GDP are different quantities, and no single range spans them. The one large elicitation, run by the Forecasting Research Institute with the Federal Reserve Bank of Chicago, collected medians and two quantiles, once <span class="citation" data-cites="karger2026">(<a href="#ref-karger2026" role="doc-biblioref">Karger et al. 2026</a>)</span>. The instruments that would discipline this debate — surveys that make professionals state distributions and then score them — exist, run quarterly, and have five decades of track record. They stop at year three in the US and year five in the euro area.</p>
 <p>This paper assembles that track record in full. We compute one construction — the law-of-total-variance decomposition of pooled survey histograms <span class="citation" data-cites="wallis2005 boeroSmithWallis2008">(<a href="#ref-wallis2005" role="doc-biblioref">Wallis 2005</a>; <a href="#ref-boeroSmithWallis2008" role="doc-biblioref">Boero et al. 2008</a>)</span> — for every density variable, every horizon, and every round of the two long-running professional surveys, 3,695 round-target distributions in all, and evaluate every one against realized outcomes where a verified realization concept exists (3,070 forecast-outcome pairs). The distinction we track back to 1968 is Zarnowitz and Lambros’s <span class="citation" data-cites="zarnowitzLambros1987">(<a href="#ref-zarnowitzLambros1987" role="doc-biblioref">1987</a>)</span>: <em>disagreement</em> — the spread between forecasters’ means — is not <em>uncertainty</em> — the spread each forecaster reports around their own mean.</p>
 <div class="callout callout-style-default callout-note callout-titled" title="Draft note">
 <div class="callout-header d-flex align-content-center">
@@ -2266,11 +2266,11 @@ vertical-align: -.125em;
 <section id="the-elicitation-landscape" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="the-elicitation-landscape"><span class="header-section-number">2</span> The elicitation landscape</h2>
 <p>Two surveys regularly ask professional forecasters for probability distributions over macroeconomic outcomes. The US SPF has collected histograms since 1968Q4 — for nominal GNP growth at first, real GNP from 1981Q3, real GDP from 1992Q1 — for output growth and the GDP price index throughout, joined by fourth-quarter-over-fourth-quarter core CPI and core PCE inflation in 2007Q1 and the unemployment rate in 2009Q2 <span class="citation" data-cites="spfDocumentation2026">(<a href="#ref-spfDocumentation2026" role="doc-biblioref">Federal Reserve Bank of Philadelphia 2026</a>)</span>. Density horizons ran to the next calendar year until 2009Q2 and to three years out since. The ten-year variables — real GDP growth, CPI, PCE — are point forecasts only. The ECB SPF has run quarterly since 1999Q1: densities for HICP inflation, real GDP growth, and unemployment (core HICP since 2017Q1) at current-year through year-after-next calendar targets, rolling one- and two-year horizons, and a longer-term calendar year four years ahead in Q1/Q2 rounds and five ahead in Q3/Q4 <span class="citation" data-cites="garcia2003 allayioti2024">(<a href="#ref-garcia2003" role="doc-biblioref">García 2003</a>; <a href="#ref-allayioti2024" role="doc-biblioref">Allayioti et al. 2024</a>)</span>.</p>
-<p>The rest of the survey landscape collects points. The NY Fed’s consumer survey elicits household densities to three years; Consensus Economics elicits by-range probabilities at one year and publishes its 5–10-year forecasts as points; Livingston (since 1946) and Blue Chip are point products; the FOMC’s projections come with fan charts built from historical errors, not elicited beliefs. The two long-horizon precedents are one-off quantile elicitations <span class="citation" data-cites="christensenGillinghamNordhaus2018 karger2026">(<a href="#ref-christensenGillinghamNordhaus2018" role="doc-biblioref">Christensen et al. 2018</a>; <a href="#ref-karger2026" role="doc-biblioref">Karger et al. 2026</a>)</span>. No survey anywhere regularly elicits probability distributions over ten-year-ahead growth.</p>
+<p>Elsewhere, elicited densities stop early or do not exist. The Bank of England’s Survey of External Forecasters collects UK inflation and GDP densities <span class="citation" data-cites="boeroSmithWallis2008">(<a href="#ref-boeroSmithWallis2008" role="doc-biblioref">Boero et al. 2008</a>)</span>; the NY Fed’s consumer survey elicits household densities to three years; Consensus Economics elicits by-range probabilities at one year and publishes its 5–10-year forecasts as points; Livingston (since 1946) and Blue Chip are point products; the FOMC’s projections come with fan charts built from historical errors, not elicited beliefs. The two long-horizon precedents are one-off quantile elicitations <span class="citation" data-cites="christensenGillinghamNordhaus2018 karger2026">(<a href="#ref-christensenGillinghamNordhaus2018" role="doc-biblioref">Christensen et al. 2018</a>; <a href="#ref-karger2026" role="doc-biblioref">Karger et al. 2026</a>)</span>. No survey anywhere regularly elicits probability distributions over ten-year-ahead growth.</p>
 </section>
 <section id="measures" class="level2" data-number="3">
 <h2 data-number="3" class="anchored" data-anchor-id="measures"><span class="header-section-number">3</span> Measures</h2>
-<p>Each forecaster attaches probabilities to bins. We spread each bin’s mass uniformly inside the bin, give open tails the width of the adjacent bin, keep responses whose probabilities lie between 0 and 100 and sum to within two points of 100, and renormalize. Moments, quantiles, and scores all use this one distribution, so a respondent’s variance carries the within-bin term <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>w</mi><mi>b</mi><mn>2</mn></msubsup><mi>/</mi><mn>12</mn></mrow><annotation encoding="application/x-tex">w_b^2/12</annotation></semantics></math>, and disagreement is the population variance across respondent means — the pooled mixture’s variance then equals the two parts exactly. For forecaster <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>, the histogram yields a mean <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>m</mi><mi>i</mi></msub><annotation encoding="application/x-tex">m_i</annotation></semantics></math> and a variance <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>v</mi><mi>i</mi></msub><annotation encoding="application/x-tex">v_i</annotation></semantics></math>. The law of total variance splits the pooled mixture <span class="citation" data-cites="wallis2005">(<a href="#ref-wallis2005" role="doc-biblioref">Wallis 2005</a>)</span>:</p>
+<p>Each forecaster attaches probabilities to bins. The questionnaires print closed one-decimal ranges — “2.0 to 2.9”, then “3.0 to 3.9” — and growth is continuous, so we read each range as running to the next range’s lower label: “2.0 to 2.9” covers [2, 3). Lower labels stay where the questionnaire prints them. We spread each bin’s mass uniformly inside the bin, give open tails the width of the adjacent bin, keep responses whose probabilities lie between 0 and 100 and sum to within two points of 100, and renormalize. Moments, quantiles, and scores all use this one distribution, so a respondent’s variance carries the within-bin term <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>w</mi><mi>b</mi><mn>2</mn></msubsup><mi>/</mi><mn>12</mn></mrow><annotation encoding="application/x-tex">w_b^2/12</annotation></semantics></math>, and disagreement is the population variance across respondent means — the pooled mixture’s variance then equals the two parts exactly. For forecaster <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>, the histogram yields a mean <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>m</mi><mi>i</mi></msub><annotation encoding="application/x-tex">m_i</annotation></semantics></math> and a variance <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>v</mi><mi>i</mi></msub><annotation encoding="application/x-tex">v_i</annotation></semantics></math>. The law of total variance splits the pooled mixture <span class="citation" data-cites="wallis2005">(<a href="#ref-wallis2005" role="doc-biblioref">Wallis 2005</a>)</span>:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">total variance</mtext><mo>=</mo><mi>𝔼</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>v</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>+</mo><mrow><mi mathvariant="normal">Var</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>m</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">\text{total variance} = \mathbb{E}[v_i] + \operatorname{Var}(m_i).</annotation></semantics></math></p>
 <p>The first term is the average uncertainty forecasters state individually; the second is disagreement, the only term visible in point-forecast data <span class="citation" data-cites="zarnowitzLambros1987 lahiriSheng2010">(<a href="#ref-zarnowitzLambros1987" role="doc-biblioref">Zarnowitz and Lambros 1987</a>; <a href="#ref-lahiriSheng2010" role="doc-biblioref">Lahiri and Sheng 2010</a>)</span>. We report the square roots, the between share, and quantiles of the pooled mixture. The interquartile range of the mixture doubles as a robustness measure: bin-scheme changes move midpoint-based SDs mechanically <span class="citation" data-cites="shojaSoofi2017 knuppelPavlova2026">(<a href="#ref-shojaSoofi2017" role="doc-biblioref">Shoja and Soofi 2017</a>; <a href="#ref-knuppelPavlova2026" role="doc-biblioref">Knüppel and Pavlova 2026</a>)</span>, and the 2020Q2 US bin widening is the worked example (<a href="#tbl-bins" class="quarto-xref">Table 1</a>).</p>
 <div class="cell" data-execution_count="2">
@@ -2307,91 +2307,91 @@ Table 1: The wide-bin era, averaging every round and horizon in each window equ
 <td>US real GDP</td>
 <td>pre (2016Q2–2020Q1)</td>
 <td>16</td>
-<td>1.134</td>
-<td>1.231</td>
-<td>1.418</td>
-<td>0.868</td>
+<td>1.142</td>
+<td>1.238</td>
+<td>1.440</td>
+<td>0.859</td>
 </tr>
 <tr class="even">
 <td>US real GDP</td>
 <td>wide (2020Q2–2024Q1)</td>
 <td>16</td>
-<td>1.839</td>
-<td>2.039</td>
-<td>1.985</td>
-<td>1.027</td>
+<td>1.848</td>
+<td>2.046</td>
+<td>1.988</td>
+<td>1.029</td>
 </tr>
 <tr class="odd">
 <td>US real GDP</td>
 <td>post (2024Q2–2026Q3)</td>
 <td>10</td>
-<td>1.282</td>
-<td>1.352</td>
-<td>1.495</td>
-<td>0.904</td>
+<td>1.291</td>
+<td>1.360</td>
+<td>1.466</td>
+<td>0.928</td>
 </tr>
 <tr class="even">
 <td>US real GDP</td>
 <td>2024Q1</td>
 <td>1</td>
-<td>1.730</td>
-<td>1.855</td>
-<td>1.615</td>
-<td>1.149</td>
+<td>1.737</td>
+<td>1.862</td>
+<td>1.551</td>
+<td>1.200</td>
 </tr>
 <tr class="odd">
 <td>US real GDP</td>
 <td>2024Q2</td>
 <td>1</td>
-<td>1.344</td>
-<td>1.445</td>
-<td>1.551</td>
-<td>0.931</td>
+<td>1.353</td>
+<td>1.453</td>
+<td>1.483</td>
+<td>0.979</td>
 </tr>
 <tr class="even">
 <td>US unemployment</td>
 <td>pre (2016Q2–2020Q1)</td>
 <td>16</td>
-<td>0.631</td>
-<td>0.727</td>
-<td>1.005</td>
-<td>0.724</td>
+<td>0.667</td>
+<td>0.767</td>
+<td>1.077</td>
+<td>0.712</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
 <td>wide (2020Q2–2024Q1)</td>
 <td>16</td>
-<td>0.982</td>
-<td>1.180</td>
-<td>1.439</td>
-<td>0.820</td>
+<td>0.996</td>
+<td>1.194</td>
+<td>1.451</td>
+<td>0.823</td>
 </tr>
 <tr class="even">
 <td>US unemployment</td>
 <td>post (2024Q2–2026Q3)</td>
 <td>10</td>
-<td>0.594</td>
-<td>0.647</td>
-<td>0.724</td>
-<td>0.895</td>
+<td>0.605</td>
+<td>0.658</td>
+<td>0.742</td>
+<td>0.886</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
 <td>2024Q1</td>
 <td>1</td>
-<td>0.999</td>
-<td>1.079</td>
-<td>1.188</td>
-<td>0.908</td>
+<td>1.012</td>
+<td>1.091</td>
+<td>1.208</td>
+<td>0.903</td>
 </tr>
 <tr class="even">
 <td>US unemployment</td>
 <td>2024Q2</td>
 <td>1</td>
-<td>0.643</td>
-<td>0.692</td>
-<td>0.758</td>
-<td>0.914</td>
+<td>0.656</td>
+<td>0.705</td>
+<td>0.789</td>
+<td>0.893</td>
 </tr>
 </tbody>
 </table>
@@ -2400,12 +2400,12 @@ Table 1: The wide-bin era, averaging every round and horizon in each window equ
 </figure>
 </div>
 </div>
-<p>Targets are calendar years, so a “next year” forecast made in Q1 and one made in Q4 differ in horizon by three quarters <span class="citation" data-cites="ganicsRossiSekhposyan2024">(<a href="#ref-ganicsRossiSekhposyan2024" role="doc-biblioref">Ganics et al. 2024</a>)</span>. We treat round-target pairs explicitly and show the within-year shrinkage — current-year uncertainty falls 23–36% from Q1 to Q4, depending on the variable (<a href="#tbl-shrinkage" class="quarto-xref">Table 2</a>) — rather than averaging over it <span class="citation" data-cites="clementsRichTracy2025">(<a href="#ref-clementsRichTracy2025" role="doc-biblioref">Clements et al. 2025</a>)</span>.</p>
+<p>Targets are calendar years, so a “next year” forecast made in Q1 and one made in Q4 differ in horizon by three quarters <span class="citation" data-cites="ganicsRossiSekhposyan2024">(<a href="#ref-ganicsRossiSekhposyan2024" role="doc-biblioref">Ganics et al. 2024</a>)</span>. We treat round-target pairs explicitly and show the within-year shrinkage — current-year uncertainty falls 23–35% from Q1 to Q4, depending on the variable (<a href="#tbl-shrinkage" class="quarto-xref">Table 2</a>) — rather than averaging over it <span class="citation" data-cites="clementsRichTracy2025">(<a href="#ref-clementsRichTracy2025" role="doc-biblioref">Clements et al. 2025</a>)</span>.</p>
 <div class="cell" data-execution_count="3">
 <div id="tbl-shrinkage" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="3">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-shrinkage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 2: Mean current-year total SD by survey quarter, 2010-19 rounds. The fixed calendar event arrives whatever the round, so the fall from Q1 to Q4 is the value of one year of information.
+Table 2: Mean current-year total SD by survey quarter, 2010-19 rounds. The fixed calendar event arrives whatever the round, so the fall from the Q1 to the Q4 round tracks three more quarters of data on the target year; the panel’s composition also changes between rounds.
 </figcaption>
 <div aria-describedby="tbl-shrinkage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display cell-output-markdown">
@@ -2423,75 +2423,75 @@ Table 2: Mean current-year total SD by survey quarter, 2010-19 rounds. The fixe
 <tbody>
 <tr class="odd">
 <td>US real GDP</td>
-<td>1.116</td>
-<td>1.002</td>
-<td>0.884</td>
-<td>0.716</td>
-<td>-35.8%</td>
+<td>1.123</td>
+<td>1.010</td>
+<td>0.893</td>
+<td>0.727</td>
+<td>-35.3%</td>
 </tr>
 <tr class="even">
 <td>US GDP prices</td>
-<td>0.733</td>
-<td>0.692</td>
-<td>0.655</td>
-<td>0.544</td>
-<td>-25.8%</td>
+<td>0.743</td>
+<td>0.702</td>
+<td>0.665</td>
+<td>0.555</td>
+<td>-25.4%</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
-<td>0.582</td>
-<td>0.528</td>
-<td>0.457</td>
-<td>0.372</td>
-<td>-36.0%</td>
+<td>0.602</td>
+<td>0.548</td>
+<td>0.479</td>
+<td>0.394</td>
+<td>-34.6%</td>
 </tr>
 <tr class="even">
 <td>US core CPI</td>
-<td>0.613</td>
-<td>0.578</td>
-<td>0.521</td>
-<td>0.451</td>
-<td>-26.4%</td>
+<td>0.622</td>
+<td>0.587</td>
+<td>0.530</td>
+<td>0.461</td>
+<td>-25.9%</td>
 </tr>
 <tr class="odd">
 <td>US core PCE</td>
-<td>0.597</td>
-<td>0.553</td>
-<td>0.533</td>
-<td>0.459</td>
-<td>-23.1%</td>
+<td>0.605</td>
+<td>0.561</td>
+<td>0.542</td>
+<td>0.468</td>
+<td>-22.7%</td>
 </tr>
 <tr class="even">
 <td>ECB HICP</td>
-<td>0.594</td>
-<td>0.554</td>
-<td>0.485</td>
-<td>0.413</td>
-<td>-30.6%</td>
+<td>0.601</td>
+<td>0.562</td>
+<td>0.494</td>
+<td>0.422</td>
+<td>-29.8%</td>
 </tr>
 <tr class="odd">
 <td>ECB core HICP</td>
-<td>0.519</td>
-<td>0.486</td>
-<td>0.462</td>
-<td>0.396</td>
-<td>-23.6%</td>
+<td>0.527</td>
+<td>0.494</td>
+<td>0.470</td>
+<td>0.406</td>
+<td>-22.8%</td>
 </tr>
 <tr class="even">
 <td>ECB real GDP</td>
-<td>0.653</td>
-<td>0.604</td>
-<td>0.543</td>
-<td>0.454</td>
-<td>-30.5%</td>
+<td>0.661</td>
+<td>0.614</td>
+<td>0.554</td>
+<td>0.464</td>
+<td>-29.8%</td>
 </tr>
 <tr class="odd">
 <td>ECB unemployment</td>
-<td>0.633</td>
-<td>0.589</td>
-<td>0.542</td>
-<td>0.485</td>
-<td>-23.4%</td>
+<td>0.639</td>
+<td>0.595</td>
+<td>0.549</td>
+<td>0.493</td>
+<td>-22.9%</td>
 </tr>
 </tbody>
 </table>
@@ -2500,7 +2500,7 @@ Table 2: Mean current-year total SD by survey quarter, 2010-19 rounds. The fixe
 </figure>
 </div>
 </div>
-<p>Coverage rates test the density at two thresholds; proper scores evaluate all of it <span class="citation" data-cites="gneitingRaftery2007 boeroSmithWallis2011">(<a href="#ref-gneitingRaftery2007" role="doc-biblioref">Gneiting and Raftery 2007</a>; <a href="#ref-boeroSmithWallis2011" role="doc-biblioref">Boero et al. 2011</a>)</span>. The pooled CDF is piecewise linear, so the continuous ranked probability score has an exact closed form, and pinball losses at the published quantile levels decompose it by tail. We score every calibrated round against two no-lookahead benchmarks — expanding-window climatology and a Gaussian centered on the consensus with historical-error RMSE — and against the average individual forecaster. One structural note: the pooled CDF is the mean of individual CDFs and the CRPS is convex in the CDF, so the pool beats the average individual on every observation by construction; the empirical content is the size of that gain (9.3% on average, 3.5–18.7% by cell) and where it thins.</p>
+<p>Coverage rates test the density at two thresholds; proper scores evaluate all of it <span class="citation" data-cites="gneitingRaftery2007 boeroSmithWallis2011">(<a href="#ref-gneitingRaftery2007" role="doc-biblioref">Gneiting and Raftery 2007</a>; <a href="#ref-boeroSmithWallis2011" role="doc-biblioref">Boero et al. 2011</a>)</span>. The pooled CDF is piecewise linear, so the continuous ranked probability score has an exact closed form, and pinball losses at the published quantile levels decompose it by tail. We score every calibrated round against two no-lookahead benchmarks — expanding-window climatology and a Gaussian centered on the consensus with historical-error RMSE — and against the average individual forecaster. One structural note: the pooled CDF is the mean of individual CDFs and the CRPS is convex in the CDF, so the pool beats the average individual on every observation by construction; the empirical content is the size of that gain (9.1% on average, 3.4–18.4% by cell) and where it thins.</p>
 </section>
 <section id="five-stylized-facts" class="level2" data-number="4">
 <h2 data-number="4" class="anchored" data-anchor-id="five-stylized-facts"><span class="header-section-number">4</span> Five stylized facts</h2>
@@ -2517,7 +2517,7 @@ Table 2: Mean current-year total SD by survey quarter, 2010-19 rounds. The fixe
 <p>Each fact still wants a figure. Every inline value and table below computes at render from <code>outputs/panorama_*.csv</code>, including the balanced-sample term structure and the post-2021 ECB comparison.</p>
 </div>
 </div>
-<p><strong>Stated growth uncertainty is stable — and its pandemic spike decayed on both continents, while euro-area inflation uncertainty has not come home.</strong> The pooled SD of next-year US growth was 1.26 points in 1992 and averaged 1.28 through 2020; it peaked at 2.18 in 2021 and stands at 1.40 in 2026 (decade means: 1.27 over 2010–19, 1.80 over 2020–24). Euro-area growth uncertainty spiked higher and decayed as fast. Euro-area inflation uncertainty did not: the one-year series remains 49% above its pre-2021 level in 2026 (<a href="#tbl-stability" class="quarto-xref">Table 3</a>).</p>
+<p><strong>Stated growth uncertainty is stable — and its pandemic spike decayed on both continents, while euro-area inflation uncertainty has not come home.</strong> The pooled SD of next-year US growth was 1.27 points in 1992 and averaged 1.29 through 2020; it peaked at 2.18 in 2021 and stands at 1.41 in 2026 (decade means: 1.28 over 2010–19, 1.80 over 2020–24). On the matched construction — Q1 rounds, next calendar year — euro-area growth uncertainty peaked at 1.73 in 2021, below the US peak, stands at 0.78 in 2026, and sat below the US level in 28 of the 28 years both surveys cover. Euro-area inflation uncertainty did not: the one-year series remains 48% above its pre-2021 level in 2026 (<a href="#tbl-stability" class="quarto-xref">Table 3</a>).</p>
 <div class="cell" data-execution_count="4">
 <div id="tbl-stability" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="4">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -2551,83 +2551,83 @@ Table 3: Total SD of the headline series: US Q1 next-calendar-year rounds, and 
 <tr class="odd">
 <td>US real GDP</td>
 <td>1992-2026</td>
-<td>1.280</td>
-<td>1.275</td>
-<td>1.796</td>
-<td>2.177 (2021)</td>
-<td>1.402</td>
+<td>1.287</td>
+<td>1.281</td>
+<td>1.804</td>
+<td>2.185 (2021)</td>
+<td>1.410</td>
 </tr>
 <tr class="even">
 <td>US GDP prices</td>
 <td>1992-2026</td>
-<td>0.982</td>
-<td>0.822</td>
-<td>0.765</td>
-<td>1.292 (2008)</td>
-<td>0.661</td>
+<td>0.992</td>
+<td>0.832</td>
+<td>0.772</td>
+<td>1.300 (2008)</td>
+<td>0.667</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
 <td>2010-2026</td>
-<td>0.738</td>
-<td>0.741</td>
-<td>0.991</td>
-<td>1.217 (2021)</td>
-<td>0.605</td>
+<td>0.762</td>
+<td>0.763</td>
+<td>1.014</td>
+<td>1.227 (2021)</td>
+<td>0.615</td>
 </tr>
 <tr class="even">
 <td>US core CPI</td>
 <td>2007-2026</td>
-<td>0.692</td>
-<td>0.686</td>
-<td>0.798</td>
-<td>0.967 (2022)</td>
-<td>0.644</td>
+<td>0.701</td>
+<td>0.695</td>
+<td>0.808</td>
+<td>0.981 (2022)</td>
+<td>0.651</td>
 </tr>
 <tr class="odd">
 <td>US core PCE</td>
 <td>2007-2026</td>
-<td>0.665</td>
-<td>0.660</td>
-<td>0.740</td>
-<td>0.988 (2022)</td>
-<td>0.621</td>
+<td>0.673</td>
+<td>0.667</td>
+<td>0.748</td>
+<td>1.002 (2022)</td>
+<td>0.628</td>
 </tr>
 <tr class="even">
 <td>ECB HICP</td>
 <td>1999-2026</td>
-<td>0.617</td>
-<td>0.684</td>
-<td>0.968</td>
-<td>1.217 (2023)</td>
-<td>0.918</td>
+<td>0.624</td>
+<td>0.690</td>
+<td>0.973</td>
+<td>1.223 (2023)</td>
+<td>0.922</td>
 </tr>
 <tr class="odd">
 <td>ECB core HICP</td>
 <td>2017-2026</td>
-<td>0.597</td>
-<td>0.566</td>
-<td>0.841</td>
-<td>1.073 (2023)</td>
-<td>0.716</td>
+<td>0.603</td>
+<td>0.573</td>
+<td>0.846</td>
+<td>1.077 (2023)</td>
+<td>0.721</td>
 </tr>
 <tr class="even">
 <td>ECB real GDP</td>
 <td>1999-2026</td>
-<td>0.760</td>
-<td>0.734</td>
-<td>1.585</td>
-<td>2.621 (2020)</td>
-<td>0.793</td>
+<td>0.768</td>
+<td>0.742</td>
+<td>1.595</td>
+<td>2.626 (2020)</td>
+<td>0.800</td>
 </tr>
 <tr class="odd">
 <td>ECB unemployment</td>
 <td>1999-2026</td>
-<td>0.650</td>
-<td>0.707</td>
-<td>0.941</td>
-<td>1.279 (2020)</td>
-<td>0.704</td>
+<td>0.656</td>
+<td>0.713</td>
+<td>0.946</td>
+<td>1.282 (2020)</td>
+<td>0.710</td>
 </tr>
 </tbody>
 </table>
@@ -2636,12 +2636,12 @@ Table 3: Total SD of the headline series: US Q1 next-calendar-year rounds, and 
 </figure>
 </div>
 </div>
-<p><strong>Disagreement is the minority share everywhere, but not uniformly.</strong> The median between share is about a sixth for growth (US 15%, euro area 15%) and euro-area prices (14%), and a quarter to a third for unemployment and the US inflation densities (core CPI 30%, core PCE 30%; <a href="#tbl-disagreement" class="quarto-xref">Table 4</a>). The spread visible in point forecasts understates stated uncertainty by a median factor of 1.8 to 2.7 across the whole panorama <span class="citation" data-cites="richTracy2010 giordaniSoderlind2003">(<a href="#ref-richTracy2010" role="doc-biblioref">Rich and Tracy 2010</a>; <a href="#ref-giordaniSoderlind2003" role="doc-biblioref">Giordani and Söderlind 2003</a>)</span>.</p>
+<p><strong>Disagreement is the minority share everywhere, but not uniformly.</strong> The median between share is about a sixth for growth (US 15%, euro area 15%) and euro-area prices (13%), and a quarter to a third for unemployment and the US inflation densities (core CPI 30%, core PCE 29%; <a href="#tbl-disagreement" class="quarto-xref">Table 4</a>). Disagreement here is the dispersion of respondents’ density-implied means; no reported point forecast enters it. That dispersion understates stated uncertainty by a median factor of 1.8 to 2.8 across the whole panorama <span class="citation" data-cites="richTracy2010 giordaniSoderlind2003">(<a href="#ref-richTracy2010" role="doc-biblioref">Rich and Tracy 2010</a>; <a href="#ref-giordaniSoderlind2003" role="doc-biblioref">Giordani and Söderlind 2003</a>)</span>.</p>
 <div class="cell" data-execution_count="5">
 <div id="tbl-disagreement" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="5">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-disagreement-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 4: Distribution of the between-forecaster share of total variance across round-targets, in percent. The last column is the median ratio of pooled total SD to disagreement SD: the factor by which point-forecast spread understates stated uncertainty.
+Table 4: Distribution of the between-forecaster share of total variance across round-targets, in percent. The last column is the median ratio of pooled total SD to disagreement SD: the factor by which the dispersion of density-implied means understates stated uncertainty.
 </figcaption>
 <div aria-describedby="tbl-disagreement-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display cell-output-markdown">
@@ -2670,83 +2670,83 @@ Table 4: Distribution of the between-forecaster share of total variance across 
 <tr class="odd">
 <td>US real GDP</td>
 <td>418</td>
-<td>8.3</td>
-<td>15.5</td>
-<td>27.4</td>
-<td>73.4</td>
-<td>2.54</td>
+<td>8.2</td>
+<td>15.3</td>
+<td>27.0</td>
+<td>74.2</td>
+<td>2.56</td>
 </tr>
 <tr class="even">
 <td>US GDP prices</td>
 <td>278</td>
-<td>15.3</td>
-<td>24.5</td>
-<td>43.4</td>
-<td>28.4</td>
-<td>2.02</td>
+<td>14.8</td>
+<td>23.9</td>
+<td>43.1</td>
+<td>30.6</td>
+<td>2.04</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
 <td>280</td>
-<td>13.2</td>
-<td>23.3</td>
-<td>40.1</td>
-<td>38.2</td>
-<td>2.07</td>
+<td>12.9</td>
+<td>22.9</td>
+<td>39.8</td>
+<td>39.3</td>
+<td>2.09</td>
 </tr>
 <tr class="even">
 <td>US core CPI</td>
 <td>158</td>
-<td>16.9</td>
-<td>30.4</td>
-<td>53.8</td>
-<td>24.7</td>
-<td>1.82</td>
+<td>16.4</td>
+<td>29.7</td>
+<td>53.3</td>
+<td>25.9</td>
+<td>1.83</td>
 </tr>
 <tr class="odd">
 <td>US core PCE</td>
 <td>158</td>
-<td>18.1</td>
-<td>30.0</td>
-<td>48.7</td>
-<td>15.2</td>
-<td>1.83</td>
+<td>17.6</td>
+<td>29.2</td>
+<td>48.1</td>
+<td>17.7</td>
+<td>1.85</td>
 </tr>
 <tr class="even">
 <td>ECB HICP</td>
 <td>633</td>
-<td>6.9</td>
-<td>13.6</td>
-<td>29.4</td>
-<td>73.3</td>
-<td>2.72</td>
+<td>6.7</td>
+<td>13.1</td>
+<td>28.6</td>
+<td>74.4</td>
+<td>2.77</td>
 </tr>
 <tr class="odd">
 <td>ECB core HICP</td>
 <td>234</td>
-<td>6.5</td>
-<td>14.3</td>
-<td>37.3</td>
-<td>70.1</td>
-<td>2.65</td>
+<td>6.4</td>
+<td>14.0</td>
+<td>36.6</td>
+<td>70.9</td>
+<td>2.67</td>
 </tr>
 <tr class="even">
 <td>ECB real GDP</td>
 <td>633</td>
-<td>7.9</td>
-<td>14.9</td>
-<td>31.9</td>
-<td>69.2</td>
-<td>2.59</td>
+<td>7.7</td>
+<td>14.7</td>
+<td>31.3</td>
+<td>69.8</td>
+<td>2.61</td>
 </tr>
 <tr class="odd">
 <td>ECB unemployment</td>
 <td>633</td>
-<td>10.6</td>
-<td>25.3</td>
-<td>48.4</td>
-<td>34.4</td>
-<td>1.99</td>
+<td>10.4</td>
+<td>24.7</td>
+<td>47.9</td>
+<td>35.2</td>
+<td>2.01</td>
 </tr>
 </tbody>
 </table>
@@ -2755,7 +2755,7 @@ Table 4: Distribution of the between-forecaster share of total variance across 
 </figure>
 </div>
 </div>
-<p><strong>Stated uncertainty rises with horizon only until year two — then plateaus, and for growth it inverts.</strong> US growth within-SD climbs from the current year to two years out (1.40), then gains 0.02 at three (1.42). In the euro area, total growth uncertainty is mildly higher at the one-year rolling horizon (0.86) than at the four-to-five-year horizon (0.82). Only unemployment keeps steepening (<a href="#tbl-term" class="quarto-xref">Table 5</a>, <a href="#tbl-term-ecb" class="quarto-xref">Table 6</a>). Past year three the US record stops. The ten-year questions collect point forecasts; their interquartile range (0.2 points in 2026) measures agreement among forecasters, and no density stands behind it.</p>
+<p><strong>Stated uncertainty rises with horizon only until year two — then plateaus, and for growth it inverts.</strong> US growth within-SD climbs from the current year to two years out (1.41), then gains 0.02 at three (1.43). In the euro area, total growth uncertainty is mildly higher at the one-year rolling horizon (0.87) than at the four-to-five-year horizon (0.83). Only unemployment keeps steepening (<a href="#tbl-term" class="quarto-xref">Table 5</a>, <a href="#tbl-term-ecb" class="quarto-xref">Table 6</a>). Past year three the US record stops. The ten-year questions collect point forecasts; their interquartile range (0.2 points in 2026) measures agreement among forecasters, and no density stands behind it.</p>
 <div class="cell" data-execution_count="6">
 <div id="tbl-term" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="6">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -2787,40 +2787,40 @@ Table 5: US balanced Q1 term structure, <code>within SD/total SD</code> by hori
 <tr class="odd">
 <td>US real GDP (2010–26)</td>
 <td>17</td>
-<td>1.186/1.316</td>
-<td>1.335/1.446</td>
-<td>1.405/1.511</td>
-<td>1.421/1.515</td>
+<td>1.195/1.324</td>
+<td>1.343/1.453</td>
+<td>1.412/1.518</td>
+<td>1.428/1.522</td>
 </tr>
 <tr class="even">
 <td>US unemployment (2010–26)</td>
 <td>17</td>
-<td>0.598/0.671</td>
-<td>0.693/0.807</td>
-<td>0.747/0.898</td>
-<td>0.778/0.952</td>
+<td>0.617/0.689</td>
+<td>0.713/0.827</td>
+<td>0.767/0.920</td>
+<td>0.800/0.976</td>
 </tr>
 <tr class="odd">
 <td>US GDP prices (1992–26)</td>
 <td>35</td>
-<td>0.712/0.845</td>
-<td>0.807/0.943</td>
+<td>0.722/0.855</td>
+<td>0.817/0.952</td>
 <td>–</td>
 <td>–</td>
 </tr>
 <tr class="even">
 <td>US core CPI (2007–26)</td>
 <td>20</td>
-<td>0.510/0.659</td>
-<td>0.586/0.719</td>
+<td>0.520/0.668</td>
+<td>0.595/0.727</td>
 <td>–</td>
 <td>–</td>
 </tr>
 <tr class="odd">
 <td>US core PCE (2007–26)</td>
 <td>20</td>
-<td>0.503/0.631</td>
-<td>0.563/0.683</td>
+<td>0.512/0.639</td>
+<td>0.572/0.691</td>
 <td>–</td>
 <td>–</td>
 </tr>
@@ -2853,30 +2853,30 @@ Table 6: ECB round-balanced term structure, <code>within SD/total SD</code> by 
 <tr class="odd">
 <td>ECB HICP</td>
 <td>105</td>
-<td>0.615/0.701</td>
-<td>0.675/0.739</td>
-<td>0.707/0.753</td>
+<td>0.622/0.708</td>
+<td>0.682/0.745</td>
+<td>0.713/0.759</td>
 </tr>
 <tr class="even">
 <td>ECB core HICP</td>
 <td>39</td>
-<td>0.631/0.736</td>
-<td>0.692/0.774</td>
-<td>0.743/0.810</td>
+<td>0.638/0.741</td>
+<td>0.698/0.780</td>
+<td>0.749/0.815</td>
 </tr>
 <tr class="odd">
 <td>ECB real GDP</td>
 <td>105</td>
-<td>0.723/0.864</td>
-<td>0.764/0.856</td>
-<td>0.768/0.820</td>
+<td>0.733/0.872</td>
+<td>0.772/0.863</td>
+<td>0.775/0.826</td>
 </tr>
 <tr class="even">
 <td>ECB unemployment</td>
 <td>105</td>
-<td>0.601/0.695</td>
-<td>0.680/0.819</td>
-<td>0.804/1.018</td>
+<td>0.608/0.702</td>
+<td>0.687/0.825</td>
+<td>0.812/1.026</td>
 </tr>
 </tbody>
 </table>
@@ -2885,7 +2885,7 @@ Table 6: ECB round-balanced term structure, <code>within SD/total SD</code> by 
 </figure>
 </div>
 </div>
-<p><strong>The US distributions are roughly calibrated on average; the euro area’s are overconfident; both fail in tails, in clusters.</strong> A ±1σ band around the consensus covered 23 of 33 next-year US growth outcomes (69.7%) over 1993–2025 — textbook — but the misses cluster: six straight target years (1996–2001) around the late-1990s productivity boom, then 2008–09, then 2020–21. Euro-area one-sigma coverage runs 48–60% by variable (<a href="#tbl-coverage" class="quarto-xref">Table 7</a>) <span class="citation" data-cites="kennyKostkaMasera2014 kennyKostkaMasera2015">(<a href="#ref-kennyKostkaMasera2014" role="doc-biblioref">Kenny et al. 2014</a>, <a href="#ref-kennyKostkaMasera2015" role="doc-biblioref">2015</a>)</span>. Scored properly, the densities beat climatology everywhere (US growth +38% CRPS skill; <a href="#tbl-skill" class="quarto-xref">Table 8</a>) and roughly tie the consensus-plus-track-record Gaussian: skill runs from -1.3% to +9.2%, with ECB HICP -0.2%, US GDP prices -1.3% on the losing side and US growth at +6.4%. Most of what the elicited densities know, the point forecast and its error history already carry, and for several variables the sign of the comparison turns on how forecast rows are weighted <span class="citation" data-cites="clements2018 knuppelKruger2022">(<a href="#ref-clements2018" role="doc-biblioref">Clements 2018</a>; <a href="#ref-knuppelKruger2022" role="doc-biblioref">Knüppel and Krüger 2022</a>)</span>. The pinball decomposition puts the 2008–09 growth losses in the lower tail and the 2020–22 inflation losses in the upper tail by factors of 4.8 to 8.9 (<a href="#tbl-tails" class="quarto-xref">Table 9</a>).</p>
+<p><strong>Both surveys’ bands miss in tails, in clusters, and the euro area’s cover less.</strong> A ±1σ band around the consensus covered 22 of 33 next-year US growth outcomes (66.7%) over 1993–2025, and the pooled 90% interval covered 26 of 33 (78.8%). A histogram mixture has no universal nominal ±1σ coverage, so the first figure describes the record and only the second has a nominal rate to fall short of; with 33 dependent outcomes, neither supports a formal verdict on calibration. The misses cluster: six straight target years (1996–2001) around the late-1990s productivity boom, then 2008–09, then 2020–21. Euro-area one-sigma coverage runs 49–61% by variable (<a href="#tbl-coverage" class="quarto-xref">Table 7</a>) <span class="citation" data-cites="kennyKostkaMasera2014 kennyKostkaMasera2015">(<a href="#ref-kennyKostkaMasera2014" role="doc-biblioref">Kenny et al. 2014</a>, <a href="#ref-kennyKostkaMasera2015" role="doc-biblioref">2015</a>)</span>. Scored properly, the densities beat climatology everywhere (US growth +39% CRPS skill; <a href="#tbl-skill" class="quarto-xref">Table 8</a>) and roughly tie the consensus-plus-track-record Gaussian: skill runs from -0.9% to +8.7%, with ECB HICP -0.0%, US GDP prices -0.9% on the losing side and US growth at +6.3%. Most of what the elicited densities know, the point forecast and its error history already carry, and for several variables the sign of the comparison turns on how forecast rows are weighted <span class="citation" data-cites="clements2018 knuppelKruger2022">(<a href="#ref-clements2018" role="doc-biblioref">Clements 2018</a>; <a href="#ref-knuppelKruger2022" role="doc-biblioref">Knüppel and Krüger 2022</a>)</span>. The pinball decomposition puts the 2008–09 growth losses in the lower tail and the 2020–22 inflation losses in the upper tail by factors of 4.6 to 8.8 (<a href="#tbl-tails" class="quarto-xref">Table 9</a>).</p>
 <div class="cell" data-execution_count="8">
 <div id="tbl-coverage" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="8">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -2918,15 +2918,15 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>US real GDP</td>
 <td>all horizons</td>
 <td>382</td>
-<td>287 (75.1%)</td>
-<td>326 (85.3%)</td>
+<td>288 (75.4%)</td>
+<td>328 (85.9%)</td>
 <td>1992-2025</td>
 </tr>
 <tr class="even">
 <td>US real GDP</td>
 <td>Q1 next year</td>
 <td>33</td>
-<td>23 (69.7%)</td>
+<td>22 (66.7%)</td>
 <td>26 (78.8%)</td>
 <td>1993-2025</td>
 </tr>
@@ -2934,8 +2934,8 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>US GDP prices</td>
 <td>all horizons</td>
 <td>268</td>
-<td>222 (82.8%)</td>
-<td>248 (92.5%)</td>
+<td>221 (82.5%)</td>
+<td>246 (91.8%)</td>
 <td>1992-2025</td>
 </tr>
 <tr class="even">
@@ -2943,15 +2943,15 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>Q1 next year</td>
 <td>33</td>
 <td>23 (69.7%)</td>
-<td>31 (93.9%)</td>
+<td>30 (90.9%)</td>
 <td>1993-2025</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
 <td>all horizons</td>
 <td>228</td>
-<td>145 (63.6%)</td>
-<td>197 (86.4%)</td>
+<td>141 (61.8%)</td>
+<td>198 (86.8%)</td>
 <td>2009-2024</td>
 </tr>
 <tr class="even">
@@ -2959,14 +2959,14 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>Q1 next year</td>
 <td>14</td>
 <td>8 (57.1%)</td>
-<td>12 (85.7%)</td>
+<td>13 (92.9%)</td>
 <td>2011-2024</td>
 </tr>
 <tr class="odd">
 <td>US core CPI</td>
 <td>all horizons</td>
 <td>140</td>
-<td>116 (82.9%)</td>
+<td>114 (81.4%)</td>
 <td>124 (88.6%)</td>
 <td>2007-2024</td>
 </tr>
@@ -2990,7 +2990,7 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>US core PCE</td>
 <td>Q1 next year</td>
 <td>18</td>
-<td>13 (72.2%)</td>
+<td>12 (66.7%)</td>
 <td>16 (88.9%)</td>
 <td>2008-2025</td>
 </tr>
@@ -2998,15 +2998,15 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>ECB HICP</td>
 <td>all horizons</td>
 <td>575</td>
-<td>332 (57.7%)</td>
-<td>414 (72.0%)</td>
+<td>342 (59.5%)</td>
+<td>418 (72.7%)</td>
 <td>1999-2025</td>
 </tr>
 <tr class="even">
 <td>ECB HICP</td>
 <td>Q1 next year</td>
 <td>26</td>
-<td>12 (46.2%)</td>
+<td>14 (53.8%)</td>
 <td>18 (69.2%)</td>
 <td>2000-2025</td>
 </tr>
@@ -3014,15 +3014,15 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>ECB HICP</td>
 <td>rolling 1y</td>
 <td>105</td>
-<td>52 (49.5%)</td>
-<td>76 (72.4%)</td>
+<td>56 (53.3%)</td>
+<td>77 (73.3%)</td>
 <td>1999-2025</td>
 </tr>
 <tr class="even">
 <td>ECB core HICP</td>
 <td>all horizons</td>
 <td>176</td>
-<td>105 (59.7%)</td>
+<td>107 (60.8%)</td>
 <td>129 (73.3%)</td>
 <td>2017-2025</td>
 </tr>
@@ -3038,7 +3038,7 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>ECB core HICP</td>
 <td>rolling 1y</td>
 <td>33</td>
-<td>21 (63.6%)</td>
+<td>22 (66.7%)</td>
 <td>24 (72.7%)</td>
 <td>2017-2025</td>
 </tr>
@@ -3046,7 +3046,7 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>ECB real GDP</td>
 <td>all horizons</td>
 <td>579</td>
-<td>278 (48.0%)</td>
+<td>284 (49.1%)</td>
 <td>382 (66.0%)</td>
 <td>1999-2026</td>
 </tr>
@@ -3062,23 +3062,23 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>ECB real GDP</td>
 <td>rolling 1y</td>
 <td>107</td>
-<td>54 (50.5%)</td>
-<td>75 (70.1%)</td>
+<td>55 (51.4%)</td>
+<td>73 (68.2%)</td>
 <td>1999-2026</td>
 </tr>
 <tr class="even">
 <td>ECB unemployment</td>
 <td>all horizons</td>
 <td>574</td>
-<td>322 (56.1%)</td>
-<td>468 (81.5%)</td>
+<td>327 (57.0%)</td>
+<td>474 (82.6%)</td>
 <td>2000-2026</td>
 </tr>
 <tr class="odd">
 <td>ECB unemployment</td>
 <td>Q1 next year</td>
 <td>26</td>
-<td>15 (57.7%)</td>
+<td>13 (50.0%)</td>
 <td>21 (80.8%)</td>
 <td>2000-2025</td>
 </tr>
@@ -3086,8 +3086,8 @@ Table 7: Interval coverage on every calibrated round-target, and on the compara
 <td>ECB unemployment</td>
 <td>rolling 1y</td>
 <td>106</td>
-<td>71 (67.0%)</td>
-<td>91 (85.8%)</td>
+<td>70 (66.0%)</td>
+<td>93 (87.7%)</td>
 <td>2000-2026</td>
 </tr>
 </tbody>
@@ -3128,74 +3128,74 @@ Table 8: CRPS skill against two no-lookahead benchmarks, as one minus the ratio
 <tr class="odd">
 <td>US real GDP</td>
 <td>382</td>
-<td>38.2% [40.4%]</td>
+<td>38.5% [41.2%]</td>
 <td>312</td>
-<td>6.4% [6.2%]</td>
+<td>6.3% [5.5%]</td>
 <td>10.9%</td>
 </tr>
 <tr class="even">
 <td>US GDP prices</td>
 <td>268</td>
-<td>46.7% [54.0%]</td>
+<td>46.2% [53.6%]</td>
 <td>240</td>
-<td>-1.3% [-8.3%]</td>
-<td>14.9%</td>
+<td>-0.9% [-6.4%]</td>
+<td>14.5%</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
 <td>228</td>
-<td>46.6% [24.6%]</td>
+<td>45.2% [22.5%]</td>
 <td>160</td>
-<td>7.4% [-3.2%]</td>
-<td>13.0%</td>
+<td>7.0% [-2.6%]</td>
+<td>12.7%</td>
 </tr>
 <tr class="even">
 <td>US core CPI</td>
 <td>140</td>
-<td>49.3% [57.1%]</td>
+<td>49.7% [57.6%]</td>
 <td>112</td>
-<td>3.3% [-3.8%]</td>
-<td>15.2%</td>
+<td>3.5% [-4.1%]</td>
+<td>15.0%</td>
 </tr>
 <tr class="odd">
 <td>US core PCE</td>
 <td>148</td>
-<td>49.0% [56.1%]</td>
+<td>48.9% [55.9%]</td>
 <td>120</td>
-<td>2.4% [-5.1%]</td>
-<td>15.0%</td>
+<td>3.0% [-2.6%]</td>
+<td>14.7%</td>
 </tr>
 <tr class="even">
 <td>ECB HICP</td>
 <td>471</td>
-<td>16.6% [15.2%]</td>
+<td>17.1% [16.6%]</td>
 <td>474</td>
-<td>-0.2% [1.9%]</td>
-<td>5.9%</td>
+<td>-0.0% [0.6%]</td>
+<td>5.8%</td>
 </tr>
 <tr class="odd">
 <td>ECB core HICP</td>
 <td>176</td>
-<td>32.9% [21.8%]</td>
+<td>33.7% [20.6%]</td>
 <td>80</td>
-<td>9.2% [7.1%]</td>
+<td>8.7% [8.4%]</td>
 <td>7.4%</td>
 </tr>
 <tr class="even">
 <td>ECB real GDP</td>
 <td>489</td>
-<td>19.8% [15.0%]</td>
+<td>19.9% [16.6%]</td>
 <td>480</td>
-<td>0.9% [16.6%]</td>
-<td>5.8%</td>
+<td>1.2% [17.2%]</td>
+<td>5.7%</td>
 </tr>
 <tr class="odd">
 <td>ECB unemployment</td>
 <td>415</td>
-<td>58.0% [26.8%]</td>
+<td>57.5% [27.3%]</td>
 <td>473</td>
-<td>0.9% [5.1%]</td>
-<td>12.7%</td>
+<td>0.6% [3.8%]</td>
+<td>12.5%</td>
 </tr>
 </tbody>
 </table>
@@ -3228,112 +3228,112 @@ Table 9: Mean pinball loss at the 05 and 95 quantile levels inside each cluster
 <td>1996–2001</td>
 <td>ECB HICP</td>
 <td>34</td>
-<td>0.059</td>
-<td>0.049</td>
+<td>0.057</td>
+<td>0.041</td>
 <td>lower (05)</td>
 </tr>
 <tr class="even">
 <td>1996–2001</td>
 <td>ECB real GDP</td>
 <td>36</td>
-<td>0.093</td>
-<td>0.231</td>
+<td>0.098</td>
+<td>0.208</td>
 <td>upper (95)</td>
 </tr>
 <tr class="odd">
 <td>1996–2001</td>
 <td>ECB unemployment</td>
 <td>29</td>
-<td>0.126</td>
-<td>0.065</td>
+<td>0.127</td>
+<td>0.069</td>
 <td>lower (05)</td>
 </tr>
 <tr class="even">
 <td>1996–2001</td>
 <td>US real GDP</td>
 <td>48</td>
-<td>0.153</td>
-<td>0.258</td>
+<td>0.151</td>
+<td>0.231</td>
 <td>upper (95)</td>
 </tr>
 <tr class="odd">
 <td>1996–2001</td>
 <td>US GDP prices</td>
 <td>48</td>
-<td>0.047</td>
-<td>0.100</td>
+<td>0.046</td>
+<td>0.103</td>
 <td>upper (95)</td>
 </tr>
 <tr class="even">
 <td>2008–09</td>
 <td>ECB HICP</td>
 <td>44</td>
-<td>0.358</td>
-<td>0.286</td>
+<td>0.376</td>
+<td>0.265</td>
 <td>lower (05)</td>
 </tr>
 <tr class="odd">
 <td>2008–09</td>
 <td>ECB real GDP</td>
 <td>44</td>
-<td>2.268</td>
-<td>0.214</td>
+<td>2.293</td>
+<td>0.217</td>
 <td>lower (05)</td>
 </tr>
 <tr class="even">
 <td>2008–09</td>
 <td>ECB unemployment</td>
 <td>44</td>
-<td>0.106</td>
-<td>0.481</td>
+<td>0.103</td>
+<td>0.459</td>
 <td>upper (95)</td>
 </tr>
 <tr class="odd">
 <td>2008–09</td>
 <td>US core CPI</td>
 <td>16</td>
-<td>0.043</td>
-<td>0.057</td>
+<td>0.042</td>
+<td>0.060</td>
 <td>upper (95)</td>
 </tr>
 <tr class="even">
 <td>2008–09</td>
 <td>US core PCE</td>
 <td>16</td>
-<td>0.045</td>
-<td>0.074</td>
+<td>0.044</td>
+<td>0.077</td>
 <td>upper (95)</td>
 </tr>
 <tr class="odd">
 <td>2008–09</td>
 <td>US real GDP</td>
 <td>16</td>
-<td>0.572</td>
-<td>0.196</td>
+<td>0.581</td>
+<td>0.199</td>
 <td>lower (05)</td>
 </tr>
 <tr class="even">
 <td>2008–09</td>
 <td>US GDP prices</td>
 <td>16</td>
-<td>0.062</td>
-<td>0.131</td>
+<td>0.076</td>
+<td>0.134</td>
 <td>upper (95)</td>
 </tr>
 <tr class="odd">
 <td>2008–09</td>
 <td>US unemployment</td>
 <td>3</td>
-<td>0.037</td>
-<td>0.037</td>
-<td>lower (05)</td>
+<td>0.035</td>
+<td>0.038</td>
+<td>upper (95)</td>
 </tr>
 <tr class="even">
 <td>2020–22</td>
 <td>ECB HICP</td>
 <td>72</td>
-<td>0.238</td>
-<td>1.856</td>
+<td>0.245</td>
+<td>1.837</td>
 <td>upper (95)</td>
 </tr>
 <tr class="odd">
@@ -3341,63 +3341,63 @@ Table 9: Mean pinball loss at the 05 and 95 quantile levels inside each cluster
 <td>ECB core HICP</td>
 <td>66</td>
 <td>0.102</td>
-<td>0.491</td>
+<td>0.472</td>
 <td>upper (95)</td>
 </tr>
 <tr class="even">
 <td>2020–22</td>
 <td>ECB real GDP</td>
 <td>72</td>
-<td>1.829</td>
-<td>0.909</td>
+<td>1.839</td>
+<td>0.901</td>
 <td>lower (05)</td>
 </tr>
 <tr class="odd">
 <td>2020–22</td>
 <td>ECB unemployment</td>
 <td>72</td>
-<td>0.051</td>
-<td>0.112</td>
+<td>0.052</td>
+<td>0.115</td>
 <td>upper (95)</td>
 </tr>
 <tr class="even">
 <td>2020–22</td>
 <td>US core CPI</td>
 <td>24</td>
-<td>0.147</td>
-<td>1.190</td>
+<td>0.145</td>
+<td>1.141</td>
 <td>upper (95)</td>
 </tr>
 <tr class="odd">
 <td>2020–22</td>
 <td>US core PCE</td>
 <td>24</td>
-<td>0.135</td>
-<td>0.966</td>
+<td>0.133</td>
+<td>0.921</td>
 <td>upper (95)</td>
 </tr>
 <tr class="even">
 <td>2020–22</td>
 <td>US real GDP</td>
 <td>48</td>
-<td>0.577</td>
-<td>0.585</td>
-<td>upper (95)</td>
+<td>0.587</td>
+<td>0.574</td>
+<td>lower (05)</td>
 </tr>
 <tr class="odd">
 <td>2020–22</td>
 <td>US GDP prices</td>
 <td>24</td>
-<td>0.154</td>
-<td>1.370</td>
+<td>0.152</td>
+<td>1.335</td>
 <td>upper (95)</td>
 </tr>
 <tr class="even">
 <td>2020–22</td>
 <td>US unemployment</td>
 <td>48</td>
-<td>0.109</td>
-<td>0.707</td>
+<td>0.114</td>
+<td>0.693</td>
 <td>upper (95)</td>
 </tr>
 </tbody>
@@ -3438,31 +3438,31 @@ Table 10: Probability integral transform of the pooled distribution at the real
 <tr class="odd">
 <td>US real GDP</td>
 <td>382</td>
-<td>0.548</td>
-<td>7.3</td>
-<td>13.6</td>
-<td>20.9</td>
+<td>0.533</td>
+<td>7.6</td>
+<td>12.8</td>
+<td>20.4</td>
 </tr>
 <tr class="even">
 <td>US GDP prices</td>
 <td>268</td>
-<td>0.468</td>
-<td>6.3</td>
+<td>0.447</td>
+<td>7.1</td>
 <td>6.0</td>
-<td>12.3</td>
+<td>13.1</td>
 </tr>
 <tr class="odd">
 <td>US unemployment</td>
 <td>228</td>
-<td>0.355</td>
-<td>22.4</td>
-<td>7.0</td>
-<td>29.4</td>
+<td>0.338</td>
+<td>23.7</td>
+<td>6.6</td>
+<td>30.3</td>
 </tr>
 <tr class="even">
 <td>US core CPI</td>
 <td>140</td>
-<td>0.558</td>
+<td>0.531</td>
 <td>1.4</td>
 <td>12.1</td>
 <td>13.6</td>
@@ -3470,42 +3470,42 @@ Table 10: Probability integral transform of the pooled distribution at the real
 <tr class="odd">
 <td>US core PCE</td>
 <td>148</td>
-<td>0.492</td>
-<td>4.1</td>
-<td>11.5</td>
-<td>15.5</td>
+<td>0.467</td>
+<td>6.1</td>
+<td>10.8</td>
+<td>16.9</td>
 </tr>
 <tr class="even">
 <td>ECB HICP</td>
 <td>575</td>
-<td>0.568</td>
-<td>15.8</td>
-<td>20.9</td>
-<td>36.7</td>
+<td>0.547</td>
+<td>16.3</td>
+<td>19.1</td>
+<td>35.5</td>
 </tr>
 <tr class="odd">
 <td>ECB core HICP</td>
 <td>176</td>
-<td>0.585</td>
-<td>5.7</td>
-<td>27.8</td>
-<td>33.5</td>
+<td>0.568</td>
+<td>6.2</td>
+<td>26.1</td>
+<td>32.4</td>
 </tr>
 <tr class="even">
 <td>ECB real GDP</td>
 <td>579</td>
-<td>0.509</td>
-<td>24.4</td>
-<td>22.1</td>
-<td>46.5</td>
+<td>0.494</td>
+<td>25.0</td>
+<td>20.4</td>
+<td>45.4</td>
 </tr>
 <tr class="odd">
 <td>ECB unemployment</td>
 <td>574</td>
-<td>0.513</td>
-<td>11.8</td>
-<td>21.1</td>
-<td>32.9</td>
+<td>0.494</td>
+<td>12.9</td>
+<td>18.8</td>
+<td>31.7</td>
 </tr>
 </tbody>
 </table>
@@ -3514,7 +3514,7 @@ Table 10: Probability integral transform of the pooled distribution at the real
 </figure>
 </div>
 </div>
-<p><strong>The euro area asks the question the US doesn’t — and after 2021 the long answer moved less than the short one, but it moved.</strong> The ECB longer-term density’s total SD rose about 30% after 2021, against 55% at one year; its consensus moved from 1.8% to 2.0% while the one-year consensus moved from 1.6% to 2.3% <span class="citation" data-cites="gornickaMeyler2022 deVincentHumphreys2019">(<a href="#ref-gornickaMeyler2022" role="doc-biblioref">Górnicka and Meyler 2022</a>; <a href="#ref-deVincentHumphreys2019" role="doc-biblioref">Vincent-Humphreys et al. 2019</a>)</span>. Stated long-run uncertainty peaked at 0.99 in 2023 and stands at 0.91 in 2026, still well above its pre-2021 level, at the horizon where the US elicits nothing (<a href="#tbl-longterm" class="quarto-xref">Table 11</a>).</p>
+<p><strong>The euro area asks the question the US doesn’t — and after 2021 the long answer moved less than the short one, but it moved.</strong> The ECB longer-term density’s total SD rose about 29% after 2021, against 54% at one year; its consensus moved from 1.9% to 2.0% while the one-year consensus moved from 1.6% to 2.3% <span class="citation" data-cites="gornickaMeyler2022 deVincentHumphreys2019">(<a href="#ref-gornickaMeyler2022" role="doc-biblioref">Górnicka and Meyler 2022</a>; <a href="#ref-deVincentHumphreys2019" role="doc-biblioref">Vincent-Humphreys et al. 2019</a>)</span>. Stated long-run uncertainty peaked at 1.00 in 2023 and stands at 0.92 in 2026, still well above its pre-2021 level, at the horizon where the US elicits nothing (<a href="#tbl-longterm" class="quarto-xref">Table 11</a>).</p>
 <div class="cell" data-execution_count="12">
 <div id="tbl-longterm" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="12">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -3548,74 +3548,74 @@ Table 11: ECB one-year and longer-term uncertainty and consensus, through 2020 
 <tr class="odd">
 <td>ECB HICP</td>
 <td>Longer term</td>
-<td>0.707 → 0.918</td>
-<td>+29.9%</td>
-<td>1.82 → 2.00</td>
-<td>0.991 (2023)</td>
-<td>0.912</td>
+<td>0.714 → 0.923</td>
+<td>+29.4%</td>
+<td>1.87 → 2.05</td>
+<td>0.997 (2023)</td>
+<td>0.916</td>
 </tr>
 <tr class="even">
 <td>ECB HICP</td>
 <td>Rolling 1y</td>
-<td>0.627 → 0.968</td>
-<td>+54.5%</td>
-<td>1.58 → 2.29</td>
-<td>1.217 (2023)</td>
-<td>0.918</td>
-</tr>
-<tr class="odd">
-<td>ECB core HICP</td>
-<td>Longer term</td>
-<td>0.741 → 0.858</td>
-<td>+15.9%</td>
-<td>1.60 → 1.95</td>
-<td>0.938 (2023)</td>
-<td>0.805</td>
-</tr>
-<tr class="even">
-<td>ECB core HICP</td>
-<td>Rolling 1y</td>
-<td>0.597 → 0.832</td>
-<td>+39.5%</td>
-<td>1.23 → 2.23</td>
-<td>1.073 (2023)</td>
-<td>0.716</td>
-</tr>
-<tr class="odd">
-<td>ECB real GDP</td>
-<td>Longer term</td>
-<td>0.786 → 0.940</td>
-<td>+19.7%</td>
-<td>1.87 → 1.41</td>
-<td>1.066 (2020)</td>
+<td>0.633 → 0.973</td>
+<td>+53.7%</td>
+<td>1.63 → 2.34</td>
+<td>1.223 (2023)</td>
 <td>0.922</td>
 </tr>
+<tr class="odd">
+<td>ECB core HICP</td>
+<td>Longer term</td>
+<td>0.746 → 0.863</td>
+<td>+15.7%</td>
+<td>1.65 → 2.00</td>
+<td>0.943 (2023)</td>
+<td>0.810</td>
+</tr>
+<tr class="even">
+<td>ECB core HICP</td>
+<td>Rolling 1y</td>
+<td>0.603 → 0.837</td>
+<td>+38.7%</td>
+<td>1.28 → 2.28</td>
+<td>1.077 (2023)</td>
+<td>0.721</td>
+</tr>
+<tr class="odd">
+<td>ECB real GDP</td>
+<td>Longer term</td>
+<td>0.792 → 0.948</td>
+<td>+19.7%</td>
+<td>1.92 → 1.45</td>
+<td>1.071 (2020)</td>
+<td>0.930</td>
+</tr>
 <tr class="even">
 <td>ECB real GDP</td>
 <td>Rolling 1y</td>
-<td>0.775 → 1.178</td>
-<td>+52.0%</td>
-<td>1.40 → 1.57</td>
-<td>2.621 (2020)</td>
-<td>0.793</td>
+<td>0.784 → 1.189</td>
+<td>+51.7%</td>
+<td>1.45 → 1.62</td>
+<td>2.626 (2020)</td>
+<td>0.800</td>
 </tr>
 <tr class="odd">
 <td>ECB unemployment</td>
 <td>Longer term</td>
-<td>1.009 → 1.048</td>
-<td>+3.8%</td>
-<td>8.19 → 6.66</td>
-<td>1.237 (2012)</td>
-<td>0.949</td>
+<td>1.017 → 1.055</td>
+<td>+3.7%</td>
+<td>8.23 → 6.71</td>
+<td>1.244 (2012)</td>
+<td>0.956</td>
 </tr>
 <tr class="even">
 <td>ECB unemployment</td>
 <td>Rolling 1y</td>
-<td>0.660 → 0.819</td>
-<td>+24.1%</td>
-<td>9.27 → 6.90</td>
-<td>1.279 (2020)</td>
-<td>0.704</td>
+<td>0.667 → 0.825</td>
+<td>+23.7%</td>
+<td>9.32 → 6.95</td>
+<td>1.282 (2020)</td>
+<td>0.710</td>
 </tr>
 </tbody>
 </table>
@@ -3637,7 +3637,7 @@ Table 11: ECB one-year and longer-term uncertainty and consensus, through 2020 
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Section drafted at beat level. The argument: put the verified 0.1–30pp/yr published range <span class="citation" data-cites="shenk2026 cunningham2025">(<a href="#ref-shenk2026" role="doc-biblioref">Shenk 2026</a>; <a href="#ref-cunningham2025" role="doc-biblioref">Cunningham 2025</a>)</span> and its anchors <span class="citation" data-cites="acemoglu2024 briggsKodnani2023 aghionBunel2024 davidson2021 erdil2025gate korinekSuh2024">(<a href="#ref-acemoglu2024" role="doc-biblioref">Acemoglu 2024</a>; <a href="#ref-briggsKodnani2023" role="doc-biblioref">Briggs and Kodnani 2023</a>; <a href="#ref-aghionBunel2024" role="doc-biblioref">Aghion and Bunel 2024</a>; <a href="#ref-davidson2021" role="doc-biblioref">Davidson 2021</a>; <a href="#ref-erdil2025gate" role="doc-biblioref">Erdil et al. 2025</a>; <a href="#ref-korinekSuh2024" role="doc-biblioref">Korinek and Suh 2024</a>)</span> against the inventory of section 2; <span class="citation" data-cites="karger2026">Karger et al. (<a href="#ref-karger2026" role="doc-biblioref">2026</a>)</span> as the one-off flagship; <span class="citation" data-cites="chowHalperinMazlish2026">Chow et al. (<a href="#ref-chowHalperinMazlish2026" role="doc-biblioref">2026</a>)</span> extracting long-horizon growth beliefs from asset prices precisely because no survey elicits them. The observation the paper owns: the instruments that would discipline this debate exist, run quarterly, have 50 years of calibration record — and stop at year three (US) or five (euro area).</p>
+<p>Section drafted at beat level. The argument: put the published AI-growth scenarios <span class="citation" data-cites="shenk2026 cunningham2025">(<a href="#ref-shenk2026" role="doc-biblioref">Shenk 2026</a>; <a href="#ref-cunningham2025" role="doc-biblioref">Cunningham 2025</a>)</span> — which differ in outcome, horizon and conditioning, so no single range spans them — and their anchors <span class="citation" data-cites="acemoglu2024 briggsKodnani2023 aghionBunel2024 davidson2021 erdil2025gate korinekSuh2024">(<a href="#ref-acemoglu2024" role="doc-biblioref">Acemoglu 2024</a>; <a href="#ref-briggsKodnani2023" role="doc-biblioref">Briggs and Kodnani 2023</a>; <a href="#ref-aghionBunel2024" role="doc-biblioref">Aghion and Bunel 2024</a>; <a href="#ref-davidson2021" role="doc-biblioref">Davidson 2021</a>; <a href="#ref-erdil2025gate" role="doc-biblioref">Erdil et al. 2025</a>; <a href="#ref-korinekSuh2024" role="doc-biblioref">Korinek and Suh 2024</a>)</span> against the inventory of section 2; <span class="citation" data-cites="karger2026">Karger et al. (<a href="#ref-karger2026" role="doc-biblioref">2026</a>)</span> as the one-off flagship; <span class="citation" data-cites="chowHalperinMazlish2026">Chow et al. (<a href="#ref-chowHalperinMazlish2026" role="doc-biblioref">2026</a>)</span> extracting long-horizon growth beliefs from asset prices precisely because no survey elicits them. The observation the paper owns: the instruments that would discipline this debate exist, run quarterly, have 50 years of calibration record — and stop at year three (US) or five (euro area).</p>
 </div>
 </div>
 </section>
@@ -3653,7 +3653,7 @@ Table 11: ECB one-year and longer-term uncertainty and consensus, through 2020 
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Design beats, not advocacy: extend one existing survey block to a ten-year growth density (the ECB’s longer-term question shows a panel will answer it, and its 2023 special survey asked whether ten-year expectations would differ <span class="citation" data-cites="allayioti2024">(<a href="#ref-allayioti2024" role="doc-biblioref">Allayioti et al. 2024</a>)</span>); bins wide enough to be honest about tails (the 2020 widening as precedent <span class="citation" data-cites="ecbSpf2020q2">(<a href="#ref-ecbSpf2020q2" role="doc-biblioref">European Central Bank 2020</a>)</span>); ship the question with the scoring rule that disciplines it — CRPS with pinball components — because the record shows stated densities break at regime shifts and the AI question is a regime-shift question; pair each long-horizon density with the respondent’s AI-adoption assumption so the 0.1–30 range becomes decomposable.</p>
+<p>Design beats, not advocacy: extend one existing survey block to a ten-year growth density (the ECB’s longer-term question shows a panel will answer it, and its 2023 special survey asked whether ten-year expectations would differ <span class="citation" data-cites="allayioti2024">(<a href="#ref-allayioti2024" role="doc-biblioref">Allayioti et al. 2024</a>)</span>); bins wide enough to be honest about tails (the 2020 widening as precedent <span class="citation" data-cites="ecbSpf2020q2">(<a href="#ref-ecbSpf2020q2" role="doc-biblioref">European Central Bank 2020</a>)</span>); ship the question with the scoring rule that disciplines it — CRPS with pinball components — because the record shows stated densities break at regime shifts and the AI question is a regime-shift question; pair each long-horizon density with the respondent’s AI-adoption assumption so the disagreement between scenarios becomes decomposable.</p>
 </div>
 </div>
 </section>
@@ -3669,13 +3669,13 @@ Table 11: ECB one-year and longer-term uncertainty and consensus, through 2020 
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>One page: the 2026 pair again — for next year, a median and 1.5 points of stated spread; for the decade, a median and no distribution — with the whole panorama behind it.</p>
+<p>One page: the 2026 pair again — for next year, a median and 1.4 points of stated spread; for the decade, a median and no distribution — with the whole panorama behind it.</p>
 </div>
 </div>
 </section>
 <section id="data-and-limitations" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="data-and-limitations">Data and limitations</h2>
-<p>All measures compute from the public microdata of the Philadelphia Fed SPF <span class="citation" data-cites="spfDocumentation2026">(<a href="#ref-spfDocumentation2026" role="doc-biblioref">Federal Reserve Bank of Philadelphia 2026</a>)</span> and the ECB SPF, with bin schemes taken from each survey’s documentation for every era. Realizations are latest-vintage <span class="citation" data-cites="stark2010">(<a href="#ref-stark2010" role="doc-biblioref">Stark 2010</a>)</span>; real-time-vintage evaluation is future work. Forecasts of a shared outcome are correlated, so miss counts and score comparisons are descriptive. Benchmark windows are expanding with a ten-observation minimum; euro-area annual histories are short. The pipeline, tests, and every series behind the live interactive are open source at <a href="https://github.com/MaxGhenis/expectations" class="uri">https://github.com/MaxGhenis/expectations</a>.</p>
+<p>All measures compute from the public microdata of the Philadelphia Fed SPF <span class="citation" data-cites="spfDocumentation2026">(<a href="#ref-spfDocumentation2026" role="doc-biblioref">Federal Reserve Bank of Philadelphia 2026</a>)</span> and the ECB SPF, with bin schemes taken from each survey’s documentation for every era. Realizations are latest-vintage <span class="citation" data-cites="stark2010">(<a href="#ref-stark2010" role="doc-biblioref">Stark 2010</a>)</span>; real-time-vintage evaluation is future work. Forecasts of a shared outcome are correlated, so miss counts and score comparisons are descriptive. Benchmark windows are expanding with a ten-observation minimum; euro-area annual histories are short. The reading of the bin labels is a choice. Taking the printed labels literally, or placing each boundary halfway across the 0.1-point strip between labels, lowers every mean by about 0.05 points, narrows standard deviations by under 1%, and leaves the comparisons between periods, horizons and surveys as reported; the one headline it moves is the US ±1σ coverage count, which is 22 of 33 under our reading and 23 of 33 under either alternative, because the 2011 outcome sits on the band’s edge (<code>outputs/reconstruction_sensitivity.csv</code>). The pipeline, tests, and every series behind the live interactive are open source at <a href="https://github.com/MaxGhenis/expectations" class="uri">https://github.com/MaxGhenis/expectations</a>.</p>
 </section>
 <section id="references" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="references">References</h2>

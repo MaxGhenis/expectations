@@ -1,9 +1,9 @@
 ---
 title: "What do forecasters say they don't know?"
-subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r4"
+subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r5"
 author:
   - name: Max Ghenis
-date: 2026-09-18
+date: 2026-09-19
 bibliography: references.bib
 csl: chicago-author-date.csl
 bibliography-title: References
@@ -38,6 +38,9 @@ ROOT = next(
 )
 OUT = ROOT / "outputs"
 m = pd.read_csv(OUT / "measures.csv")
+sens = pd.read_csv(OUT / "reconstruction_sensitivity.csv").pivot(
+    index="statistic", columns="convention", values="value"
+)
 s = pd.read_csv(OUT / "scores.csv")
 cal = pd.read_csv(OUT / "calibration.csv")
 lr = pd.read_csv(OUT / "longrun_points.csv")
@@ -159,6 +162,7 @@ v = dict(
     cov_n=f"{int(cg.inside_1sd.sum())} of {len(cg)}",
     cov_years=str(int(cov_row.last_event_year - cov_row.first_event_year + 1)),
     cov_span=f"{int(cov_row.first_event_year)}\u2013{int(cov_row.last_event_year)}",
+    cov_n_literal=f"{int(sens.loc['us_q1_next_year_inside_1sd', 'literal'])} of {int(sens.loc['us_q1_next_year_targets', 'literal'])}",
     cov90_pct=num(100 * cov90, 1),
     cov90_n=f"{int(cg.inside_pooled_90.sum())} of {len(cg)}",
     ea_peak=num(ea_q1.max()),
@@ -351,7 +355,11 @@ distributions over ten-year-ahead growth.
 
 ## Measures
 
-Each forecaster attaches probabilities to bins. We spread each bin's mass
+Each forecaster attaches probabilities to bins. The questionnaires print
+closed one-decimal ranges — "2.0 to 2.9", then "3.0 to 3.9" — and growth is
+continuous, so we read each range as running to the next range's lower label:
+"2.0 to 2.9" covers [2, 3). Lower labels stay where the questionnaire prints
+them. We spread each bin's mass
 uniformly inside the bin, give open tails the width of the adjacent bin,
 keep responses whose probabilities lie between 0 and 100 and sum to within
 two points of 100, and renormalize. Moments, quantiles, and scores all use
@@ -779,7 +787,15 @@ survey's documentation for every era. Realizations are latest-vintage
 [@stark2010]; real-time-vintage evaluation is future work. Forecasts of a
 shared outcome are correlated, so miss counts and score comparisons are
 descriptive. Benchmark windows are expanding with a ten-observation
-minimum; euro-area annual histories are short. The pipeline, tests, and
+minimum; euro-area annual histories are short. The reading of the bin labels
+is a choice. Taking the printed labels literally, or placing each boundary
+halfway across the 0.1-point strip between labels, lowers every mean by about
+0.05 points, narrows standard deviations by under 1%, and leaves the
+comparisons between periods, horizons and surveys as reported; the one
+headline it moves is the US ±1σ coverage count, which is
+`{python} v['cov_n']` under our reading and `{python} v['cov_n_literal']`
+under either alternative, because the 2011 outcome sits on the band's edge
+(`outputs/reconstruction_sensitivity.csv`). The pipeline, tests, and
 every series behind the live interactive are open source at
 <https://github.com/MaxGhenis/expectations>.
 

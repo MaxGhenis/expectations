@@ -1,4 +1,4 @@
-"""High-growth probabilities identified by the surveys' literal GDP bins.
+"""High-growth probabilities identified by the edges of the surveys' GDP bins.
 
 Unlike moment and quantile calculations, these bounds never close an open tail.
 For a threshold inside a bin, all or none of that bin's probability can exceed
@@ -75,7 +75,8 @@ def growth_tail_table(
     continuous-boundary convention documented above. Endpoints within
     ``EDGE_TOLERANCE`` of the threshold are compared as that edge, so binary
     representation error cannot turn an intended edge into a straddling bin.
-    Gaps in the literal bin labels receive no probability.
+    Bounds use the bin support the density frame carries (``bins.support_intervals``);
+    under the literal reading the strips between printed labels receive no mass.
 
     ``probability_uniform`` interpolates only within finite bins. It is missing
     whenever the threshold lies strictly inside an open tail, even if that bin
@@ -148,7 +149,7 @@ def growth_tail_table(
         )
         if bins["bin_index"].duplicated().any():
             raise ValueError(f"Inconsistent bins for density group: {metadata}")
-        lower, upper = _literal_bounds(bins)
+        lower, upper = _open_bounds(bins)
         probabilities = (
             group.set_index([response_column, "bin_index"])["probability"]
             .unstack("bin_index")
@@ -207,7 +208,7 @@ def _snap_to_threshold(endpoints: np.ndarray, threshold: float) -> np.ndarray:
     )
 
 
-def _literal_bounds(bins: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+def _open_bounds(bins: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
     """Validate ranges without filling their gaps or truncating their tails."""
     lower = bins["lower"].to_numpy(dtype=float, na_value=np.nan)
     upper = bins["upper"].to_numpy(dtype=float, na_value=np.nan)
