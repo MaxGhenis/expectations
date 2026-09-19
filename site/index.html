@@ -260,6 +260,9 @@ function conceptEras(rows) {
 function conceptNote(rows, survey, variable) {
   if (!rows.length || rows.some(row => row.concept == null)) return '';
   const modern = modernConcept(survey, variable);
+  // Without a current concept there is nothing to contrast these rounds against,
+  // and a sentence naming a blank one would be worse than saying nothing.
+  if (modern == null) return '';
   const eras = conceptEras(rows);
   if (eras.length === 1 && eras[0].concept === modern) return '';
   if (eras.length === 1) {
