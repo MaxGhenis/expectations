@@ -29,9 +29,15 @@ SOURCE_PATHS = {
     "scores": OUTPUTS / "scores.csv",
 }
 
+# "concept" is the forecast concept the survey actually asked about in that round.
+# PRGDP moves from nominal GNP growth to real GNP growth in 1981 Q3 and to real
+# GDP growth in 1992 Q1; PRPGDP moves from the GNP deflator to the GDP deflator
+# in 1992 Q1 and to the chain-weighted price index in 1996 Q1. The tracker cannot
+# label those rounds with the modern variable name without this field.
 MEASURE_FIELDS = [
     "survey",
     "variable",
+    "concept",
     "year",
     "quarter",
     "horizon_class",
@@ -45,11 +51,13 @@ MEASURE_FIELDS = [
     "share_between",
     "iqr",
     "q25",
+    "q50",
     "q75",
 ]
 CALIBRATION_FIELDS = [
     "survey",
     "variable",
+    "concept",
     "year",
     "quarter",
     "horizon_class",
@@ -112,6 +120,7 @@ SCORE_REQUIRED_FIELDS = [
 SCORE_FIELDS = [
     "survey",
     "variable",
+    "concept",
     "year",
     "quarter",
     "horizon_class",
@@ -263,6 +272,7 @@ def _measure_rows(frame: pd.DataFrame) -> list[list[Any]]:
         [
             row.survey,
             row.variable,
+            row.concept,
             int(row.year),
             int(row.quarter),
             row.horizon_class,
@@ -276,6 +286,7 @@ def _measure_rows(frame: pd.DataFrame) -> list[list[Any]]:
             significant(row.share_between),
             significant(row.iqr),
             significant(row.q25),
+            significant(row.q50),
             significant(row.q75),
         ]
         for row in frame.itertuples(index=False)
@@ -287,6 +298,7 @@ def _calibration_rows(frame: pd.DataFrame) -> list[list[Any]]:
         [
             row.survey,
             row.variable,
+            row.concept,
             int(row.year),
             int(row.quarter),
             row.horizon_class,
@@ -323,6 +335,7 @@ def _score_rows(frame: pd.DataFrame) -> list[list[Any]]:
         [
             row.survey,
             row.variable,
+            row.concept,
             int(row.year),
             int(row.quarter),
             row.horizon_class,
@@ -361,6 +374,7 @@ def main() -> None:
     calibration_source_fields = [
         "survey",
         "variable",
+        "concept",
         "year",
         "quarter",
         "horizon_class",
@@ -409,8 +423,12 @@ def main() -> None:
     assert not longrun[LONGRUN_FIELDS].isna().any().any(), (
         "Long-run rows contain missing view fields"
     )
+    score_identity_fields = SCORE_FIELDS[: SCORE_FIELDS.index("crps_pooled")]
     assert not (
-        scores[SCORE_FIELDS[:6] + DISTRIBUTION_LOSS_FIELDS + ["pit"]].isna().any().any()
+        scores[score_identity_fields + DISTRIBUTION_LOSS_FIELDS + ["pit"]]
+        .isna()
+        .any()
+        .any()
     ), "Score rows contain missing compact identity or distribution-score fields"
     for column in DISTRIBUTION_LOSS_FIELDS:
         values = scores[column]

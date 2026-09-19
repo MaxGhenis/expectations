@@ -1,0 +1,12 @@
+{
+  "name": "expectations-page-tests",
+  "private": true,
+  "description": "Behavioral checks for the static tracker page in site/",
+  "type": "module",
+  "scripts": {
+    "test:page": "node tests/page/run.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.0"
+  }
+}

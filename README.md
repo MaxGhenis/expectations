@@ -5,7 +5,7 @@ What professional forecasters expect, and how sure they say they are. This repos
 **Live: https://maxghenis.com/expectations/**
 
 - **Tracker** — [maxghenis.com/expectations](https://maxghenis.com/expectations/): decomposition, consensus fan, calibration, term structure and proper scores for every variable and horizon in both surveys. Every view is a shareable URL.
-- **What do forecasters say they don't know?** — [paper](https://maxghenis.com/expectations/paper/) (source: [paper/index.qmd](paper/index.qmd)). Every elicited density in both surveys, pooled by the law of total variance into stated individual uncertainty and disagreement, calibrated against outcomes and scored against no-lookahead benchmarks.
+- **What do forecasters say they don't know?** — [paper](https://maxghenis.com/expectations/paper/) (source: [paper/index.qmd](paper/index.qmd)). Every elicited density in both surveys, pooled by the law of total variance into stated individual uncertainty and disagreement, calibrated against outcomes and scored against expanding-window benchmarks built from target periods already complete at each round.
 - **Growth expectations in the AI era** — [paper](https://maxghenis.com/expectations/growth/paper/) (source: [paper/growth/index.qmd](paper/growth/index.qmd)) and [companion](https://maxghenis.com/expectations/growth/). Whether professional GDP forecasts moved toward faster growth, in levels, spreads and upper-tail probabilities bounded from the literal survey bins.
 
 Every number in both manuscripts computes from `outputs/` when the paper renders.
@@ -33,7 +33,7 @@ Open `http://localhost:8769/`. The paper build installs its Jupyter kernel insid
 ## Outputs and methods
 
 - `measures.csv`: pooled moments, quantiles and disagreement for every survey, variable, round and target. Moments, quantiles and CRPS all use one distribution: uniform within each finite bin, open tails closed at one adjacent-bin width.
-- `calibration.csv`, `scores.csv`, `benchmark_summary.csv`: outcomes, coverage flags, CRPS, pinball losses, PITs, and skill against expanding-window climatology and a Gaussian around the consensus. Skill is one minus the ratio of mean CRPS on matched eligible observations; mean row-level skill stays as a sensitivity.
+- `calibration.csv`, `scores.csv`, `benchmark_summary.csv`: outcomes, coverage flags, CRPS, pinball losses, PITs, and skill against expanding-window climatology and a Gaussian around the consensus. Both benchmark windows admit only target periods that completed strictly before the forecast round, and both read the same revised (latest-vintage) outcomes the forecasts are scored against; the pipeline holds no real-time data vintages, so this is not a real-time backtest. Skill is one minus the ratio of mean CRPS on matched eligible observations; mean row-level skill stays as a sensitivity.
 - `panorama_*.csv`: the summary tables behind the full paper, `paper/index.qmd` (stability, disagreement shares, term structure, fixed-event shrinkage, coverage and miss clusters, the ECB longer-term shift, skill, tails, PITs, bin-era comparisons), written by `scripts/build_panorama.py`.
 - `growth_tails.csv`, `growth_comparison.csv`: real GDP probabilities above 3%, 4%, 5% and 10% with literal-bin lower and upper bounds, and fixed-Q1 and all-round period comparisons. The bounds never close an open tail, and they are identification bounds, not confidence intervals.
 - `coverage.csv`, `longrun_points.csv`, `recess.csv`: parsing coverage, ten-year point forecasts and recession probabilities.
@@ -44,13 +44,18 @@ The archive covers US density variables PRGDP, PRPGDP, PRUNEMP, PRCCPI and PRCPC
 
 ## Source snapshots
 
-Raw survey files and outcome snapshots are committed, so rebuilding runs offline once dependencies are installed. Official annual ECB outcomes come with a reproducible acquisition script:
+Raw survey files and outcome snapshots are committed, so rebuilding runs offline once dependencies are installed. Official annual ECB outcomes come with a reproducible acquisition script, which has two distinct invocations:
 
 ```bash
+# Verify the committed inputs and rewrite the manifest. Any file whose bytes
+# already match its recorded checksum is reused, not re-downloaded.
 uv run python scripts/download_ecb_annual_realizations.py
+
+# Re-download every source, replacing the committed inputs with today's vintage.
+uv run python scripts/download_ecb_annual_realizations.py --refresh
 ```
 
-That command refreshes the annual companion inputs and their [provenance manifest](data/raw/ecb_annual_realizations_sources.json); reproducing the committed snapshot does not need it. Annual GDP uses the ECB's published annual real GDP growth rate. Annual HICP and core HICP use the official annual-average index-growth series at publisher precision. Archived rolling outcomes are unchanged. All outcomes are revised-data snapshots, so the evaluation is not a real-time backtest.
+Neither command is needed to reproduce the committed snapshot. Without `--refresh` the script only fetches a source that is missing or fails its checksum, so it re-verifies the [provenance manifest](data/raw/ecb_annual_realizations_sources.json) without re-vintaging anything; it does rewrite the manifest, whose top-level `retrieved_at_utc` records the run itself while each source entry keeps its own retrieval time. `--refresh` replaces every source and is how the inputs are deliberately re-vintaged. Annual GDP uses the ECB's published annual real GDP growth rate. Annual HICP and core HICP use the official annual-average index-growth series at publisher precision. Archived rolling outcomes are unchanged. Eurostat's published EA20 annual growth is archived alongside as a comparator only — never an emitted outcome — so the manifest's record that the two official series differ in 5 of 30 years at one decimal reproduces offline. All outcomes are revised-data snapshots, so the evaluation is not a real-time backtest.
 
 Primary sources: [Philadelphia Fed SPF](https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/survey-of-professional-forecasters), [ECB SPF](https://www.ecb.europa.eu/stats/ecb_surveys/survey_of_professional_forecasters/html/index.en.html), BEA/BLS via archived DBnomics files, and the ECB Data Portal. AI-comparator source details are in [paper/AI_COMPARATORS.md](paper/AI_COMPARATORS.md); the verified literature review is in [docs/LITREVIEW.md](docs/LITREVIEW.md).
 

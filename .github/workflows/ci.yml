@@ -14,5 +14,13 @@ jobs:
       - run: uv sync --dev
       - run: uv run ruff format --check src tests scripts site/gen_data.py
       - run: uv run ruff check src tests scripts site/gen_data.py
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: bun install --frozen-lockfile
       - run: unzip -q data/raw/ecb_spf_individual_forecasts.zip -d data/raw/ecb_spf
       - run: uv run pytest -q
+      # Executes the real page in jsdom. The Python suite parses it as text and
+      # cannot tell whether a renderer still calls the function it mentions.
+      - run: node tests/page/run.mjs
