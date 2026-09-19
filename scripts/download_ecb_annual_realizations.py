@@ -9,6 +9,10 @@ Sources already present with the recorded checksum are reused rather than
 re-downloaded, so adding a companion never silently re-vintages the others.
 ``--refresh`` downloads every source again. Each manifest entry carries its own
 retrieval time; the top-level time is only the most recent acquisition run.
+
+The Eurostat EA20 annual growth comparator is archived on the same terms as the
+ECB companions.  It is a provenance comparator, never an emitted outcome, but it
+is pinned by checksum so the recorded year-by-year deviation reproduces offline.
 """
 
 from __future__ import annotations
@@ -73,7 +77,9 @@ NOTES = [
         "annual growth (nama_10_gdp, B1GQ, CLV_PCH_PRE); verification records "
         "the year-by-year deviation and the years that differ at one decimal. "
         "Both are official publications of different aggregates, so neither is "
-        "a rounding of the other."
+        "a rounding of the other. The Eurostat response is archived beside the "
+        "ECB companions and pinned by checksum here, so that comparison "
+        "reproduces offline from the committed file rather than from a refetch."
     ),
     "Annual HICP and HICPX use official annual-average index growth (AVR), rounded by the publisher to 0.1 percentage point; not mean monthly year-on-year growth.",
     "Monthly HICP indexes are retained to verify annual growth wherever both full years exist. HICPX index months are missing in 1997–2000; published annual AVR avoids losing those calendar benchmark targets.",
@@ -82,10 +88,20 @@ NOTES = [
     "Calendar inflation values are the official annual observations. Their emitted status is the union of the official annual status and the archived subannual statuses for the same year, so a provisional month is not hidden by a final annual flag.",
     "Legacy ICP flow is discontinued; the new HICP flow is not spliced into this 1997–2025 outcome history.",
 ]
+EUROSTAT_ANNUAL_GROWTH_FILE = "eurostat_ea20_rgdp_growth_annual.json"
 EUROSTAT_ANNUAL_GROWTH_URL = (
     "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
     "nama_10_gdp?format=JSON&geo=EA20&na_item=B1GQ&unit=CLV_PCH_PRE"
 )
+EUROSTAT_ANNUAL_GROWTH_PORTAL_URL = (
+    "https://ec.europa.eu/eurostat/databrowser/view/nama_10_gdp/default/table"
+)
+EUROSTAT_DIMENSION_IDENTITY = {
+    "freq": "A",
+    "unit": "CLV_PCH_PRE",
+    "na_item": "B1GQ",
+    "geo": "EA20",
+}
 
 
 def _rows(payload: bytes) -> list[dict[str, str]]:
@@ -132,23 +148,63 @@ def _deviation_summary(
     }
 
 
-def _eurostat_annual_growth() -> dict[str, float]:
-    request = Request(
-        EUROSTAT_ANNUAL_GROWTH_URL,
-        headers={"User-Agent": "forecast-uncertainty-research/1"},
-    )
-    with urlopen(request, timeout=45) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+def eurostat_annual_growth(payload: bytes) -> dict[str, float]:
+    """Read EA20 annual growth out of an archived Eurostat JSON-stat response."""
+    dataset = json.loads(payload.decode("utf-8"))
+    for dimension, expected in EUROSTAT_DIMENSION_IDENTITY.items():
+        categories = set(dataset["dimension"][dimension]["category"]["index"])
+        if categories != {expected}:
+            raise ValueError(
+                f"Eurostat comparator {dimension} is {sorted(categories)}, "
+                f"not {expected!r}"
+            )
     periods = {
         position: period
-        for period, position in payload["dimension"]["time"]["category"][
+        for period, position in dataset["dimension"]["time"]["category"][
             "index"
         ].items()
     }
-    return {periods[int(key)]: float(value) for key, value in payload["value"].items()}
+    return {periods[int(key)]: float(value) for key, value in dataset["value"].items()}
+
+
+def describe_eurostat(payload: bytes, *, retrieved_at_utc: str) -> dict[str, object]:
+    """Describe the archived Eurostat comparator the way ECB sources are described."""
+    dataset = json.loads(payload.decode("utf-8"))
+    observations = eurostat_annual_growth(payload)
+    if not observations:
+        raise ValueError(f"Empty Eurostat comparator for {EUROSTAT_ANNUAL_GROWTH_URL}")
+    periods = sorted(observations)
+    return {
+        "dataset": dataset["extension"]["id"],
+        "dimensions": dict(EUROSTAT_DIMENSION_IDENTITY),
+        "url": EUROSTAT_ANNUAL_GROWTH_URL,
+        "portal_url": EUROSTAT_ANNUAL_GROWTH_PORTAL_URL,
+        "sha256": hashlib.sha256(payload).hexdigest(),
+        "observations": len(observations),
+        "first_period": periods[0],
+        "last_period": periods[-1],
+        "retrieved_at_utc": retrieved_at_utc,
+        "role": (
+            "provenance comparator only; never an emitted outcome. The emitted "
+            "annual euro-area GDP outcome is the ECB published growth rate."
+        ),
+        "metadata": {
+            "label": dataset["label"],
+            "source": dataset["source"],
+            "updated": dataset["updated"],
+            "geo_label": dataset["dimension"]["geo"]["category"]["label"]["EA20"],
+            "unit_label": dataset["dimension"]["unit"]["category"]["label"][
+                "CLV_PCH_PRE"
+            ],
+            "na_item_label": dataset["dimension"]["na_item"]["category"]["label"][
+                "B1GQ"
+            ],
+        },
+    }
 
 
 def verify_companions(acquired: dict[str, bytes]) -> dict:
+    """Recompute every recorded cross-check from the acquired bytes."""
     verification = {}
     official = _values(acquired["ecb_ea_rgdp_growth_annual.csv"])
     title = _rows(acquired["ecb_ea_rgdp_growth_annual.csv"])[0]["TITLE"]
@@ -187,7 +243,13 @@ def verify_companions(acquired: dict[str, bytes]) -> dict:
     )
     verification["rgdp_official_annual_vs_eurostat_published_annual_growth"] = {
         "eurostat_url": EUROSTAT_ANNUAL_GROWTH_URL,
-        **_deviation_summary(official, _eurostat_annual_growth()),
+        "eurostat_archived_file": EUROSTAT_ANNUAL_GROWTH_FILE,
+        "eurostat_archived_sha256": hashlib.sha256(
+            acquired[EUROSTAT_ANNUAL_GROWTH_FILE]
+        ).hexdigest(),
+        **_deviation_summary(
+            official, eurostat_annual_growth(acquired[EUROSTAT_ANNUAL_GROWTH_FILE])
+        ),
     }
 
     for variable in ("hicp", "hicpx"):
@@ -256,8 +318,12 @@ def download(url: str) -> bytes:
         return response.read()
 
 
-def reusable(filename: str, key: str) -> bytes | None:
-    """Return the stored bytes when they already match the recorded checksum."""
+def reusable(filename: str, key: str | None = None) -> bytes | None:
+    """Return the stored bytes when they already match the recorded checksum.
+
+    ``key`` is the expected ECB series key.  The Eurostat comparator has no such
+    key, so it is identified by filename and checksum alone.
+    """
     path = RAW / filename
     if not path.exists() or not MANIFEST.exists():
         return None
@@ -265,7 +331,7 @@ def reusable(filename: str, key: str) -> bytes | None:
     payload = path.read_bytes()
     if (
         entry is None
-        or entry.get("series_key") != key
+        or (key is not None and entry.get("series_key") != key)
         or entry.get("sha256") != hashlib.sha256(payload).hexdigest()
     ):
         return None
@@ -304,6 +370,20 @@ def main() -> None:
         )
         acquired[filename] = payload
 
+    comparator = None if arguments.refresh else reusable(EUROSTAT_ANNUAL_GROWTH_FILE)
+    if comparator is None:
+        comparator = download(EUROSTAT_ANNUAL_GROWTH_URL)
+        fetched.append(EUROSTAT_ANNUAL_GROWTH_FILE)
+        comparator_retrieved = now
+    else:
+        comparator_retrieved = previous["sources"][EUROSTAT_ANNUAL_GROWTH_FILE].get(
+            "retrieved_at_utc", previous.get("retrieved_at_utc", now)
+        )
+    sources[EUROSTAT_ANNUAL_GROWTH_FILE] = describe_eurostat(
+        comparator, retrieved_at_utc=comparator_retrieved
+    )
+    acquired[EUROSTAT_ANNUAL_GROWTH_FILE] = comparator
+
     manifest = {
         "retrieved_at_utc": now,
         "notes": NOTES,
@@ -314,7 +394,8 @@ def main() -> None:
         (RAW / filename).write_bytes(acquired[filename])
     MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n")
     print(
-        f"Recorded {len(acquired)} ECB annual-outcome companion sources in {RAW} "
+        f"Recorded {len(SOURCES)} ECB annual-outcome companion sources and the "
+        f"Eurostat EA20 comparator in {RAW} "
         f"({len(fetched)} downloaded, {len(acquired) - len(fetched)} reused)"
     )
 

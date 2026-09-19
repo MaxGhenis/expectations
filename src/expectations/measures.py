@@ -102,9 +102,18 @@ def histogram_quantiles(
     perturbs the cumulative sums by rounding, which is enough to move a quantile
     sitting exactly on a bin edge into the neighboring bin.  An all-zero or
     nonfinite total remains the documented degenerate case and returns missing
-    values.
+    values; finite weights can still overflow to a nonfinite sum.
+
+    Negative mass is rejected, not tolerated: a signed bin makes the cumulative
+    sums non-monotone, so the inverse-CDF search would return an arbitrary bin.
+    Two-dimensional weights are checked row by row, before averaging, so that
+    offsetting signs in different rows cannot hide behind a nonnegative mean.
     """
     probabilities = np.asarray(weights, dtype=float)
+    if not np.isfinite(probabilities).all():
+        raise ValueError("Histogram weights must be finite")
+    if (probabilities < 0.0).any():
+        raise ValueError("Histogram weights must be nonnegative")
     if probabilities.ndim == 2:
         probabilities = probabilities.mean(axis=0)
     if probabilities.ndim != 1 or probabilities.size != len(intervals):

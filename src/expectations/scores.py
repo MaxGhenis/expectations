@@ -42,6 +42,28 @@ DISTRIBUTION_SCORE_COLUMNS = (
 )
 
 
+def check_probability_weights(
+    weights: Sequence[float] | np.ndarray,
+    *,
+    name: str = "Histogram weights",
+) -> np.ndarray:
+    """Return ``weights`` as an array after rejecting nonfinite or negative mass.
+
+    Every histogram reaching these scoring primitives is a probability mass
+    vector: respondent rows are validated and normalized by
+    :func:`expectations.measures.filter_probability_rows`, which rejects any
+    negative cell, and pooled histograms are means of those rows.  Signed mass
+    would silently produce a non-monotone "CDF" and a meaningless score, so it is
+    rejected here rather than propagated.
+    """
+    masses = np.asarray(weights, dtype=float)
+    if not np.isfinite(masses).all():
+        raise ValueError(f"{name} must be finite")
+    if (masses < 0.0).any():
+        raise ValueError(f"{name} must be nonnegative")
+    return masses
+
+
 def histogram_cdf(
     weights: Sequence[float] | np.ndarray,
     intervals: Sequence[Interval],
@@ -52,6 +74,9 @@ def histogram_cdf(
     Literal gaps between intervals carry no mass.  Open tails are closed using
     one neighboring finite-bin width, and a zero-width interval is interpreted
     as a point mass.
+
+    Weights must be a nonnegative, finite mass vector.  A negative bin would make
+    the returned function non-monotone, and therefore not a CDF at all.
     """
     masses, bounds = _normalized_histogram(weights, intervals)
     observations = np.asarray(value, dtype=float)
@@ -76,6 +101,9 @@ def histogram_crps(
     endpoint values are ``g0`` and ``g1`` over a segment of length ``L``, its
     squared integral is ``L * (g0**2 + g0*g1 + g1**2) / 3``.  Point-mass jumps
     have zero Lebesgue measure but affect every segment to their right.
+
+    Weights must be a nonnegative, finite mass vector, as
+    :func:`histogram_cdf` requires.
     """
     y = float(realization)
     if not math.isfinite(y):
@@ -318,8 +346,7 @@ def _normalized_histogram(
     masses = np.asarray(weights, dtype=float)
     if masses.ndim != 1 or masses.size != len(intervals):
         raise ValueError("Weights and intervals have incompatible shapes")
-    if not np.isfinite(masses).all():
-        raise ValueError("Histogram weights must be finite")
+    check_probability_weights(masses)
     total = float(masses.sum())
     if total <= 0:
         raise ValueError("Histogram weights must have positive total mass")
@@ -363,6 +390,7 @@ def _optional_endpoint(value: object) -> float | None:
 __all__ = [
     "DENSITY_SCORE_KEYS",
     "DISTRIBUTION_SCORE_COLUMNS",
+    "check_probability_weights",
     "empirical_crps",
     "gaussian_crps",
     "histogram_cdf",

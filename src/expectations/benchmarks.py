@@ -1,4 +1,12 @@
-"""Strictly out-of-sample CRPS benchmarks for calibrated density forecasts."""
+"""Expanding-window CRPS benchmarks for calibrated density forecasts.
+
+Every benchmark window admits only target periods that completed strictly before
+the forecast round being scored, so no benchmark is fitted on an outcome its
+forecast was still predicting.  The outcome values themselves are the revised
+(latest-vintage) series from :mod:`expectations.realizations`; this repository
+archives no real-time data vintages, so the benchmarks are not a reconstruction
+of the information set a forecaster actually held.
+"""
 
 from __future__ import annotations
 
@@ -53,12 +61,14 @@ def period_completion_ordinal(
     *,
     target_year: object = None,
 ) -> int:
-    """Map a target to its completion quarter for no-lookahead filtering.
+    """Map a target to the quarter in which its target period completes.
 
     Annual targets complete in Q4, quarterly targets in their named quarter, and
     monthly targets in the quarter containing the named month.  Benchmark windows
     use a strict comparison against this ordinal, so a target is not available to
-    a forecast made in its completion quarter.
+    a forecast made in its completion quarter.  Completion of the target period is
+    the filter, not publication of the statistic: the outcome for a period that has
+    just ended is used as soon as the period ends, at its revised value.
     """
     canonical = _canonical_target_period(target_period)
     if canonical is None or pd.isna(canonical):
@@ -91,13 +101,14 @@ def add_benchmark_scores(
     raw_dir: str | Path = DEFAULT_RAW_DIR,
     min_history: int = MIN_BENCHMARK_OBSERVATIONS,
 ) -> pd.DataFrame:
-    """Append no-lookahead climatology and Gaussian benchmark scores.
+    """Append expanding-window climatology and Gaussian benchmark scores.
 
     ``scored`` must be the full calibration-row universe with a pooled CRPS.
     Climatology uses the longest local realization history matching the row's exact
     realization concept.  Gaussian scale uses prior errors from the exact
     ``(survey, variable, horizon_class)`` group.  Both windows admit only targets
-    completed strictly before the current forecast round.
+    whose target period completed strictly before the current forecast round, and
+    both read revised outcomes rather than the vintages published at that time.
     """
     if (
         isinstance(min_history, bool)

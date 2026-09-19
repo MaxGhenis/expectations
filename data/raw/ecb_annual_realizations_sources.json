@@ -1,9 +1,9 @@
 {
-  "retrieved_at_utc": "2026-09-17T19:38:41.832415+00:00",
+  "retrieved_at_utc": "2026-09-19T12:42:35.352328+00:00",
   "notes": [
     "Annual real GDP growth is the official ECB annual growth rate (MNA ... EUR_R_B1GQ.Y.GOY, titled 'Gross domestic product at market prices, annual growth rate'), non-adjusted, previous-year prices, fixed EA20 composition. It replaces growth in sums of calendar-and-seasonally-adjusted quarterly levels, which is not the published annual rate.",
     "Verification records that the official annual rate equals growth in sums of the non-adjusted quarterly levels, and how far the superseded adjusted-level sums departed from it.",
-    "The ECB annual rate is not identical to Eurostat's published EA20 annual growth (nama_10_gdp, B1GQ, CLV_PCH_PRE); verification records the year-by-year deviation and the years that differ at one decimal. Both are official publications of different aggregates, so neither is a rounding of the other.",
+    "The ECB annual rate is not identical to Eurostat's published EA20 annual growth (nama_10_gdp, B1GQ, CLV_PCH_PRE); verification records the year-by-year deviation and the years that differ at one decimal. Both are official publications of different aggregates, so neither is a rounding of the other. The Eurostat response is archived beside the ECB companions and pinned by checksum here, so that comparison reproduces offline from the committed file rather than from a refetch.",
     "Annual HICP and HICPX use official annual-average index growth (AVR), rounded by the publisher to 0.1 percentage point; not mean monthly year-on-year growth.",
     "Monthly HICP indexes are retained to verify annual growth wherever both full years exist. HICPX index months are missing in 1997\u20132000; published annual AVR avoids losing those calendar benchmark targets.",
     "Existing rolling raw files are preserved. Their original retrieval dates are unrecorded; do not infer identical vintages from this companion retrieval date.",
@@ -155,6 +155,31 @@
         "UNIT_MULT": "0",
         "DECIMALS": "1"
       }
+    },
+    "eurostat_ea20_rgdp_growth_annual.json": {
+      "dataset": "NAMA_10_GDP",
+      "dimensions": {
+        "freq": "A",
+        "unit": "CLV_PCH_PRE",
+        "na_item": "B1GQ",
+        "geo": "EA20"
+      },
+      "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp?format=JSON&geo=EA20&na_item=B1GQ&unit=CLV_PCH_PRE",
+      "portal_url": "https://ec.europa.eu/eurostat/databrowser/view/nama_10_gdp/default/table",
+      "sha256": "bc6b58e792c509775e8a0e60134bdaa3d9e441941a33d39a22e3280a64b865e5",
+      "observations": 30,
+      "first_period": "1996",
+      "last_period": "2025",
+      "retrieved_at_utc": "2026-09-19T12:42:35.352328+00:00",
+      "role": "provenance comparator only; never an emitted outcome. The emitted annual euro-area GDP outcome is the ECB published growth rate.",
+      "metadata": {
+        "label": "Gross domestic product (GDP) and main components (output, expenditure and income) - annual data",
+        "source": "ESTAT",
+        "updated": "2026-09-18T23:00:00+0200",
+        "geo_label": "Euro area \u2013 20 countries (2023-2025)",
+        "unit_label": "Chain linked volumes, percentage change on previous period",
+        "na_item_label": "Gross domestic product at market prices"
+      }
     }
   },
   "verification": {
@@ -205,6 +230,8 @@
     },
     "rgdp_official_annual_vs_eurostat_published_annual_growth": {
       "eurostat_url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp?format=JSON&geo=EA20&na_item=B1GQ&unit=CLV_PCH_PRE",
+      "eurostat_archived_file": "eurostat_ea20_rgdp_growth_annual.json",
+      "eurostat_archived_sha256": "bc6b58e792c509775e8a0e60134bdaa3d9e441941a33d39a22e3280a64b865e5",
       "matched_years": 30,
       "first_year": "1996",
       "last_year": "2025",
