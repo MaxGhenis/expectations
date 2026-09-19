@@ -72,6 +72,23 @@ def pooled_density(density: pd.DataFrame, years) -> pd.DataFrame:
     return frame.sort_values("lo").reset_index(drop=True)
 
 
+def step_path(frame: pd.DataFrame, x, y, x0: float, x1: float) -> str:
+    """An SVG step path for the bins that intersect the plotted range [x0, x1].
+
+    A bin wholly outside the range is skipped: clipping its endpoints would reverse
+    them and draw a segment into the margin.
+    """
+    points = []
+    for row in frame.itertuples():
+        if row.hi <= x0 or row.lo >= x1:
+            continue
+        points += [
+            (x(max(row.lo, x0)), y(row.density)),
+            (x(min(row.hi, x1)), y(row.density)),
+        ]
+    return "M" + " L".join(f"{a:.1f},{b:.1f}" for a, b in points)
+
+
 def growth_density_figure() -> str:
     comparison = pd.read_csv(OUTPUTS / "growth_comparison.csv")
     comparison = comparison[
@@ -90,13 +107,7 @@ def growth_density_figure() -> str:
     y = lambda value: top + (y_max - value) / y_max * inner_h
 
     def steps(frame: pd.DataFrame) -> str:
-        points = []
-        for row in frame.itertuples():
-            points += [
-                (x(max(row.lo, x0)), y(row.density)),
-                (x(min(row.hi, x1)), y(row.density)),
-            ]
-        return "M" + " L".join(f"{a:.1f},{b:.1f}" for a, b in points)
+        return step_path(frame, x, y, x0, x1)
 
     parts = [
         (
