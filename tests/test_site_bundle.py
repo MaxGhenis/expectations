@@ -220,6 +220,21 @@ def test_the_panel_is_a_tabpanel_named_by_its_tab(markup):
     assert markup.panel.get("aria-labelledby") == selected["id"]
 
 
+def test_a_fragment_cannot_name_an_inherited_property_as_a_view(page):
+    """#view=__proto__ once passed a truthiness check and stranded the tab pattern.
+
+    RENDERERS["__proto__"] is Object.prototype, which is truthy, so activeView
+    became a name no tab carries: the render threw and every tab was left with
+    tabindex="-1", so the tablist could not be reached by keyboard at all.
+    """
+    assert "Object.hasOwn(RENDERERS, name)" in page
+    assert "if (view && isView(view))" in page
+    assert "if (!isView(view)) return;" in page
+    assert "RENDERERS[view]" not in page, "view lookup must not rest on truthiness"
+    # The concept vocabulary is looked up the same way for the same reason.
+    assert "Object.hasOwn(CONCEPT_LABELS, id)" in page
+
+
 def test_tab_keyboard_navigation_and_hash_changes_are_wired(page):
     assert "byId('tabs').addEventListener('keydown'" in page
     for key in ("ArrowRight", "ArrowLeft", "Home", "End"):

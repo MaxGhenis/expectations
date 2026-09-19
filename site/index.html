@@ -228,7 +228,8 @@ const roundName = row => `${row.year} Q${row.quarter || 1}`;
 const number = (value, digits = 2) => isNumber(value) ? Number(value).toFixed(digits) : '—';
 const percent = value => isNumber(value) ? `${(100 * Number(value)).toFixed(1)}%` : '—';
 
-const conceptLabel = id => CONCEPT_LABELS[id] || String(id == null ? '' : id).replace(/_/g, ' ');
+const conceptLabel = id => (Object.hasOwn(CONCEPT_LABELS, id) ? CONCEPT_LABELS[id] : null)
+  || String(id == null ? '' : id).replace(/_/g, ' ');
 function joinList(parts) {
   if (parts.length < 2) return parts.join('');
   return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
@@ -989,6 +990,9 @@ function termStructure() {
 }
 
 const RENDERERS = { overview, decomposition, fan, calibration, term: termStructure, scores };
+// Fragment values are untrusted: "__proto__" and "constructor" resolve through the
+// prototype chain and would otherwise pass a plain truthiness check.
+const isView = name => Object.hasOwn(RENDERERS, name);
 function toggleViewControls() {
   const compare = activeView === 'overview';
   byId('concept-control').hidden = !compare;
@@ -1032,7 +1036,7 @@ function applyHash() {
   const compare = params.get('compare');
   if (compare && hasOption(byId('compare'), compare)) byId('compare').value = compare;
   const view = params.get('view');
-  if (view && RENDERERS[view]) setActiveTab(view);
+  if (view && isView(view)) setActiveTab(view);
 }
 function writeHash() {
   const params = new URLSearchParams();
@@ -1046,7 +1050,7 @@ function writeHash() {
 // or a hash change does not steal it.
 const TABS = [...document.querySelectorAll('#tabs button[role="tab"]')];
 function setActiveTab(view, { focus = false } = {}) {
-  if (!RENDERERS[view]) return;
+  if (!isView(view)) return;
   activeView = view;
   TABS.forEach(tab => {
     const selected = tab.dataset.view === view;
