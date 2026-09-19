@@ -1,9 +1,9 @@
 ---
 title: "What do forecasters say they don't know?"
-subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r4"
+subtitle: "Elicited macroeconomic uncertainty in the US and euro-area Surveys of Professional Forecasters, 1968–2026 — working draft r5"
 author:
   - name: Max Ghenis
-date: 2026-09-18
+date: 2026-09-19
 bibliography: references.bib
 csl: chicago-author-date.csl
 bibliography-title: References
@@ -38,10 +38,12 @@ ROOT = next(
 )
 OUT = ROOT / "outputs"
 m = pd.read_csv(OUT / "measures.csv")
+sens = pd.read_csv(OUT / "reconstruction_sensitivity.csv").pivot(
+    index="statistic", columns="convention", values="value"
+)
 s = pd.read_csv(OUT / "scores.csv")
 cal = pd.read_csv(OUT / "calibration.csv")
 lr = pd.read_csv(OUT / "longrun_points.csv")
-seed_fan = pd.read_csv(ROOT / "tests" / "fixtures" / "seed" / "spf_nextyear_consensus.csv")
 
 # Panorama tables. Every summary stated in this manuscript reads one of these,
 # so the prose cannot drift from the pipeline. They are written by
@@ -93,13 +95,18 @@ cg = cal[
     & (cal.horizon_class == "next_year")
 ]
 cov = cg.inside_1sd.mean()
+cov90 = cg.inside_pooled_90.mean()
 cov_row = p5.loc[("us", "PRGDP", "Q1 next year")]
 
-# The 2026 pair: across-forecaster spread of density means (next year) against
-# the ten-year point forecasts. Both are cross-sectional spreads of central
-# tendencies (disagreement), not predictive intervals.
-ny26 = seed_fan[seed_fan.t == 2026].iloc[0]
-iqr_ny = ny26.p75 - ny26.p25
+# Matched cross-survey construction: Q1 rounds, next calendar year, both surveys.
+ea_q1 = m[
+    (m.survey == "ecb") & (m.variable == "rgdp") & (m.quarter == 1)
+    & (m.horizon_class == "next_year")
+].set_index("year").total_sd
+both_q1 = pd.concat([tot.rename("us"), ea_q1.rename("ea")], axis=1).dropna()
+
+# The 2026 pair: the pooled next-year density against the ten-year question,
+# which collects point forecasts only.
 rg10 = lr[(lr.variable == "RGDP10") & (lr.year == 2026)].iloc[0]
 
 # Longest run of consecutive missed target years in the Q1 next-year series,
@@ -155,10 +162,23 @@ v = dict(
     cov_n=f"{int(cg.inside_1sd.sum())} of {len(cg)}",
     cov_years=str(int(cov_row.last_event_year - cov_row.first_event_year + 1)),
     cov_span=f"{int(cov_row.first_event_year)}\u2013{int(cov_row.last_event_year)}",
-    iqr_ny=num(iqr_ny, 1),
+    cov_n_literal=f"{int(sens.loc['us_q1_next_year_inside_1sd', 'literal'])} of {int(sens.loc['us_q1_next_year_targets', 'literal'])}",
+    sens_shift_med=num(sens.loc["all_groups_mean_shift_median", "literal"], 2),
+    sens_shift_p05=num(sens.loc["all_groups_mean_shift_p05", "literal"], 2),
+    sens_shift_p95=num(sens.loc["all_groups_mean_shift_p95", "literal"], 2),
+    sens_sd_med=num(100 * sens.loc["all_groups_sd_ratio_median", "literal"], 1),
+    sens_sd_max=num(100 * sens.loc["all_groups_sd_ratio_max", "literal"], 0),
+    sens_share_neg=num(100 * sens.loc["all_groups_share_mean_lower_under_primary", "literal"], 1),
+    cov90_pct=num(100 * cov90, 1),
+    cov90_n=f"{int(cg.inside_pooled_90.sum())} of {len(cg)}",
+    ea_peak=num(ea_q1.max()),
+    ea_peak_year=str(int(ea_q1.idxmax())),
+    ea_2026=num(ea_q1.loc[2026]),
+    n_overlap=str(len(both_q1)),
+    n_ea_below=str(int((both_q1.ea < both_q1.us).sum())),
     iqr_10y=num(rg10.iqr, 1),
     med_10y=num(rg10["median"], 1),
-    med_ny=num(ny26["median"], 1),
+    med_ny=num(g.loc[2026, "q50"], 1),
     iqr_ny_pooled=num(g.loc[2026, "iqr"], 1),
     sh_usgdp=num(p2.loc[("us", "PRGDP"), "median"], 0),
     sh_hicp=num(p2.loc[("ecb", "hicp"), "median"], 0),
@@ -247,25 +267,25 @@ three in the US and year five in the euro area, no survey elicits a
 distribution at all: the ten-year questions collect point forecasts, and
 their spread measures how much forecasters agree, which says nothing about
 how sure any of them is.
-The US distributions are roughly calibrated on average
-(`{python} v['cov_pct']`% one-sigma coverage over `{python} v['cov_years']` years); the euro
-area's are overconfident; both fail in clusters at regime shifts, in the
-tail the regime moved toward. Scored properly, the densities beat
+A ±1σ band around the US consensus covered `{python} v['cov_pct']`% of
+next-year growth outcomes over `{python} v['cov_years']` years, and the pooled
+90% interval `{python} v['cov90_pct']`%; euro-area bands covered less; both
+surveys miss in clusters at regime shifts, in the tail the regime moved toward. Scored properly, the densities beat
 climatology everywhere and roughly tie a Gaussian built from the consensus
 and its own error history (`{python} v['gauss_lo']`% to
 +`{python} v['gauss_hi']`% CRPS skill). Density elicitation stops three to five
-years out. Published estimates of AI's growth effects span roughly 0.1 to
-30 percentage points a year [@shenk2026; @cunningham2025] at the horizons
-no survey asks about, and we show what asking would take. A live
+years out. Published scenarios of AI's growth effects differ in outcome, horizon and
+conditioning [@shenk2026; @cunningham2025], and most concern horizons no
+survey density reaches; we show what asking would take. A live
 interactive tracks every series.
 
 ## Introduction
 
 In the first quarter of 2026, the forecasters in the US Survey of
-Professional Forecasters put a median of `{python} v['med_ny']`% on next
-year's real GDP growth, and they said how sure they were: the middle half
-of their pooled probability distribution spans `{python} v['iqr_ny_pooled']`
-points. Asked about average growth over the next ten years, the same panel
+Professional Forecasters reported probability distributions for next year's
+real GDP growth that pool to a median of `{python} v['med_ny']`%, and the
+distributions say how sure they were: the middle half of the pooled
+distribution spans `{python} v['iqr_ny_pooled']` points. Asked about average growth over the next ten years, the same panel
 gave a median of `{python} v['med_10y']`% and nothing else. The survey
 collects no distribution for the decade. The ten-year answers sit within
 `{python} v['iqr_10y']` points of each other, which shows that the
@@ -273,13 +293,18 @@ forecasters agree, and agreement is a different quantity from confidence.
 The histograms stop three years out.
 
 That gap matters more now than at any point in the surveys' history.
-Published estimates of what artificial intelligence will do to growth over
-roughly the coming decade run from under 0.1 percentage points a year
-[@acemoglu2024] through 1.5 points [@briggsKodnani2023] — with a
-0.07–1.24-point spread inside a single framework [@aghionBunel2024] — to
-above 30 points [@davidson2021; @erdilBesiroglu2023]. Compilations put the
-full published range at roughly 0.1–30 points a year, almost entirely as
-point estimates [@shenk2026; @cunningham2025]. The one large elicitation,
+Published work on what artificial intelligence will do to growth shares
+neither an outcome nor a horizon. @acemoglu2024 puts the gain in total factor
+productivity at under 0.1 percentage points a year over a decade;
+@briggsKodnani2023 put the boost to annual labor productivity growth near 1.5
+points; @aghionBunel2024 get 0.07 to 1.24 points of productivity growth from
+one framework under different readings of the evidence; @davidson2021 and
+@erdilBesiroglu2023 study the conditions under which gross world product could
+grow above 30% a year, given advanced AI and at horizons running to 2100.
+Compilations set these side by side, almost entirely as point estimates
+[@shenk2026; @cunningham2025]. A productivity increment, a conditional
+world-growth regime and an unconditional forecast of US GDP are different
+quantities, and no single range spans them. The one large elicitation,
 run by the Forecasting Research Institute with the Federal Reserve Bank of
 Chicago, collected medians and two quantiles, once [@karger2026]. The
 instruments that would discipline this debate — surveys that make
@@ -324,7 +349,7 @@ year-after-next calendar targets, rolling one- and two-year horizons, and
 a longer-term calendar year four years ahead in Q1/Q2 rounds and five
 ahead in Q3/Q4 [@garcia2003; @allayioti2024].
 
-The rest of the survey landscape collects points. The NY Fed's consumer
+Elsewhere, elicited densities stop early or do not exist. The Bank of England's Survey of External Forecasters collects UK inflation and GDP densities [@boeroSmithWallis2008]; the NY Fed's consumer
 survey elicits household densities to three years; Consensus Economics
 elicits by-range probabilities at one year and publishes its 5–10-year
 forecasts as points; Livingston (since 1946) and Blue Chip are point
@@ -336,7 +361,11 @@ distributions over ten-year-ahead growth.
 
 ## Measures
 
-Each forecaster attaches probabilities to bins. We spread each bin's mass
+Each forecaster attaches probabilities to bins. The questionnaires print
+closed one-decimal ranges — "2.0 to 2.9", then "3.0 to 3.9" — and growth is
+continuous, so we read each range as running to the next range's lower label:
+"2.0 to 2.9" covers [2, 3). Lower labels stay where the questionnaire prints
+them. We spread each bin's mass
 uniformly inside the bin, give open tails the width of the adjacent bin,
 keep responses whose probabilities lie between 0 and 100 and sum to within
 two points of 100, and renormalize. Moments, quantiles, and scores all use
@@ -389,7 +418,7 @@ on the variable (@tbl-shrinkage) — rather than averaging over it [@clementsRic
 
 ```{python}
 #| label: tbl-shrinkage
-#| tbl-cap: "Mean current-year total SD by survey quarter, 2010-19 rounds. The fixed calendar event arrives whatever the round, so the fall from Q1 to Q4 is the value of one year of information."
+#| tbl-cap: "Mean current-year total SD by survey quarter, 2010-19 rounds. The fixed calendar event arrives whatever the round, so the fall from the Q1 to the Q4 round tracks three more quarters of data on the target year; the panel's composition also changes between rounds."
 rows = []
 for key in ORDER:
     r = pan["4"].set_index(["survey", "variable"]).loc[key]
@@ -433,8 +462,12 @@ home.** The pooled SD of next-year US growth was `{python} v['t1992']`
 points in 1992 and averaged `{python} v['mean_1992_2020']` through 2020;
 it peaked at `{python} v['t2021']` in 2021 and stands at
 `{python} v['t2026']` in 2026 (decade means: `{python} v['dec_1019']`
-over 2010–19, `{python} v['dec_2024']` over 2020–24). Euro-area growth
-uncertainty spiked higher and decayed as fast. Euro-area inflation
+over 2010–19, `{python} v['dec_2024']` over 2020–24). On the matched
+construction — Q1 rounds, next calendar year — euro-area growth uncertainty
+peaked at `{python} v['ea_peak']` in `{python} v['ea_peak_year']`, below the
+US peak, stands at `{python} v['ea_2026']` in 2026, and sat below the US level
+in `{python} v['n_ea_below']` of the `{python} v['n_overlap']` years both
+surveys cover. Euro-area inflation
 uncertainty did not: the one-year series remains
 `{python} v['hicp_gap']`% above its pre-2021 level in 2026 (@tbl-stability).
 
@@ -467,14 +500,15 @@ median between share is about a sixth for growth
 euro-area prices (`{python} v['sh_hicp']`%), and a quarter to a third for
 unemployment and the US inflation densities
 (core CPI `{python} v['sh_usccpi']`%, core PCE `{python} v['sh_uscpce']`%;
-@tbl-disagreement). The spread visible in point forecasts understates stated
-uncertainty by a median factor of
+@tbl-disagreement). Disagreement here is the dispersion of respondents'
+density-implied means; no reported point forecast enters it. That dispersion
+understates stated uncertainty by a median factor of
 `{python} v['ratio_lo']` to `{python} v['ratio_hi']` across the whole panorama [@richTracy2010;
 @giordaniSoderlind2003].
 
 ```{python}
 #| label: tbl-disagreement
-#| tbl-cap: "Distribution of the between-forecaster share of total variance across round-targets, in percent. The last column is the median ratio of pooled total SD to disagreement SD: the factor by which point-forecast spread understates stated uncertainty."
+#| tbl-cap: "Distribution of the between-forecaster share of total variance across round-targets, in percent. The last column is the median ratio of pooled total SD to disagreement SD: the factor by which the dispersion of density-implied means understates stated uncertainty."
 rows = []
 for key in ORDER:
     r = p2.loc[key]
@@ -551,11 +585,15 @@ for key in [("ecb", v_) for v_ in ("hicp", "hicpx", "rgdp", "unemp")]:
 table(["Variable", "Rounds", "Rolling 1y", "Rolling 2y", "Longer term"], rows)
 ```
 
-**The US distributions are roughly calibrated on average; the euro area's
-are overconfident; both fail in tails, in clusters.** A ±1σ band around
-the consensus covered `{python} v['cov_n']` next-year US growth outcomes
-(`{python} v['cov_pct']`%) over `{python} v['cov_span']` — textbook — but the
-misses cluster: `{python} v['run_len']` straight target years
+**Both surveys' bands miss in tails, in clusters, and the euro area's cover
+less.** A ±1σ band around the consensus covered `{python} v['cov_n']`
+next-year US growth outcomes (`{python} v['cov_pct']`%) over
+`{python} v['cov_span']`, and the pooled 90% interval covered
+`{python} v['cov90_n']` (`{python} v['cov90_pct']`%). A histogram mixture has
+no universal nominal ±1σ coverage, so the first figure describes the record
+and only the second has a nominal rate to fall short of; with
+`{python} v['cov_years']` dependent outcomes, neither supports a formal
+verdict on calibration. The misses cluster: `{python} v['run_len']` straight target years
 (`{python} v['run_span']`) around the late-1990s productivity boom, then
 2008–09, then 2020–21. Euro-area one-sigma coverage runs
 `{python} v['ecb_cov_lo']`–`{python} v['ecb_cov_hi']`% by variable
@@ -712,8 +750,9 @@ table(
 ## The elicitation gap
 
 ::: {.callout-note title="Draft note"}
-Section drafted at beat level. The argument: put the verified 0.1–30pp/yr
-published range [@shenk2026; @cunningham2025] and its anchors
+Section drafted at beat level. The argument: put the published AI-growth
+scenarios [@shenk2026; @cunningham2025] — which differ in outcome, horizon and
+conditioning, so no single range spans them — and their anchors
 [@acemoglu2024; @briggsKodnani2023; @aghionBunel2024; @davidson2021;
 @erdil2025gate; @korinekSuh2024] against the inventory of section 2;
 @karger2026 as the one-off flagship; @chowHalperinMazlish2026 extracting
@@ -735,7 +774,7 @@ ship the question with the scoring rule that disciplines it — CRPS with
 pinball components — because the record shows stated densities break at
 regime shifts and the AI question is a regime-shift question; pair each
 long-horizon density with the respondent's AI-adoption assumption so the
-0.1–30 range becomes decomposable.
+disagreement between scenarios becomes decomposable.
 :::
 
 ## Conclusion
@@ -754,7 +793,21 @@ survey's documentation for every era. Realizations are latest-vintage
 [@stark2010]; real-time-vintage evaluation is future work. Forecasts of a
 shared outcome are correlated, so miss counts and score comparisons are
 descriptive. Benchmark windows are expanding with a ten-observation
-minimum; euro-area annual histories are short. The pipeline, tests, and
+minimum; euro-area annual histories are short. The reading of the bin labels
+is a choice, and `outputs/reconstruction_sensitivity.csv` records what it
+moves. Against the printed labels taken literally, our reading raises the
+median round-target mean by `{python} v['sens_shift_med']` points (5th to 95th
+percentile `{python} v['sens_shift_p05']` to `{python} v['sens_shift_p95']`)
+and the median pooled SD by `{python} v['sens_sd_med']`%, and it leaves the
+comparisons between periods, horizons and surveys as reported. The panel is
+not uniform. Where a round's mass sits in an open tail, that tail's closure
+width moves with the reading: `{python} v['sens_share_neg']`% of means fall
+instead of rising, and the largest SD difference is
+`{python} v['sens_sd_max']`%, in the euro-area current-year growth
+distribution of 2009Q1. The one headline the choice moves is the US ±1σ
+coverage count: `{python} v['cov_n']` under our reading and
+`{python} v['cov_n_literal']` under either alternative, because the 2011
+outcome sits on the band's edge. The pipeline, tests, and
 every series behind the live interactive are open source at
 <https://github.com/MaxGhenis/expectations>.
 

@@ -30,7 +30,28 @@ def prgdp_measures(prgdp_density):
 
 
 @pytest.fixture(scope="module")
+def prgdp_density_literal():
+    """The printed-label reading, under which the legacy seed files were computed."""
+    return parse_us_density("PRGDP", convention="literal")
+
+
+@pytest.fixture(scope="module")
+def prgdp_measures_literal(prgdp_density_literal):
+    measures, _ = aggregate_density(prgdp_density_literal)
+    return measures
+
+
+@pytest.fixture(scope="module")
 def q1_next_year_reference_moments(prgdp_density):
+    return _q1_next_year_moments(prgdp_density)
+
+
+@pytest.fixture(scope="module")
+def q1_next_year_legacy_moments(prgdp_density_literal):
+    return _q1_next_year_moments(prgdp_density_literal)
+
+
+def _q1_next_year_moments(prgdp_density):
     """Retain the historical midpoint calculation without changing its fixtures.
 
     Also integrate the pooled uniform histogram directly, independently of
@@ -85,10 +106,10 @@ def q1_next_year_reference_moments(prgdp_density):
 
 
 def test_legacy_next_year_q1_prgdp_reconstruction_matches_seed(
-    q1_next_year_reference_moments,
+    q1_next_year_legacy_moments,
 ):
     expected = pd.read_csv(SEED / "spf_uncertainty_disagreement.csv")
-    aligned = q1_next_year_reference_moments.loc[expected["YEAR"]]
+    aligned = q1_next_year_legacy_moments.loc[expected["YEAR"]]
 
     np.testing.assert_array_equal(aligned["n"], expected["n"])
     for actual_column, expected_column in (
@@ -127,27 +148,40 @@ def test_next_year_q1_prgdp_matches_integrated_uniform_mixture(
     assert (actual["within_sd"] > expected["within_sd"]).all()
 
 
-def test_next_year_q1_prgdp_calibration_preserves_seed_errors(
-    prgdp_measures, q1_next_year_reference_moments
-):
-    expected = pd.read_csv(SEED / "spf_errors.csv")
-    calibration = calibration_table(prgdp_measures, load_us_realizations())
-    actual = calibration[
+def _q1_next_year_calibration(measures):
+    calibration = calibration_table(measures, load_us_realizations())
+    return calibration[
         (calibration["quarter"] == 1) & (calibration["horizon_class"] == "next_year")
     ].set_index(["year", "target_year"])
+
+
+def test_next_year_q1_prgdp_calibration_preserves_seed_errors(
+    prgdp_measures_literal, q1_next_year_legacy_moments
+):
+    """The seed errors were computed on the printed labels; pin that reading."""
+    expected = pd.read_csv(SEED / "spf_errors.csv")
+    actual = _q1_next_year_calibration(prgdp_measures_literal)
     assert len(actual) == len(expected)
-    keys = pd.MultiIndex.from_frame(expected[["YEAR", "target"]])
-    aligned = actual.loc[keys]
+    aligned = actual.loc[pd.MultiIndex.from_frame(expected[["YEAR", "target"]])]
 
     np.testing.assert_allclose(aligned["realized"], expected["g"], rtol=0, atol=1e-12)
     np.testing.assert_allclose(aligned["error"], expected["err"], rtol=0, atol=1e-12)
-    moments = q1_next_year_reference_moments.loc[expected["YEAR"]]
+    moments = q1_next_year_legacy_moments.loc[expected["YEAR"]]
     legacy_inside = np.abs(expected["err"].to_numpy()) <= moments["total_sd"].to_numpy()
     assert legacy_inside.tolist() == expected["inside"].tolist()
+
+
+def test_next_year_q1_prgdp_coverage_matches_independent_integration(
+    prgdp_measures, q1_next_year_reference_moments
+):
+    """Production coverage agrees with moments integrated outside round_stats."""
+    actual = _q1_next_year_calibration(prgdp_measures)
+    years = actual.index.get_level_values("year")
+    moments = q1_next_year_reference_moments.loc[years]
     uniform_inside = (
-        np.abs(aligned["error"].to_numpy()) <= moments["uniform_total_sd"].to_numpy()
+        np.abs(actual["error"].to_numpy()) <= moments["uniform_total_sd"].to_numpy()
     )
-    assert aligned["inside_1sd"].astype(bool).tolist() == uniform_inside.tolist()
+    assert actual["inside_1sd"].astype(bool).tolist() == uniform_inside.tolist()
 
 
 def test_documented_round_coverage_and_core_starts():

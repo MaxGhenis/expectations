@@ -4,8 +4,59 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from itertools import pairwise
 
 type Interval = tuple[float | None, float | None]
+
+# How labeled bins become continuous support. Both questionnaires print closed
+# one-decimal ranges ("2.0 to 2.9", then "3.0 to 3.9"), and growth is continuous,
+# so some reading of the 0.1-point strip between labels is unavoidable.
+#
+# ``contiguous`` (the primary reconstruction) extends each finite upper label to
+# the next bin's lower label: "2.0 to 2.9" covers [2, 3). Lower labels stay where
+# the questionnaire prints them, so a threshold such as 4.0 remains a bin edge.
+# ``literal`` keeps the printed endpoints and leaves the strips empty.
+# ``midpoint`` splits each strip, the reading under which outcomes round to one
+# decimal: "2.0 to 2.9" covers [1.95, 2.95).
+RECONSTRUCTIONS = ("contiguous", "literal", "midpoint")
+RECONSTRUCTION = "contiguous"
+
+
+def support_intervals(
+    intervals: list[Interval] | tuple[Interval, ...],
+    convention: str = RECONSTRUCTION,
+) -> tuple[Interval, ...]:
+    """Continuous support for labeled bins, returned in the input order.
+
+    Open tails stay open; ``measures.finite_intervals`` closes them afterwards by
+    one adjacent-bin width of the support returned here. A finite outermost bin
+    has no neighbor and keeps its printed endpoint; every survey scheme ends in
+    open tails, so that case arises only in hand-built examples.
+    """
+    if convention not in RECONSTRUCTIONS:
+        raise ValueError(f"Unknown reconstruction: {convention!r}")
+    bounds = [[lower, upper] for lower, upper in intervals]
+    if convention == "literal":
+        return tuple((lower, upper) for lower, upper in bounds)
+    order = sorted(
+        range(len(bounds)),
+        key=lambda index: (
+            float("-inf") if bounds[index][0] is None else bounds[index][0]
+        ),
+    )
+    for below, above in pairwise(order):
+        upper, next_lower = bounds[below][1], bounds[above][0]
+        if upper is None or next_lower is None:
+            raise ValueError("Only the outermost bins may have an open tail")
+        if upper > next_lower:
+            raise ValueError("Labeled bins overlap")
+        boundary = (
+            next_lower if convention == "contiguous" else (upper + next_lower) / 2
+        )
+        bounds[below][1] = boundary
+        if convention == "midpoint":
+            bounds[above][0] = boundary
+    return tuple((lower, upper) for lower, upper in bounds)
 
 
 @dataclass(frozen=True)
@@ -28,17 +79,29 @@ class BinScheme:
 
     @property
     def midpoints(self) -> tuple[float, ...]:
-        """Midpoints in source order, closing tails by one adjacent-bin width."""
-        output: list[float] = []
-        for index, (lower, upper) in enumerate(self.intervals):
-            if lower is None:
-                width = _adjacent_width(self.intervals, index, prefer=-1)
-                lower = float(upper) - width
-            elif upper is None:
-                width = _adjacent_width(self.intervals, index, prefer=1)
-                upper = float(lower) + width
-            output.append((float(lower) + float(upper)) / 2)
-        return tuple(output)
+        """Midpoints of the printed labels, closing tails by one adjacent width."""
+        return _closed_midpoints(self.intervals)
+
+    def support(self, convention: str = RECONSTRUCTION) -> tuple[Interval, ...]:
+        """The bins' continuous support in source order; see ``support_intervals``."""
+        return support_intervals(self.intervals, convention)
+
+    def support_midpoints(self, convention: str = RECONSTRUCTION) -> tuple[float, ...]:
+        """Midpoints of the continuous support, tails closed by one adjacent width."""
+        return _closed_midpoints(self.support(convention))
+
+
+def _closed_midpoints(intervals: tuple[Interval, ...]) -> tuple[float, ...]:
+    output: list[float] = []
+    for index, (lower, upper) in enumerate(intervals):
+        if lower is None:
+            width = _adjacent_width(intervals, index, prefer=-1)
+            lower = float(upper) - width
+        elif upper is None:
+            width = _adjacent_width(intervals, index, prefer=1)
+            upper = float(lower) + width
+        output.append((float(lower) + float(upper)) / 2)
+    return tuple(output)
 
 
 def _adjacent_width(intervals: tuple[Interval, ...], index: int, prefer: int) -> float:
@@ -391,12 +454,11 @@ def _ecb_number(value: str | None, negative: str | None) -> float | None:
 def ecb_intervals(
     intervals: list[Interval] | tuple[Interval, ...],
 ) -> tuple[Interval, ...]:
-    """Validate and sort literal ECB interval labels from low to high.
+    """Validate and sort the printed ECB interval labels from low to high.
 
-    Annexes 3 and 5 define the finite ranges as closed, one-decimal-grid
-    intervals. Thus 0.0--0.4 retains those literal bounds even when followed by
-    0.5--0.9; the continuous surrogate has a 0.1 gap and does not shift either
-    reported endpoint.
+    Annexes 3 and 5 print the finite ranges as closed one-decimal intervals, so
+    0.0--0.4 is followed by 0.5--0.9. This function keeps those labels as printed;
+    ``support_intervals`` turns them into continuous support.
     """
     if not intervals:
         raise ValueError("At least one ECB interval is required")
@@ -414,7 +476,3 @@ def ecb_intervals(
             if upper is None or next_lower is None or upper > next_lower:
                 raise ValueError("ECB intervals overlap or have misplaced open tails")
     return tuple(ordered)
-
-
-contiguous_ecb_intervals = ecb_intervals
-ecb_contiguous_intervals = ecb_intervals

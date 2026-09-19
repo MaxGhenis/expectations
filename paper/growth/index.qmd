@@ -3,7 +3,7 @@ title: "Growth expectations in the AI era"
 subtitle: "Levels, uncertainty and upper tails in professional GDP forecasts"
 author:
   - name: Max Ghenis
-date: 2026-09-17
+date: 2026-09-19
 # The bib and csl are shared with the panorama manuscript in ../ ; the build
 # stages copies beside this file because Typst refuses to read a style or
 # bibliography outside its own project root.
@@ -40,6 +40,13 @@ c = pd.read_csv(ROOT / "outputs/growth_comparison.csv")
 cal = pd.read_csv(ROOT / "outputs/calibration.csv")
 b = pd.read_csv(ROOT / "outputs/benchmark_summary.csv")
 lr = pd.read_csv(ROOT / "outputs/longrun_points.csv")
+sens = pd.read_csv(ROOT / "outputs/reconstruction_sensitivity.csv").pivot(index="statistic", columns="convention", values="value")
+
+def rounding_bound(series, window):
+    """P(growth > 4%) when boundaries sit halfway between printed labels."""
+    lo = 100 * sens.loc[f"{series}_p_above_4_{window}", "midpoint"]
+    hi = 100 * sens.loc[f"{series}_p_above_4_upper_{window}", "midpoint"]
+    return f"{lo:.2f}–{hi:.2f}%"
 NAMES = ["US next year", "US three years ahead", "ECB longer term"]
 LABELS = ["US, next year", "US, year +3", "Euro area, year +4"]
 
@@ -74,11 +81,11 @@ def ratio(name):
 
 ## Abstract {.unnumbered}
 
-If professional forecasters expected AI to accelerate growth, their stated distributions would show it in one of three places: higher central forecasts, wider spreads, or more probability on rapid growth. We look in all three, in the US and ECB Surveys of Professional Forecasters through 2026Q3, holding the survey quarter and calendar horizon fixed. The main comparison sets `{python} rounds('US next year', '2015–19')` Q1 rounds (2015–19) against `{python} rounds('US next year', '2025–26')` (2025–26), so it describes the recent rounds and cannot establish a trend. Mean next-year US growth forecasts fell from `{python} val('US next year', '2015–19', 'mean')`% to `{python} val('US next year', '2025–26', 'mean')`%, the reconstructed pooled standard deviation rose from `{python} val('US next year', '2015–19', 'total_sd')` to `{python} val('US next year', '2025–26', 'total_sd')` percentage points, and the probability of growth above 4% fell from `{python} prob('US next year', '2015–19')` to `{python} prob('US next year', '2025–26')`. Euro-area forecasts four years ahead fell further in the center, from `{python} val('ECB longer term', '2015–19', 'mean')`% to `{python} val('ECB longer term', '2025–26', 'mean')`%, while their probability of growth above 4% rose from `{python} prob('ECB longer term', '2015–19')` to `{python} prob('ECB longer term', '2025–26')` — small in absolute terms, and `{python} f"{ratio('ECB longer term'):.1f}"` times its starting value. Across levels, spreads and tails, the surveys show limited movement toward rapid growth. These facts describe the overall growth outlook inside the surveyed horizons. They do not estimate AI's effect, and they cannot show that forecasters ignore AI. We bound high-growth probabilities directly from the reported bins, keep the COVID episode in view, and separate this evidence from longer-horizon and conditional AI scenarios.
+A stated growth distribution can move toward faster growth in three places: a higher central forecast, a wider spread, or more probability on rapid growth. We measure all three, in the US and ECB Surveys of Professional Forecasters through 2026Q3, holding the survey quarter and calendar horizon fixed. The main comparison sets `{python} rounds('US next year', '2015–19')` Q1 rounds (2015–19) against `{python} rounds('US next year', '2025–26')` (2025–26), so it describes the recent rounds and cannot establish a trend. Mean next-year US growth forecasts fell from `{python} val('US next year', '2015–19', 'mean')`% to `{python} val('US next year', '2025–26', 'mean')`%, the reconstructed pooled standard deviation rose from `{python} val('US next year', '2015–19', 'total_sd')` to `{python} val('US next year', '2025–26', 'total_sd')` percentage points, and the probability of growth above 4% fell from `{python} prob('US next year', '2015–19')` to `{python} prob('US next year', '2025–26')`. Euro-area forecasts four years ahead fell by about as much from a lower base, from `{python} val('ECB longer term', '2015–19', 'mean')`% to `{python} val('ECB longer term', '2025–26', 'mean')`%, while their probability of growth above 4% rose from `{python} prob('ECB longer term', '2015–19')` to `{python} prob('ECB longer term', '2025–26')` — small in absolute terms, and `{python} f"{ratio('ECB longer term'):.1f}"` times its starting value. Across levels, spreads and tails, the surveys show limited movement toward rapid growth. These facts describe the overall growth outlook inside the surveyed horizons. They do not estimate AI's effect, and they cannot show that forecasters ignore AI. We bound high-growth probabilities directly from the reported bins, keep the COVID episode in view, and separate this evidence from longer-horizon and conditional AI scenarios.
 
 ## Where a growth transformation would show up
 
-A median forecast near 2% does not mean a forecaster is confident growth will stay near 2%. Someone who puts a small but consequential probability on a large acceleration can report an ordinary median alongside an unusual upper tail. Comparing central estimates therefore cannot settle how far beliefs about AI and growth diverge. The distributions can.
+A median forecast near 2% does not mean a forecaster is confident growth will stay near 2%. Someone who puts a small but consequential probability on a large acceleration can report an ordinary median alongside an unusual upper tail. Comparing central estimates therefore cannot show how much probability forecasters put on rapid growth. The distributions can. They describe aggregate growth, so they cannot isolate what forecasters believe about AI: a larger expected AI contribution can sit inside a lower total.
 
 The Surveys of Professional Forecasters supply them. Respondents attach probabilities to ranges of GDP growth, which lets us ask three questions. Have central forecasts moved toward faster growth? Have the distributions widened? Has more probability moved into high-growth outcomes? We answer all three reproducibly, across US and euro-area horizons, with twenty years of history and an explicit account of what the bins can and cannot identify.
 
@@ -109,9 +116,9 @@ for name, label in zip(NAMES, LABELS):
 table(["Forecast", "Mean", "Pooled SD", "Pooled IQR"], rows)
 ```
 
-Mean growth forecasts fall in all three comparisons, most in the euro area. The reconstructed widths do not show a radically broader range of outcomes. The US next-year standard deviation rises moderately, partly through the bin change; the three-year-ahead and ECB four-year-ahead standard deviations move less, and the interquartile ranges at those two horizons narrow slightly. Limited movement toward faster and more uncertain growth describes these rounds. "Unchanged" does not.
+Mean growth forecasts fall in all three comparisons. The US next-year and euro-area falls are close in percentage points, and the euro-area fall is the largest in proportion to its starting level. The reconstructed widths do not show a radically broader range of outcomes. The US next-year standard deviation rises moderately, partly through the bin change; the three-year-ahead and ECB four-year-ahead standard deviations move less, and the interquartile ranges at those two horizons narrow slightly. Limited movement toward faster and more uncertain growth describes these rounds. "Unchanged" does not.
 
-![GDP forecast means and reconstructed pooled 90% intervals, Q1 rounds. Gray shading marks 2020–24; the dotted line marks late 2022 as a visual reference and carries no treatment interpretation. US year +3 begins with its introduction in 2009.](figures/growth-outlook.png){#fig-outlook width=95%}
+![GDP forecast means and reconstructed pooled 90% intervals, Q1 rounds. Gray shading marks 2020–24; the dotted line marks late 2022 as a visual reference and carries no treatment interpretation. The US year +3 question arrived in 2009Q2, so its Q1 series starts in 2010.](figures/growth-outlook.png){#fig-outlook width=95%}
 
 The longer record also rules out calling central forecasts constant. The US ten-year median point forecast fell from `{python} f'{rg10.loc[2006,"median"]:.1f}'`% in 2006 to `{python} f'{rg10.loc[2026,"median"]:.1f}'`% in 2026. That question asks for average annual growth over a decade and collects a point forecast. The spread of those answers measures disagreement about a point estimate, and no predictive interval stands behind it. We report its level separately and draw no term structure of uncertainty from it.
 
@@ -119,11 +126,11 @@ The longer record also rules out calling central forecasts constant. The US ten-
 
 ## The upper tail
 
-We compute probabilities of growth above 3%, 4%, 5% and 10%. The thresholds describe outcomes and define nothing about transformative AI. For historical comparison 4% does the most work: it is a literal bin edge in every scheme behind the displayed series, so its exceedance probability needs no assumption about how mass spreads inside a bin.
+We compute probabilities of growth above 3%, 4%, 5% and 10%. The thresholds describe outcomes and define nothing about transformative AI. For historical comparison 4% does the most work: it is a printed lower bin label in every scheme behind the displayed series, so its exceedance probability needs no assumption about how mass spreads inside a bin. It does take the printed label as the boundary; the method section reports what happens if the boundary sits at 3.95 instead.
 
 ```{python}
 #| label: tbl-tails
-#| tbl-cap: "High-growth probabilities from literal bins, Q1 rounds, 2015–19 (five rounds) against 2025–26 (two rounds). Ranges are identification bounds set by bin resolution; they are not sampling confidence intervals."
+#| tbl-cap: "High-growth probabilities from the bin edges, Q1 rounds, 2015–19 (five rounds) against 2025–26 (two rounds). Ranges are identification bounds set by bin resolution; they are not sampling confidence intervals."
 rows = []
 for name, label in zip(NAMES, LABELS):
     for period in ['2015–19', '2025–26']:
@@ -135,7 +142,7 @@ The US probability above 4% falls at both horizons between the five earlier roun
 
 The higher thresholds show what the bins cannot say. In the ECB scheme, all growth at or above 4% shares one open bin. Its entire probability could lie below 5%, above 10%, or anywhere between, so we can bound those probabilities and cannot separate them. The US scheme in force since 2024Q2 places 5% inside a finite bin, which widens the identified range relative to the earlier scheme. Fitting a distribution inside those bins would add precision from an assumption, with no new survey response behind it.
 
-![Upper and lower bounds on growth probabilities, Q1 rounds. Where the bounds coincide, a literal bin edge identifies the probability. The shaded range reflects bin resolution and says nothing about sampling error.](figures/growth-upper-tails.png){#fig-tails width=95%}
+![Upper and lower bounds on growth probabilities, Q1 rounds. Where the bounds coincide, a bin edge identifies the probability. The shaded range reflects bin resolution and says nothing about sampling error.](figures/growth-upper-tails.png){#fig-tails width=95%}
 
 The latest round tells the same story. In 2026Q3 the pooled probability above 4% is `{python} f'{100*latest_u.probability_lower:.2f}'`% for next-year US growth and `{python} f'{100*latest_e.probability_lower:.2f}'`% for ECB longer-term growth, which in that round targets 2031. In the ECB round, `{python} int(latest_e.n_positive_lower)` of `{python} int(latest_e.n)` retained respondents put positive probability in that bin. A small pooled tail leaves room for many respondents who do not rule out high growth.
 
@@ -178,7 +185,7 @@ Forecast–outcome pairs can share a realized target, and rolling outcomes overl
 
 Within a round we keep respondent histograms whose probabilities lie between 0 and 100 and sum to within two percentage points of 100. Partial missing entries count as zero, and entirely missing histograms drop out. We normalize retained probabilities and weight respondents equally. The filter rejects two negative ECB entries in 2023Q1 along with responses whose totals are invalid.
 
-For moments, quantiles and scores, probability spreads uniformly inside each finite bin. An open tail receives the width of its nearest finite bin, and literal gaps between bins receive zero probability. If bin $b$ has midpoint $x_b$ and width $w_b$, respondent $i$ has
+The questionnaires print closed one-decimal ranges ("2.0 to 2.9", then "3.0 to 3.9"). We read each range as running to the next range's lower label, so "2.0 to 2.9" covers [2, 3) and lower labels such as 4.0 stay bin edges. For moments, quantiles and scores, probability spreads uniformly inside each bin, and an open tail receives the width of its nearest finite bin. Reading the printed labels literally instead lowers each mean reported here by 0.05 points and leaves each comparison between periods unchanged (`outputs/reconstruction_sensitivity.csv`). If bin $b$ has midpoint $x_b$ and width $w_b$, respondent $i$ has
 
 $$
 \mu_i=\sum_b p_{ib}x_b,\qquad
@@ -193,7 +200,7 @@ $$
 
 The first component is average individual uncertainty and the second is disagreement [@wallis2005; @zarnowitzLambros1987]. The denominator is $n$ because the object is the finite empirical pool; a sample-variance correction would estimate a different object. Numerical-integration tests check the identity against the pooled distribution. The reported within SD is the square root of average individual variance, which differs from the average individual SD.
 
-For high-growth probabilities we drop the finite-tail closure. When a threshold falls inside a bin, the bin's entire mass counts toward the upper bound and none toward the lower bound. Bins entirely above the threshold count toward both. At an exact edge we assume continuous outcomes, so the boundary itself carries no mass. Averaging respondent bounds gives pooled bounds. The pipeline also emits a uniform interpolation unless the threshold lies strictly inside an open tail; the headline bounds never use it. Small mass in an open tail does not bound how fast growth is, conditional on reaching that tail. The bins alone therefore identify no unrestricted mean or variance: the level and width results depend on the reconstruction, and the exceedance bounds do not.
+For high-growth probabilities we drop the finite-tail closure. When a threshold falls inside a bin, the bin's entire mass counts toward the upper bound and none toward the lower bound. Bins entirely above the threshold count toward both. At an exact edge we assume continuous outcomes, so the boundary itself carries no mass. Averaging respondent bounds gives pooled bounds. The pipeline also emits a uniform interpolation unless the threshold lies strictly inside an open tail; the headline bounds never use it. Small mass in an open tail does not bound how fast growth is, conditional on reaching that tail. The bins alone therefore identify no unrestricted mean or variance: the level and width results depend on the reconstruction. The exceedance bounds use neither the tail closure nor any within-bin shape, but they do depend on where a bin's boundary sits. Under our reading, and with the printed labels taken literally, 4.0 is a boundary and the probability above it is a single number. If outcomes instead round to one decimal, the boundary sits at 3.95 and 4% falls inside a bin. The US next-year probability is then bounded at `{python} rounding_bound('us_next_year', '2015_19')` for 2015–19 and `{python} rounding_bound('us_next_year', '2025_26')` for 2025–26, and the euro-area four-year probability at `{python} rounding_bound('ecb_longer_term', '2015_19')` and `{python} rounding_bound('ecb_longer_term', '2025_26')`. Those ranges overlap, so under that reading the surveys establish neither the US fall nor the euro-area rise in the probability of growth above 4%.
 
 These distinctions matter across survey redesigns. Neither the SD nor the IQR is invariant to changing bins, and probabilities at a common bin edge give the cleanest historical tail comparison. Respondent rounding also limits very small probabilities: zero reported mass records the elicited answer and cannot prove that a respondent's latent probability equals zero.
 

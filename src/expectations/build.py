@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from expectations.benchmarks import add_benchmark_scores
+from expectations.bins import RECONSTRUCTION
 from expectations.growth import growth_tail_table
 from expectations.measures import round_stats
 from expectations.realizations import (
@@ -227,8 +228,13 @@ def build_outputs(
     *,
     raw_dir: str | Path = RAW_DIR,
     output_dir: str | Path = OUTPUT_DIR,
+    convention: str = RECONSTRUCTION,
 ) -> dict[str, pd.DataFrame]:
-    """Run the local pipeline, including GDP tail probability bounds."""
+    """Run the local pipeline, including GDP tail probability bounds.
+
+    ``convention`` picks how printed bin labels become continuous support
+    (``bins.support_intervals``); the published outputs use the default.
+    """
     from expectations.ecb_spf import parse_ecb_round
     from expectations.us_spf import (
         DENSITY_VARIABLES,
@@ -245,7 +251,9 @@ def build_outputs(
     us_detail_frames: list[pd.DataFrame] = []
     score_density_frames: list[pd.DataFrame] = []
     for variable in DENSITY_VARIABLES:
-        variable_density = parse_us_density(variable, data_dir=raw)
+        variable_density = parse_us_density(
+            variable, data_dir=raw, convention=convention
+        )
         variable_measures, variable_details = aggregate_density(variable_density)
         us_measure_frames.append(variable_measures)
         us_detail_frames.append(variable_details)
@@ -261,7 +269,7 @@ def build_outputs(
     if not round_paths:
         raise FileNotFoundError(f"No ECB SPF rounds found in {raw / 'ecb_spf'}")
     for path in round_paths:
-        round_density = parse_ecb_round(path)
+        round_density = parse_ecb_round(path, convention)
         round_measures, round_details = aggregate_density(round_density)
         ecb_measure_frames.append(round_measures)
         ecb_detail_frames.append(round_details)

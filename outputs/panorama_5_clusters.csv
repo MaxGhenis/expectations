@@ -1,30 +1,30 @@
 survey,variable,label,event_year,n_forecasts,n_miss_1sd,n_miss_pooled_90,all_miss_1sd,all_miss_pooled_90,run_start,run_end,run_length
 ecb,hicp,ECB HICP,1999,5,1,0,False,False,,,0
 ecb,hicp,ECB HICP,2000,13,9,3,False,False,,,0
-ecb,hicp,ECB HICP,2001,16,6,2,False,False,,,0
-ecb,hicp,ECB HICP,2002,18,6,0,False,False,,,0
+ecb,hicp,ECB HICP,2001,16,4,2,False,False,,,0
+ecb,hicp,ECB HICP,2002,18,4,0,False,False,,,0
 ecb,hicp,ECB HICP,2003,20,0,0,False,False,,,0
-ecb,hicp,ECB HICP,2004,20,2,1,False,False,,,0
-ecb,hicp,ECB HICP,2005,21,3,0,False,False,,,0
+ecb,hicp,ECB HICP,2004,20,1,0,False,False,,,0
+ecb,hicp,ECB HICP,2005,21,2,0,False,False,,,0
 ecb,hicp,ECB HICP,2006,22,2,0,False,False,,,0
 ecb,hicp,ECB HICP,2007,22,2,2,False,False,,,0
 ecb,hicp,ECB HICP,2008,22,17,17,False,False,,,0
-ecb,hicp,ECB HICP,2009,22,17,17,False,False,,,0
-ecb,hicp,ECB HICP,2010,22,1,0,False,False,,,0
-ecb,hicp,ECB HICP,2011,22,19,8,False,False,,,0
-ecb,hicp,ECB HICP,2012,22,12,0,False,False,,,0
-ecb,hicp,ECB HICP,2013,22,5,0,False,False,,,0
+ecb,hicp,ECB HICP,2009,22,18,17,False,False,,,0
+ecb,hicp,ECB HICP,2010,22,2,0,False,False,,,0
+ecb,hicp,ECB HICP,2011,22,19,7,False,False,,,0
+ecb,hicp,ECB HICP,2012,22,7,0,False,False,,,0
+ecb,hicp,ECB HICP,2013,22,6,0,False,False,,,0
 ecb,hicp,ECB HICP,2014,22,19,17,False,False,,,0
-ecb,hicp,ECB HICP,2015,24,19,13,False,False,,,0
-ecb,hicp,ECB HICP,2016,24,17,10,False,False,,,0
+ecb,hicp,ECB HICP,2015,24,19,14,False,False,,,0
+ecb,hicp,ECB HICP,2016,24,17,11,False,False,,,0
 ecb,hicp,ECB HICP,2017,24,0,0,False,False,,,0
-ecb,hicp,ECB HICP,2018,24,1,0,False,False,,,0
+ecb,hicp,ECB HICP,2018,24,0,0,False,False,,,0
 ecb,hicp,ECB HICP,2019,24,2,0,False,False,,,0
-ecb,hicp,ECB HICP,2020,24,21,16,False,False,,,0
+ecb,hicp,ECB HICP,2020,24,21,17,False,False,,,0
 ecb,hicp,ECB HICP,2021,24,20,10,False,False,,,0
 ecb,hicp,ECB HICP,2022,24,24,24,True,True,2022,2022,1
-ecb,hicp,ECB HICP,2023,24,17,21,False,False,,,0
-ecb,hicp,ECB HICP,2024,24,1,0,False,False,,,0
+ecb,hicp,ECB HICP,2023,24,17,16,False,False,,,0
+ecb,hicp,ECB HICP,2024,24,0,0,False,False,,,0
 ecb,hicp,ECB HICP,2025,24,0,0,False,False,,,0
 ecb,hicpx,ECB core HICP,2017,5,0,0,False,False,,,0
 ecb,hicpx,ECB core HICP,2018,13,0,0,False,False,,,0
@@ -32,69 +32,69 @@ ecb,hicpx,ECB core HICP,2019,20,1,0,False,False,,,0
 ecb,hicpx,ECB core HICP,2020,20,13,4,False,False,,,0
 ecb,hicpx,ECB core HICP,2021,22,5,2,False,False,,,0
 ecb,hicpx,ECB core HICP,2022,24,22,21,False,False,,,0
-ecb,hicpx,ECB core HICP,2023,24,19,17,False,False,,,0
-ecb,hicpx,ECB core HICP,2024,24,7,3,False,False,,,0
+ecb,hicpx,ECB core HICP,2023,24,18,17,False,False,,,0
+ecb,hicpx,ECB core HICP,2024,24,6,3,False,False,,,0
 ecb,hicpx,ECB core HICP,2025,24,4,0,False,False,,,0
 ecb,rgdp,ECB real GDP,1999,6,6,6,True,True,1999,1999,1
-ecb,rgdp,ECB real GDP,2000,14,13,10,False,False,,,0
-ecb,rgdp,ECB real GDP,2001,16,12,5,False,False,,,0
-ecb,rgdp,ECB real GDP,2002,18,12,10,False,False,,,0
-ecb,rgdp,ECB real GDP,2003,20,16,12,False,False,,,0
-ecb,rgdp,ECB real GDP,2004,20,6,0,False,False,,,0
-ecb,rgdp,ECB real GDP,2005,21,4,0,False,False,,,0
+ecb,rgdp,ECB real GDP,2000,14,12,8,False,False,,,0
+ecb,rgdp,ECB real GDP,2001,16,12,6,False,False,,,0
+ecb,rgdp,ECB real GDP,2002,18,13,10,False,False,,,0
+ecb,rgdp,ECB real GDP,2003,20,16,13,False,False,,,0
+ecb,rgdp,ECB real GDP,2004,20,5,0,False,False,,,0
+ecb,rgdp,ECB real GDP,2005,21,3,0,False,False,,,0
 ecb,rgdp,ECB real GDP,2006,22,22,17,True,False,2006,2006,1
-ecb,rgdp,ECB real GDP,2007,22,16,13,False,False,,,0
+ecb,rgdp,ECB real GDP,2007,22,15,13,False,False,,,0
 ecb,rgdp,ECB real GDP,2008,22,20,19,False,False,,,0
 ecb,rgdp,ECB real GDP,2009,22,20,18,False,False,,,0
 ecb,rgdp,ECB real GDP,2010,22,16,6,False,False,,,0
 ecb,rgdp,ECB real GDP,2011,22,4,2,False,False,,,0
 ecb,rgdp,ECB real GDP,2012,22,22,17,True,False,2012,2012,1
 ecb,rgdp,ECB real GDP,2013,22,13,9,False,False,,,0
-ecb,rgdp,ECB real GDP,2014,22,2,1,False,False,,,0
+ecb,rgdp,ECB real GDP,2014,22,2,0,False,False,,,0
 ecb,rgdp,ECB real GDP,2015,24,7,1,False,False,,,0
 ecb,rgdp,ECB real GDP,2016,24,0,0,False,False,,,0
-ecb,rgdp,ECB real GDP,2017,24,23,9,False,False,,,0
+ecb,rgdp,ECB real GDP,2017,24,23,8,False,False,,,0
 ecb,rgdp,ECB real GDP,2018,24,3,0,False,False,,,0
-ecb,rgdp,ECB real GDP,2019,24,1,0,False,False,,,0
+ecb,rgdp,ECB real GDP,2019,24,0,0,False,False,,,0
 ecb,rgdp,ECB real GDP,2020,24,20,20,False,False,,,0
 ecb,rgdp,ECB real GDP,2021,24,20,12,False,False,,,0
-ecb,rgdp,ECB real GDP,2022,24,10,6,False,False,,,0
-ecb,rgdp,ECB real GDP,2023,24,13,4,False,False,,,0
+ecb,rgdp,ECB real GDP,2022,24,8,6,False,False,,,0
+ecb,rgdp,ECB real GDP,2023,24,13,6,False,False,,,0
 ecb,rgdp,ECB real GDP,2024,24,0,0,False,False,,,0
 ecb,rgdp,ECB real GDP,2025,24,0,0,False,False,,,0
 ecb,rgdp,ECB real GDP,2026,2,0,0,False,False,,,0
 ecb,unemp,ECB unemployment,2000,13,9,8,False,False,,,0
-ecb,unemp,ECB unemployment,2001,16,5,5,False,False,,,0
-ecb,unemp,ECB unemployment,2002,18,3,0,False,False,,,0
-ecb,unemp,ECB unemployment,2003,20,15,5,False,False,,,0
-ecb,unemp,ECB unemployment,2004,20,16,11,False,False,,,0
-ecb,unemp,ECB unemployment,2005,21,16,0,False,False,,,0
+ecb,unemp,ECB unemployment,2001,16,5,4,False,False,,,0
+ecb,unemp,ECB unemployment,2002,18,2,0,False,False,,,0
+ecb,unemp,ECB unemployment,2003,20,13,5,False,False,,,0
+ecb,unemp,ECB unemployment,2004,20,14,7,False,False,,,0
+ecb,unemp,ECB unemployment,2005,21,12,0,False,False,,,0
 ecb,unemp,ECB unemployment,2006,22,4,1,False,False,,,0
 ecb,unemp,ECB unemployment,2007,22,7,1,False,False,,,0
-ecb,unemp,ECB unemployment,2008,22,10,1,False,False,,,0
+ecb,unemp,ECB unemployment,2008,22,9,0,False,False,,,0
 ecb,unemp,ECB unemployment,2009,22,19,17,False,False,,,0
-ecb,unemp,ECB unemployment,2010,22,11,9,False,False,,,0
-ecb,unemp,ECB unemployment,2011,22,7,4,False,False,,,0
-ecb,unemp,ECB unemployment,2012,22,19,17,False,False,,,0
+ecb,unemp,ECB unemployment,2010,22,10,9,False,False,,,0
+ecb,unemp,ECB unemployment,2011,22,5,4,False,False,,,0
+ecb,unemp,ECB unemployment,2012,22,19,16,False,False,,,0
 ecb,unemp,ECB unemployment,2013,22,15,9,False,False,,,0
 ecb,unemp,ECB unemployment,2014,22,5,4,False,False,,,0
-ecb,unemp,ECB unemployment,2015,24,5,4,False,False,,,0
-ecb,unemp,ECB unemployment,2016,24,8,1,False,False,,,0
-ecb,unemp,ECB unemployment,2017,24,10,0,False,False,,,0
+ecb,unemp,ECB unemployment,2015,24,7,4,False,False,,,0
+ecb,unemp,ECB unemployment,2016,24,9,0,False,False,,,0
+ecb,unemp,ECB unemployment,2017,24,11,0,False,False,,,0
 ecb,unemp,ECB unemployment,2018,24,14,1,False,False,,,0
-ecb,unemp,ECB unemployment,2019,24,10,4,False,False,,,0
-ecb,unemp,ECB unemployment,2020,24,7,0,False,False,,,0
-ecb,unemp,ECB unemployment,2021,24,9,0,False,False,,,0
-ecb,unemp,ECB unemployment,2022,24,14,4,False,False,,,0
+ecb,unemp,ECB unemployment,2019,24,11,4,False,False,,,0
+ecb,unemp,ECB unemployment,2020,24,8,0,False,False,,,0
+ecb,unemp,ECB unemployment,2021,24,10,0,False,False,,,0
+ecb,unemp,ECB unemployment,2022,24,15,6,False,False,,,0
 ecb,unemp,ECB unemployment,2023,24,6,0,False,False,,,0
 ecb,unemp,ECB unemployment,2024,24,4,0,False,False,,,0
 ecb,unemp,ECB unemployment,2025,24,4,0,False,False,,,0
 ecb,unemp,ECB unemployment,2026,4,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2007,4,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2008,8,0,0,False,False,,,0
-us,PRCCPI,US core CPI,2009,8,0,0,False,False,,,0
-us,PRCCPI,US core CPI,2010,8,3,0,False,False,,,0
-us,PRCCPI,US core CPI,2011,8,1,0,False,False,,,0
+us,PRCCPI,US core CPI,2009,8,2,0,False,False,,,0
+us,PRCCPI,US core CPI,2010,8,4,0,False,False,,,0
+us,PRCCPI,US core CPI,2011,8,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2012,8,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2013,8,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2014,8,0,0,False,False,,,0
@@ -103,11 +103,11 @@ us,PRCCPI,US core CPI,2016,8,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2017,8,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2018,8,0,0,False,False,,,0
 us,PRCCPI,US core CPI,2019,8,0,0,False,False,,,0
-us,PRCCPI,US core CPI,2020,8,0,0,False,False,,,0
+us,PRCCPI,US core CPI,2020,8,1,0,False,False,,,0
 us,PRCCPI,US core CPI,2021,8,8,8,True,True,2021,2022,2
 us,PRCCPI,US core CPI,2022,8,8,8,True,True,2021,2022,2
 us,PRCCPI,US core CPI,2023,8,3,0,False,False,,,0
-us,PRCCPI,US core CPI,2024,8,1,0,False,False,,,0
+us,PRCCPI,US core CPI,2024,8,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2007,4,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2008,8,8,3,True,False,2008,2008,1
 us,PRCPCE,US core PCE,2009,8,3,0,False,False,,,0
@@ -116,7 +116,7 @@ us,PRCPCE,US core PCE,2011,8,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2012,8,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2013,8,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2014,8,0,0,False,False,,,0
-us,PRCPCE,US core PCE,2015,8,3,0,False,False,,,0
+us,PRCPCE,US core PCE,2015,8,4,0,False,False,,,0
 us,PRCPCE,US core PCE,2016,8,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2017,8,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2018,8,0,0,False,False,,,0
@@ -126,15 +126,15 @@ us,PRCPCE,US core PCE,2021,8,8,8,True,True,2021,2022,2
 us,PRCPCE,US core PCE,2022,8,8,8,True,True,2021,2022,2
 us,PRCPCE,US core PCE,2023,8,0,0,False,False,,,0
 us,PRCPCE,US core PCE,2024,8,1,0,False,False,,,0
-us,PRCPCE,US core PCE,2025,8,2,0,False,False,,,0
+us,PRCPCE,US core PCE,2025,8,1,0,False,False,,,0
 us,PRGDP,US real GDP,1992,4,4,2,True,False,1992,1992,1
 us,PRGDP,US real GDP,1993,8,0,0,False,False,,,0
-us,PRGDP,US real GDP,1994,8,3,0,False,False,,,0
+us,PRGDP,US real GDP,1994,8,2,0,False,False,,,0
 us,PRGDP,US real GDP,1995,8,0,0,False,False,,,0
 us,PRGDP,US real GDP,1996,8,8,4,True,False,1996,1999,4
 us,PRGDP,US real GDP,1997,8,8,5,True,False,1996,1999,4
 us,PRGDP,US real GDP,1998,8,8,7,True,False,1996,1999,4
-us,PRGDP,US real GDP,1999,8,8,7,True,False,1996,1999,4
+us,PRGDP,US real GDP,1999,8,8,5,True,False,1996,1999,4
 us,PRGDP,US real GDP,2000,8,5,0,False,False,,,0
 us,PRGDP,US real GDP,2001,8,4,2,False,False,,,0
 us,PRGDP,US real GDP,2002,8,1,0,False,False,,,0
@@ -146,7 +146,7 @@ us,PRGDP,US real GDP,2007,8,0,0,False,False,,,0
 us,PRGDP,US real GDP,2008,8,8,3,True,False,2008,2008,1
 us,PRGDP,US real GDP,2009,8,5,4,False,False,,,0
 us,PRGDP,US real GDP,2010,8,0,0,False,False,,,0
-us,PRGDP,US real GDP,2011,11,3,0,False,False,,,0
+us,PRGDP,US real GDP,2011,11,4,0,False,False,,,0
 us,PRGDP,US real GDP,2012,15,0,0,False,False,,,0
 us,PRGDP,US real GDP,2013,16,0,0,False,False,,,0
 us,PRGDP,US real GDP,2014,16,0,0,False,False,,,0
@@ -158,38 +158,38 @@ us,PRGDP,US real GDP,2019,16,0,0,False,False,,,0
 us,PRGDP,US real GDP,2020,16,14,13,False,False,,,0
 us,PRGDP,US real GDP,2021,16,12,9,False,False,,,0
 us,PRGDP,US real GDP,2022,16,0,0,False,False,,,0
-us,PRGDP,US real GDP,2023,16,4,0,False,False,,,0
+us,PRGDP,US real GDP,2023,16,3,0,False,False,,,0
 us,PRGDP,US real GDP,2024,16,0,0,False,False,,,0
 us,PRGDP,US real GDP,2025,16,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,1992,4,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,1993,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,1994,8,1,0,False,False,,,0
 us,PRPGDP,US GDP prices,1995,8,1,0,False,False,,,0
-us,PRPGDP,US GDP prices,1996,8,2,0,False,False,,,0
+us,PRPGDP,US GDP prices,1996,8,3,0,False,False,,,0
 us,PRPGDP,US GDP prices,1997,8,1,0,False,False,,,0
-us,PRPGDP,US GDP prices,1998,8,5,1,False,False,,,0
+us,PRPGDP,US GDP prices,1998,8,5,2,False,False,,,0
 us,PRPGDP,US GDP prices,1999,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2000,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2001,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2002,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2003,8,0,0,False,False,,,0
-us,PRPGDP,US GDP prices,2004,8,2,0,False,False,,,0
-us,PRPGDP,US GDP prices,2005,8,2,0,False,False,,,0
+us,PRPGDP,US GDP prices,2004,8,1,0,False,False,,,0
+us,PRPGDP,US GDP prices,2005,8,1,0,False,False,,,0
 us,PRPGDP,US GDP prices,2006,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2007,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2008,8,0,0,False,False,,,0
-us,PRPGDP,US GDP prices,2009,8,4,2,False,False,,,0
+us,PRPGDP,US GDP prices,2009,8,4,3,False,False,,,0
 us,PRPGDP,US GDP prices,2010,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2011,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2012,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2013,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2014,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2015,8,4,1,False,False,,,0
-us,PRPGDP,US GDP prices,2016,8,5,0,False,False,,,0
+us,PRPGDP,US GDP prices,2016,8,6,0,False,False,,,0
 us,PRPGDP,US GDP prices,2017,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2018,8,0,0,False,False,,,0
 us,PRPGDP,US GDP prices,2019,8,0,0,False,False,,,0
-us,PRPGDP,US GDP prices,2020,8,2,0,False,False,,,0
+us,PRPGDP,US GDP prices,2020,8,3,0,False,False,,,0
 us,PRPGDP,US GDP prices,2021,8,8,8,True,True,2021,2022,2
 us,PRPGDP,US GDP prices,2022,8,8,8,True,True,2021,2022,2
 us,PRPGDP,US GDP prices,2023,8,1,0,False,False,,,0
@@ -198,16 +198,16 @@ us,PRPGDP,US GDP prices,2025,8,0,0,False,False,,,0
 us,PRUNEMP,US unemployment,2009,3,0,0,False,False,,,0
 us,PRUNEMP,US unemployment,2010,7,0,0,False,False,,,0
 us,PRUNEMP,US unemployment,2011,11,0,0,False,False,,,0
-us,PRUNEMP,US unemployment,2012,15,1,0,False,False,,,0
-us,PRUNEMP,US unemployment,2013,16,2,0,False,False,,,0
+us,PRUNEMP,US unemployment,2012,15,2,0,False,False,,,0
+us,PRUNEMP,US unemployment,2013,16,3,0,False,False,,,0
 us,PRUNEMP,US unemployment,2014,16,12,2,False,False,,,0
 us,PRUNEMP,US unemployment,2015,16,11,8,False,False,,,0
-us,PRUNEMP,US unemployment,2016,16,7,4,False,False,,,0
-us,PRUNEMP,US unemployment,2017,16,4,0,False,False,,,0
+us,PRUNEMP,US unemployment,2016,16,8,4,False,False,,,0
+us,PRUNEMP,US unemployment,2017,16,5,0,False,False,,,0
 us,PRUNEMP,US unemployment,2018,16,10,1,False,False,,,0
 us,PRUNEMP,US unemployment,2019,16,7,0,False,False,,,0
 us,PRUNEMP,US unemployment,2020,16,14,13,False,False,,,0
-us,PRUNEMP,US unemployment,2021,16,7,1,False,False,,,0
+us,PRUNEMP,US unemployment,2021,16,7,0,False,False,,,0
 us,PRUNEMP,US unemployment,2022,16,5,2,False,False,,,0
 us,PRUNEMP,US unemployment,2023,16,3,0,False,False,,,0
 us,PRUNEMP,US unemployment,2024,16,0,0,False,False,,,0

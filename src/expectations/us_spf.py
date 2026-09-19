@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .bins import BinScheme, us_bin_scheme
+from .bins import RECONSTRUCTION, BinScheme, us_bin_scheme
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
 DENSITY_VARIABLES = ("PRGDP", "PRPGDP", "PRUNEMP", "PRCCPI", "PRCPCE")
@@ -63,18 +63,24 @@ def parse_us_density(
     variable: str,
     path: str | Path | None = None,
     data_dir: str | Path = DEFAULT_DATA_DIR,
+    convention: str = RECONSTRUCTION,
 ) -> pd.DataFrame:
     """Read one US density workbook into a respondent-by-bin tidy table.
+
+    ``convention`` picks how printed bin labels become continuous support; see
+    ``bins.support_intervals``.
 
     Probability values remain in percentage points and missing cells remain NaN.
     The response filter and normalization therefore operate on the original data.
     """
     name = _density_variable(variable)
     source = Path(path) if path is not None else _individual_path(name, data_dir)
-    return tidy_us_density(_read_excel(source), name)
+    return tidy_us_density(_read_excel(source), name, convention)
 
 
-def tidy_us_density(frame: pd.DataFrame, variable: str) -> pd.DataFrame:
+def tidy_us_density(
+    frame: pd.DataFrame, variable: str, convention: str = RECONSTRUCTION
+) -> pd.DataFrame:
     """Reshape an already-loaded US density sheet without filtering responses."""
     name = _density_variable(variable)
     required = {"YEAR", "QUARTER", "ID", "INDUSTRY"}
@@ -106,6 +112,7 @@ def tidy_us_density(frame: pd.DataFrame, variable: str) -> pd.DataFrame:
                     scheme,
                     target_block,
                     offset,
+                    convention,
                 )
             )
 
@@ -136,6 +143,7 @@ def _tidy_density_block(
     scheme: BinScheme,
     target_block: int,
     offset: int | None,
+    convention: str = RECONSTRUCTION,
 ) -> pd.DataFrame:
     count = len(scheme.intervals)
     first = (target_block - 1) * count + 1
@@ -164,8 +172,8 @@ def _tidy_density_block(
 
     by_column = {column: index for index, column in enumerate(value_columns)}
     zero_based = block["source_column"].map(by_column).astype(int)
-    intervals = scheme.intervals
-    midpoints = scheme.midpoints
+    intervals = scheme.support(convention)
+    midpoints = scheme.support_midpoints(convention)
     block["bin_index"] = zero_based
     block["raw_bin_number"] = zero_based + first
     block["lower"] = zero_based.map(lambda index: intervals[index][0])
