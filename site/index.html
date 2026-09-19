@@ -204,10 +204,13 @@ const HORIZON_ORDER = [
 // one-point bins; the earlier scheme is not comparable on this scale.
 const CONCEPTS = [
   { id: 'growth', label: 'Real GDP growth', noun: 'real GDP growth', us: 'PRGDP', ecb: 'rgdp', usFrom: 1992 },
+  // Where the two surveys ask about different price measures, the legend names each one.
   { id: 'inflation', label: 'Inflation', noun: 'inflation', us: 'PRPGDP', ecb: 'hicp', usFrom: 1992,
-    detail: 'US GDP price inflation against euro-area HICP inflation.' },
+    legend: { us: 'US GDP price index (US SPF)', ecb: 'Euro-area HICP (ECB SPF)' },
+    detail: 'The surveys ask about different price measures: the US GDP price index and the euro-area HICP. The US series falls in 2014Q1, the round the SPF halved the width of its price bins, so its levels before and after are not comparable.' },
   { id: 'core', label: 'Core inflation', noun: 'core inflation', us: 'PRCCPI', ecb: 'hicpx',
-    detail: 'US core CPI against euro-area core HICP.' },
+    legend: { us: 'US core CPI, Q4 over Q4 (US SPF)', ecb: 'Euro-area core HICP, annual average (ECB SPF)' },
+    detail: 'The measures differ in definition and timing: US core CPI from fourth quarter to fourth quarter, euro-area core HICP as an annual average.' },
   { id: 'unemployment', label: 'Unemployment rate', noun: 'unemployment-rate', us: 'PRUNEMP', ecb: 'unemp' },
 ];
 // Flag colors: the US line takes the palette's red slot, the euro area its blue.
@@ -584,7 +587,7 @@ function empty(title, note) {
 function overview() {
   const concept = currentConcept(), horizon = byId('compare').value, q1 = byId('rounds').value !== 'all';
   const series = COMPARE_SERIES.map(item => ({
-    ...item, color: token(item.color), label: item.legend,
+    ...item, color: token(item.color), label: (concept.legend && concept.legend[item.survey]) || item.legend,
     rows: DATABASE.measures.filter(row =>
       row.survey === item.survey && row.variable === concept[item.survey] && row.horizon_class === horizon &&
       (!q1 || Number(row.quarter) === 1) &&
@@ -687,8 +690,7 @@ function fan() {
     ? 'Pooled median and interquartile range, with the next decade'
     : 'Pooled median and interquartile range';
   byId('chart-note').textContent = `${chosen.variable}, ${chosen.horizon.toLowerCase()}: the pooled median (q50) with the pooled q25–q75 band. ` +
-    'Line and band are quantiles of the same pooled distribution. The table also reports the median of ' +
-    'individual forecasters\u2019 density-implied means, a different statistic that can sit outside the band.' +
+    'The table also reports the median of forecasters\u2019 density-implied means, a different statistic.' +
     (showLongrun
       ? ' RGDP10 reports a median point forecast and a reported IQR only, so it is drawn without a reconstructed quartile band.'
       : '') + roundsNote() + conceptNote(rows, byId('survey').value, byId('variable').value);

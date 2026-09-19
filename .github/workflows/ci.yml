@@ -24,3 +24,5 @@ jobs:
       # Executes the real page in jsdom. The Python suite parses it as text and
       # cannot tell whether a renderer still calls the function it mentions.
       - run: node tests/page/run.mjs
+      # Rebuilds the core tables from raw data; stale committed outputs fail here.
+      - run: uv run python scripts/check_outputs_fresh.py
