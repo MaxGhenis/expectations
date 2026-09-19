@@ -10,6 +10,7 @@ make about how the benchmarks were built.
 import importlib.util
 import json
 import re
+from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -75,34 +76,81 @@ def test_only_the_measure_bundle_carries_the_pooled_median(bundle):
 
 @pytest.mark.parametrize("table", CONCEPT_TABLES)
 def test_bundle_concepts_and_pooled_medians_match_the_outputs(bundle, table):
-    """Also fails when data.js is stale relative to outputs/."""
+    """Also fails when data.js is stale relative to outputs/.
+
+    The key includes horizon_years because it must: nine early ECB Q1 rounds
+    carry both a four- and a five-year longer-term target, so without it two
+    rows of one round collapse together and a mis-paired pooled median — which
+    the tracker averages into a visible number — would go unnoticed. The
+    comparison is a multiset, not a subset test, for the same reason.
+    """
     significant = _gen_data().significant
     source = pd.read_csv(OUTPUTS / SOURCE_CSV[table]).dropna(subset=["horizon_class"])
-    expected: dict[tuple, set] = {}
-    for row in source.itertuples(index=False):
-        key = (
-            row.survey,
-            row.variable,
-            int(row.year),
-            int(row.quarter),
-            row.horizon_class,
-        )
-        value = (row.concept, significant(row.q50) if table == "measures" else None)
-        expected.setdefault(key, set()).add(value)
 
-    rows = _rows(bundle, table)
-    assert len(rows) == len(source), f"{table}: bundle and {SOURCE_CSV[table]} differ"
-    for row in rows:
-        key = (
+    def key(survey, variable, year, quarter, horizon_class, horizon_years):
+        return (
+            survey,
+            variable,
+            int(year),
+            int(quarter),
+            horizon_class,
+            significant(horizon_years),
+        )
+
+    expected = Counter(
+        (
+            key(
+                row.survey,
+                row.variable,
+                row.year,
+                row.quarter,
+                row.horizon_class,
+                row.horizon_years,
+            ),
+            row.concept,
+            significant(row.q50) if table == "measures" else None,
+        )
+        for row in source.itertuples(index=False)
+    )
+    actual = Counter(
+        (
+            key(
+                row["survey"],
+                row["variable"],
+                row["year"],
+                row["quarter"],
+                row["horizon_class"],
+                row["horizon_years"],
+            ),
+            row["concept"],
+            row["q50"] if table == "measures" else None,
+        )
+        for row in _rows(bundle, table)
+    )
+
+    assert actual == expected, (
+        f"{table}: bundle and {SOURCE_CSV[table]} differ\n"
+        f"  only in bundle: {sorted(actual - expected)[:3]}\n"
+        f"  only in csv:    {sorted(expected - actual)[:3]}"
+    )
+
+
+def test_the_duplicate_longer_term_rounds_are_actually_present(bundle):
+    """The multiset check above is only meaningful if the duplicates exist."""
+    rows = _rows(bundle, "measures")
+    duplicated = Counter(
+        (
             row["survey"],
             row["variable"],
             row["year"],
             row["quarter"],
             row["horizon_class"],
         )
-        assert key in expected, f"{table} row is not in {SOURCE_CSV[table]}: {key}"
-        value = (row["concept"], row["q50"] if table == "measures" else None)
-        assert value in expected[key], f"{table} {key}: {value} not in {expected[key]}"
+        for row in rows
+    )
+    repeated = {key for key, count in duplicated.items() if count > 1}
+    assert repeated, "expected early ECB longer-term rounds with two targets"
+    assert all(key[4] == "longer_term" for key in repeated), sorted(repeated)[:3]
 
 
 def test_the_us_concept_changes_survive_into_the_bundle(bundle):
@@ -120,7 +168,10 @@ def test_the_us_concept_changes_survive_into_the_bundle(bundle):
 
 
 def test_every_bundled_concept_has_a_plain_word_label(page, bundle):
-    """A missing label would print a raw snake_case identifier to the reader."""
+    """An unlabelled concept still renders, via conceptLabel's underscore
+    fallback, but as an unreviewed identifier read out as words rather than the
+    phrasing chosen for the note ("gnp implicit deflator", not "the GNP implicit
+    price deflator"). Every concept the bundle can carry needs a real label."""
     block = re.search(r"const CONCEPT_LABELS = \{(.*?)\n\};", page, re.DOTALL)
     assert block, "site/index.html must define CONCEPT_LABELS"
     labelled = dict(re.findall(r"(\w+): '([^']+)'", block.group(1)))
@@ -134,22 +185,23 @@ def test_every_bundled_concept_has_a_plain_word_label(page, bundle):
 
 
 def test_the_scores_note_does_not_claim_a_real_time_information_set(page):
-    note = re.search(
-        r"byId\('chart-note'\)\.textContent = `\$\{chosen\.variable\}, "
-        r"\$\{chosen\.horizon\.toLowerCase\(\)\}\. Lower is better\. `\s*\+\s*\n\s*'([^']*)'",
-        page,
-    )
-    assert note, "the scores view must still set a benchmark note"
-    text = note.group(1)
-    # benchmarks.period_completion_ordinal filters on target-period completion,
-    # and the outcomes are revised. Neither is "information available at the time".
-    assert "information available" not in text
-    assert "already complete at each forecast round" in text
-    assert "revised data" in text
-
-
-def test_no_view_claims_information_available_anywhere_on_the_page(page):
+    """benchmarks.period_completion_ordinal filters on target-period completion,
+    and the outcomes are revised. Neither is "information available at the time".
+    """
     assert "information available" not in page
+    assert "already complete at each forecast round" in page
+    assert "revised data" in page
+
+
+@pytest.mark.parametrize(
+    "path", ["README.md", "site/index.html", "site/paper/index.html"]
+)
+def test_no_shipped_page_or_doc_claims_a_real_time_information_set(path):
+    """Fix 3 corrected four files; reverting any one of them re-asserts a
+    real-time information set the pipeline does not reconstruct."""
+    text = (ROOT / path).read_text(encoding="utf-8")
+    assert "information available" not in text
+    assert "no-lookahead" not in text
 
 
 def test_the_fan_draws_the_pooled_median_and_names_the_other_one(page):
@@ -214,6 +266,22 @@ def test_tabs_expose_the_full_aria_tab_pattern(markup):
     assert selected == focusable, "the focusable tab must be the selected tab"
 
 
+def test_every_tab_names_a_view_the_page_can_render(markup, page):
+    """A typo in data-view makes that tab a silent no-op: setActiveTab returns
+    early for a name RENDERERS does not have, so the tab never selects."""
+    renderers = re.search(r"const RENDERERS = \{([^}]*)\}", page)
+    assert renderers, "site/index.html must define RENDERERS"
+    names = {
+        entry.split(":")[0].strip()
+        for entry in renderers.group(1).split(",")
+        if entry.strip()
+    }
+    assert {tab["data-view"] for tab in markup.tabs} == names
+    assert len({tab["id"] for tab in markup.tabs}) == len(markup.tabs), (
+        "tab ids must be unique"
+    )
+
+
 def test_the_panel_is_a_tabpanel_named_by_its_tab(markup):
     assert markup.panel.get("role") == "tabpanel"
     selected = next(tab for tab in markup.tabs if tab["aria-selected"] == "true")
@@ -237,8 +305,12 @@ def test_a_fragment_cannot_name_an_inherited_property_as_a_view(page):
 
 def test_tab_keyboard_navigation_and_hash_changes_are_wired(page):
     assert "byId('tabs').addEventListener('keydown'" in page
+    # "End" also appears in placeEndpoints and its comment, so a bare substring
+    # search over the page cannot tell whether the binding still exists.
+    moves = re.search(r"const moves = \{([^}]*)\}", page)
+    assert moves, "the keydown handler must map keys to moves"
     for key in ("ArrowRight", "ArrowLeft", "Home", "End"):
-        assert key in page, f"{key} must move between tabs"
+        assert f"{key}:" in moves.group(1), f"{key} must be bound in the moves map"
     assert "addEventListener('hashchange'" in page
     # writeHash must stay a replaceState, or the hashchange listener would loop.
     assert "history.replaceState" in page

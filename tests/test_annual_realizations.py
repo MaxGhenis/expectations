@@ -366,7 +366,20 @@ def test_archived_eurostat_comparison_reproduces_offline():
     )
 
 
-@pytest.mark.parametrize("corruption", ["hash", "identity", "dimension"])
+# Every dimension is checked, not just geography: a comparator narrowed to a
+# different unit or item would compare the ECB rate against the wrong series.
+SWAPPED_DIMENSIONS = {
+    "geo": ("EU27_2020", "European Union - 27 countries"),
+    "unit": ("CLV_I15", "Chain linked volumes, index 2015=100"),
+    "na_item": ("P3", "Final consumption expenditure"),
+    "freq": ("Q", "Quarterly"),
+}
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    ["hash", "identity", *(f"dimension:{name}" for name in SWAPPED_DIMENSIONS)],
+)
 def test_eurostat_comparator_identity_and_hash_are_verified(tmp_path: Path, corruption):
     manifest = _manifest()
     payload = (DEFAULT_RAW_DIR / EUROSTAT_EA20_ANNUAL_GDP_FILE).read_bytes()
@@ -377,10 +390,12 @@ def test_eurostat_comparator_identity_and_hash_are_verified(tmp_path: Path, corr
             "https://example.org/wrong-dataset"
         )
     else:
+        dimension = corruption.split(":", maxsplit=1)[1]
+        code, label = SWAPPED_DIMENSIONS[dimension]
         dataset = json.loads(payload)
-        category = dataset["dimension"]["geo"]["category"]
-        category["index"] = {"EU27_2020": 0}
-        category["label"] = {"EU27_2020": "European Union - 27 countries"}
+        category = dataset["dimension"][dimension]["category"]
+        category["index"] = {code: 0}
+        category["label"] = {code: label}
         payload = json.dumps(dataset).encode("utf-8")
         manifest["sources"][EUROSTAT_EA20_ANNUAL_GDP_FILE]["sha256"] = hashlib.sha256(
             payload
@@ -388,5 +403,5 @@ def test_eurostat_comparator_identity_and_hash_are_verified(tmp_path: Path, corr
     (tmp_path / EUROSTAT_EA20_ANNUAL_GDP_FILE).write_bytes(payload)
     (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest))
 
-    with pytest.raises(ValueError, match="checksum|identity|geo is"):
+    with pytest.raises(ValueError, match="checksum|identity|is \\["):
         load_eurostat_ea20_annual_growth(tmp_path)

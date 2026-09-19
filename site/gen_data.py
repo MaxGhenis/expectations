@@ -30,9 +30,10 @@ SOURCE_PATHS = {
 }
 
 # "concept" is the forecast concept the survey actually asked about in that round.
-# The US series changed concept twice (GNP to GDP, and the deflator to the
-# chain-weighted price index), so the tracker cannot label a 1970s round with the
-# modern variable name without carrying this field through.
+# PRGDP moves from nominal GNP growth to real GNP growth in 1981 Q3 and to real
+# GDP growth in 1992 Q1; PRPGDP moves from the GNP deflator to the GDP deflator
+# in 1992 Q1 and to the chain-weighted price index in 1996 Q1. The tracker cannot
+# label those rounds with the modern variable name without this field.
 MEASURE_FIELDS = [
     "survey",
     "variable",

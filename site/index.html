@@ -173,10 +173,13 @@ const HORIZON_LABELS = {
   year_after_next: 'Year after next (+2)', three_years_ahead: 'Three years ahead (+3)',
   rolling_1y: 'Rolling 1 year', rolling_2y: 'Rolling 2 years', longer_term: 'Longer term',
 };
-// Plain-word names for the concept each survey round actually asked about. The
-// US series changed twice: GNP to GDP in 1992, and the implicit deflator to the
-// chain-weighted price index in 1996. Without these the tracker would label a
-// 1975 round "Real GDP growth", which the survey did not ask until 1992.
+// Plain-word names for the concept each survey round actually asked about.
+// The US output question changed three times: nominal GNP growth through
+// 1981 Q2, real GNP growth to 1991 Q4, then real GDP growth; and the US price
+// question changed twice more, from the GNP deflator to the GDP deflator in
+// 1992 Q1 and to the chain-weighted price index in 1996 Q1. Without these the
+// tracker would label a 1975 round "Real GDP growth" when the survey asked
+// about nominal GNP — a different variable, not just a different name.
 const CONCEPT_LABELS = {
   nominal_gnp: 'nominal GNP growth',
   real_gnp: 'real GNP growth',

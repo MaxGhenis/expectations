@@ -5,8 +5,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from expectations import scores
 from expectations.build import aggregate_density
-from expectations.measures import finite_intervals, histogram_quantiles
+from expectations.measures import (
+    filter_probability_rows,
+    finite_intervals,
+    histogram_quantiles,
+    pooled_quantiles,
+)
 from expectations.scores import (
     empirical_crps,
     gaussian_crps,
@@ -176,21 +182,25 @@ def test_public_distribution_functions_reject_nonfinite_weights(call, bad):
         call([bad, 1.0])
 
 
-def test_negative_weights_would_otherwise_produce_a_non_monotone_cdf():
-    """The rejected input is not merely unusual; it breaks the CDF contract."""
-    masses, bounds = np.asarray([-1.0, 2.0]), TWO_BINS
-    unchecked = [
-        float(
-            sum(
-                mass * min(max((value - lower) / (upper - lower), 0.0), 1.0)
-                for mass, (lower, upper) in zip(masses, bounds, strict=True)
-            )
-        )
-        for value in (0.0, 0.5, 1.0, 1.5, 2.0)
-    ]
+def test_negative_weights_would_otherwise_produce_a_non_monotone_cdf(monkeypatch):
+    """The rejected input is not merely unusual; it breaks the CDF contract.
 
-    assert min(unchecked) < 0.0
-    assert any(later < earlier for earlier, later in pairwise(unchecked))
+    Bypass the guard and call the real ``histogram_cdf`` rather than restating
+    its arithmetic here, so this fails if the underlying computation changes.
+    """
+    monkeypatch.setattr(
+        scores, "check_probability_weights", lambda weights, **_: weights
+    )
+    unguarded = histogram_cdf(
+        [-1.0, 2.0], TWO_BINS, np.asarray([0.0, 0.5, 1.0, 1.5, 2.0])
+    )
+
+    assert unguarded.min() < 0.0
+    assert any(later < earlier for earlier, later in pairwise(unguarded))
+    # And with the guard in place the same call is refused.
+    monkeypatch.undo()
+    with pytest.raises(ValueError, match="must be nonnegative"):
+        histogram_cdf([-1.0, 2.0], TWO_BINS, 0.5)
 
 
 def test_rejection_happens_before_the_sum_to_one_check():
@@ -209,6 +219,31 @@ def test_two_dimensional_offsetting_signs_cannot_hide_behind_the_mean():
 
 def test_all_zero_weights_remain_the_documented_degenerate_case():
     assert np.isnan(histogram_quantiles([0.0, 0.0], TWO_BINS, [0.5])).all()
+
+
+def test_a_round_with_no_retained_respondents_still_returns_missing_values():
+    """The realistic nonfinite-total path, and the one that reaches the tracker.
+
+    ``filter_probability_rows`` returns shape ``(0, n_bins)`` when every
+    respondent row is rejected.  Averaging that empty axis gives NaN, not zero,
+    so the guard this covers is the ``isfinite`` one rather than ``total <= 0``.
+    Without it the pooled quantiles become plausible-looking numbers, and q50 is
+    what the consensus fan draws as its centre line.
+    """
+    intervals = [(None, 0.0), (0.0, 1.0), (1.0, 2.0), (2.0, None)]
+    # No row totals anywhere near 100, so every one is rejected.
+    weights, counts = filter_probability_rows(
+        np.asarray(
+            [[10.0, 10.0, 10.0, 10.0], [0.0, 0.0, 0.0, 0.0], [5.0, 5.0, 5.0, 5.0]]
+        )
+    )
+
+    assert counts["rows_kept"] == 0
+    assert weights.shape == (0, 4)
+    with np.errstate(invalid="ignore"):
+        assert all(
+            math.isnan(value) for value in pooled_quantiles(weights, intervals).values()
+        )
 
 
 def test_a_nonfinite_total_from_finite_weights_still_returns_missing_values():

@@ -75,16 +75,52 @@ Baseline before any change: `uv run pytest -q` → 165 passed; ruff format/check
 
 ## Verification
 
-- `uv run pytest -q` → 204 passed (165 on `origin/main`).
+- `uv run pytest -q` → 215 passed (165 on `origin/main`).
+- `node tests/page/run.mjs` → 83 behavioral checks against the real page in jsdom.
 - `uv run ruff format --check` and `ruff check` over `src tests scripts site/gen_data.py` → clean.
 - Full pipeline rebuild (`expectations.build`, `build_research.py`, `build_panorama.py`)
   leaves every `outputs/*.csv` byte-identical: the new guards change no result.
-- 54 jsdom assertions against the real page (harness kept outside the repo, since CI has
-  no Node step) covering hashchange, the whole tab pattern, era notes and tooltips per
-  view, and that the fan's end label reports q50 rather than the respondent-mean median.
 - Every ECB source entry in the manifest is byte-identical to `origin/main`'s.
+- Both suites were mutation-tested: reverting any one fix in place fails its own check.
 
-## Extra fix found while verifying
+## Review round: committing the behavioral harness
+
+An adversarial review (five dimensions, each finding checked by three independent
+verifiers, all in isolated worktrees) confirmed a structural weakness in the first
+version of these tests: every assertion about tracker *behavior* was a substring or
+regex grep over `site/index.html`. Deleting the runtime half of four fixes — the
+concept-note call sites, the fan's tooltip and table bindings, the `hashchange`
+handler body, and `setActiveTab`'s roving tabindex — left the suite green. I
+reproduced each of those myself.
+
+The durable fix, now applied: `tests/page/run.mjs` executes the real page in jsdom
+and asserts what a reader would see, CI runs it, and `tests/test_page_behavior.py`
+runs it under pytest when a JavaScript runtime is present. It catches every
+mutation that slipped past the text checks, including the drawn centre line, which
+it reads back into data space by inverting the axis ticks.
+
+Also from that review: the bundle-versus-outputs check keyed on a non-unique tuple
+(nine early ECB rounds carry both a four- and a five-year longer-term target) and
+compared sets, so a mis-paired pooled median passed; it now compares multisets on
+`gen_data`'s own identity fields. `assert "End" in page` was satisfied by
+`placeEndpoints`; the key bindings are now read out of the `moves` map. Tab
+`data-view` values are now checked against `RENDERERS`. The non-monotone-CDF test
+reimplemented the arithmetic it claimed to test and could never fail; it now calls
+the production function with the guard bypassed. The fix-3 wording check now covers
+`README.md` and `site/paper/index.html`, not just the tracker.
+
+Two comments stated the US concept history wrong ("the US series changed twice"):
+PRGDP changes three times, and the omitted 1981 Q3 break is nominal GNP to real
+GNP — a different variable, not a rename. Corrected against `us_spf.us_concept`.
+
+Findings I did not act on, because adversarial verification refuted them: that the
+no-flag acquisition path "silently re-vintages" a checksum-failing source (the
+behavior is byte-identical on `origin/main`, the run prints "1 downloaded, 7
+reused", and the docstring's claim is scoped to checksum-matching sources), and
+that `reusable(key=None)` weakens Eurostat identity (the loader holds an
+independent URL constant and rejects the repoint; the gap is `main`'s, in kind).
+
+## Extra fixes found while verifying
 
 A malformed-fragment sweep surfaced a real defect: `#view=__proto__` resolved
 `RENDERERS["__proto__"]` to `Object.prototype`, which is truthy, so the render threw
