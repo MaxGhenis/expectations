@@ -748,7 +748,7 @@ function scores() {
     ? ' A benchmark is shown for an averaged duplicate round only when every target has one.'
     : '';
   byId('chart-note').textContent = `${chosen.variable}, ${chosen.horizon.toLowerCase()}. Lower is better. ` +
-    'The expanding-window benchmarks use only information available before each forecast round and appear after their 10-observation minimum.' +
+    'The expanding-window benchmarks are built from target periods already complete at each forecast round, using revised data, and appear after their 10-observation minimum.' +
     roundsNote() + completeBenchmarkNote + ' The x-axis is the forecast round, not the target period.';
   const series = [
     { key: 'crps_pooled', color: token('--series-1'), label: 'Pooled forecast', short: 'Pooled' },
