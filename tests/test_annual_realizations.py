@@ -14,14 +14,22 @@ import pytest
 
 from expectations.realizations import (
     DEFAULT_RAW_DIR,
+    EUROSTAT_EA20_ANNUAL_GDP_FILE,
     _ecb_level_annual_rows,
     _load_ecb_series,
     _load_verified_ecb_companion,
     load_ecb_realizations,
+    load_eurostat_ea20_annual_growth,
     load_realization_history,
 )
 
 OFFICIAL_ANNUAL_GDP_KEY = "MNA.A.N.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR_R_B1GQ.Y.GOY"
+MANIFEST_NAME = "ecb_annual_realizations_sources.json"
+EUROSTAT_VERIFICATION_KEY = "rgdp_official_annual_vs_eurostat_published_annual_growth"
+
+
+def _manifest() -> dict:
+    return json.loads((DEFAULT_RAW_DIR / MANIFEST_NAME).read_text())
 
 
 def _level_rows(periods, values, statuses=None):
@@ -293,3 +301,92 @@ def test_blank_observation_status_is_rejected(tmp_path: Path):
     path.write_text("TIME_PERIOD,OBS_VALUE,OBS_STATUS\n2024,1.0,A\n2025,1.5, \n")
     with pytest.raises(ValueError, match="Missing ECB observation status"):
         _load_ecb_series(path)
+
+
+def test_eurostat_comparator_is_archived_and_pinned_by_checksum():
+    entry = _manifest()["sources"][EUROSTAT_EA20_ANNUAL_GDP_FILE]
+    payload = (DEFAULT_RAW_DIR / EUROSTAT_EA20_ANNUAL_GDP_FILE).read_bytes()
+
+    assert hashlib.sha256(payload).hexdigest() == entry["sha256"]
+    assert entry["dimensions"] == {
+        "freq": "A",
+        "unit": "CLV_PCH_PRE",
+        "na_item": "B1GQ",
+        "geo": "EA20",
+    }
+    assert entry["dataset"] == "NAMA_10_GDP"
+    assert entry["retrieved_at_utc"]
+    # The comparator must never be mistaken for an emitted euro-area outcome.
+    assert "never an emitted outcome" in entry["role"]
+    emitted = load_ecb_realizations()
+    assert not emitted.source.str.contains("eurostat", case=False).any()
+
+
+def test_archived_eurostat_comparison_reproduces_offline():
+    """Recompute the recorded ECB-versus-Eurostat deviation from committed bytes."""
+    eurostat = load_eurostat_ea20_annual_growth()
+    official = _load_ecb_series(
+        DEFAULT_RAW_DIR / "ecb_ea_rgdp_growth_annual.csv"
+    ).set_index("TIME_PERIOD")["OBS_VALUE"]
+    shared = sorted(set(eurostat.index) & set(official.index))
+    differing = [
+        year
+        for year in shared
+        if round(float(official[year]), 1) != round(float(eurostat[year]), 1)
+    ]
+    deviations = {
+        year: abs(float(official[year]) - float(eurostat[year])) for year in shared
+    }
+
+    # Two official publications of a related aggregate, not a rounding of one another.
+    assert len(shared) == 30
+    assert (shared[0], shared[-1]) == ("1996", "2025")
+    assert len(differing) == 5
+    assert differing == ["2012", "2014", "2017", "2019", "2024"]
+
+    recorded = _manifest()["verification"][EUROSTAT_VERIFICATION_KEY]
+    assert recorded["eurostat_archived_file"] == EUROSTAT_EA20_ANNUAL_GDP_FILE
+    assert recorded["matched_years"] == len(shared)
+    assert (recorded["first_year"], recorded["last_year"]) == (shared[0], shared[-1])
+    assert recorded["years_differing_at_one_decimal"] == differing
+    assert recorded["max_absolute_difference_year"] == max(
+        deviations, key=deviations.__getitem__
+    )
+    assert recorded["max_absolute_difference_pp"] == pytest.approx(
+        max(deviations.values())
+    )
+    assert recorded["mean_absolute_difference_pp"] == pytest.approx(
+        sum(deviations.values()) / len(deviations)
+    )
+    assert (
+        recorded["eurostat_archived_sha256"]
+        == hashlib.sha256(
+            (DEFAULT_RAW_DIR / EUROSTAT_EA20_ANNUAL_GDP_FILE).read_bytes()
+        ).hexdigest()
+    )
+
+
+@pytest.mark.parametrize("corruption", ["hash", "identity", "dimension"])
+def test_eurostat_comparator_identity_and_hash_are_verified(tmp_path: Path, corruption):
+    manifest = _manifest()
+    payload = (DEFAULT_RAW_DIR / EUROSTAT_EA20_ANNUAL_GDP_FILE).read_bytes()
+    if corruption == "hash":
+        payload += b"\n"
+    elif corruption == "identity":
+        manifest["sources"][EUROSTAT_EA20_ANNUAL_GDP_FILE]["url"] = (
+            "https://example.org/wrong-dataset"
+        )
+    else:
+        dataset = json.loads(payload)
+        category = dataset["dimension"]["geo"]["category"]
+        category["index"] = {"EU27_2020": 0}
+        category["label"] = {"EU27_2020": "European Union - 27 countries"}
+        payload = json.dumps(dataset).encode("utf-8")
+        manifest["sources"][EUROSTAT_EA20_ANNUAL_GDP_FILE]["sha256"] = hashlib.sha256(
+            payload
+        ).hexdigest()
+    (tmp_path / EUROSTAT_EA20_ANNUAL_GDP_FILE).write_bytes(payload)
+    (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="checksum|identity|geo is"):
+        load_eurostat_ea20_annual_growth(tmp_path)

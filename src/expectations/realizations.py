@@ -19,6 +19,20 @@ import pandas as pd
 
 DEFAULT_RAW_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
 
+# Archived Eurostat EA20 comparator, pinned in the same manifest as the ECB
+# companions. It is compared against the emitted ECB annual rate, never emitted.
+EUROSTAT_EA20_ANNUAL_GDP_FILE = "eurostat_ea20_rgdp_growth_annual.json"
+EUROSTAT_EA20_ANNUAL_GDP_URL = (
+    "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
+    "nama_10_gdp?format=JSON&geo=EA20&na_item=B1GQ&unit=CLV_PCH_PRE"
+)
+EUROSTAT_EA20_ANNUAL_GDP_DIMENSIONS = {
+    "freq": "A",
+    "unit": "CLV_PCH_PRE",
+    "na_item": "B1GQ",
+    "geo": "EA20",
+}
+
 REALIZATION_COLUMNS = [
     "survey",
     "variable",
@@ -332,33 +346,90 @@ def _load_ecb_calendar_growth(directory: Path, *, variable: str) -> pd.DataFrame
     return frame
 
 
-def _load_verified_ecb_companion(
-    directory: Path, *, filename: str, expected_key: str
-) -> tuple[pd.DataFrame, str]:
+def _verified_manifest_payload(
+    directory: Path, *, filename: str, expected_url: str, label: str
+) -> tuple[bytes, dict[str, Any]]:
+    """Return archived bytes only when the manifest pins this exact response.
+
+    The manifest is the single provenance register for every archived annual
+    source: the recorded URL must be the one we meant to fetch, and the recorded
+    checksum must match the committed bytes.  A source whose entry is missing,
+    repointed or stale therefore fails loudly instead of being read.
+    """
     manifest = json.loads(
         (directory / "ecb_annual_realizations_sources.json").read_text()
     )
     entry = manifest["sources"][filename]
+    payload = (directory / filename).read_bytes()
+    if entry["url"] != expected_url:
+        raise ValueError(f"Unexpected {label} source identity for {filename}")
+    if hashlib.sha256(payload).hexdigest() != entry["sha256"]:
+        raise ValueError(f"{label} source checksum mismatch for {filename}")
+    if not entry.get("retrieved_at_utc"):
+        raise ValueError(f"Missing {label} source retrieval date for {filename}")
+    return payload, entry
+
+
+def _load_verified_ecb_companion(
+    directory: Path, *, filename: str, expected_key: str
+) -> tuple[pd.DataFrame, str]:
     path = directory / filename
     flow, series = expected_key.split(".", 1)
     expected_url = (
         f"https://data-api.ecb.europa.eu/service/data/{flow}/{series}?format=csvdata"
     )
-    if entry["series_key"] != expected_key or entry["url"] != expected_url:
+    _, entry = _verified_manifest_payload(
+        directory, filename=filename, expected_url=expected_url, label="ECB annual"
+    )
+    if entry["series_key"] != expected_key:
         raise ValueError(f"Unexpected ECB annual source identity for {filename}")
-    if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
-        raise ValueError(f"ECB annual source checksum mismatch for {filename}")
     keys = pd.read_csv(path, usecols=["KEY"])["KEY"]
     if keys.empty or not keys.eq(expected_key).all():
         raise ValueError(f"Unexpected ECB series key in {filename}")
-    retrieved = entry.get("retrieved_at_utc")
-    if not retrieved:
-        raise ValueError(f"Missing ECB annual source retrieval date for {filename}")
     source = (
         f"ECB Data Portal {expected_key} (annual companion retrieved "
-        f"{retrieved}; rolling archive retrieval date unrecorded)"
+        f"{entry['retrieved_at_utc']}; rolling archive retrieval date unrecorded)"
     )
     return _load_ecb_series(path), source
+
+
+def load_eurostat_ea20_annual_growth(
+    raw_dir: str | Path = DEFAULT_RAW_DIR,
+) -> pd.Series:
+    """Return archived Eurostat EA20 annual real GDP growth, indexed by year.
+
+    This series is a provenance comparator, never an emitted outcome: the
+    euro-area annual GDP outcome this repository scores against is the ECB's own
+    published annual growth rate.  Eurostat's EA20 aggregate is a different
+    official publication of a related concept, so the two differ in some years at
+    one decimal, and archiving the response makes that recorded difference
+    reproducible offline instead of dependent on a refetch.
+    """
+    payload, _ = _verified_manifest_payload(
+        Path(raw_dir),
+        filename=EUROSTAT_EA20_ANNUAL_GDP_FILE,
+        expected_url=EUROSTAT_EA20_ANNUAL_GDP_URL,
+        label="Eurostat comparator",
+    )
+    dataset = json.loads(payload.decode("utf-8"))
+    for dimension, expected in EUROSTAT_EA20_ANNUAL_GDP_DIMENSIONS.items():
+        categories = set(dataset["dimension"][dimension]["category"]["index"])
+        if categories != {expected}:
+            raise ValueError(
+                f"Eurostat comparator {dimension} is {sorted(categories)}, "
+                f"not {expected!r}"
+            )
+    periods = {
+        position: period
+        for period, position in dataset["dimension"]["time"]["category"][
+            "index"
+        ].items()
+    }
+    values = {
+        periods[int(position)]: float(value)
+        for position, value in dataset["value"].items()
+    }
+    return pd.Series(values, name="realized", dtype=float).sort_index()
 
 
 def load_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
@@ -855,9 +926,13 @@ def _nullable_inside(distance: pd.Series, width: pd.Series) -> pd.Series:
 
 __all__ = [
     "DEFAULT_RAW_DIR",
+    "EUROSTAT_EA20_ANNUAL_GDP_DIMENSIONS",
+    "EUROSTAT_EA20_ANNUAL_GDP_FILE",
+    "EUROSTAT_EA20_ANNUAL_GDP_URL",
     "REALIZATION_COLUMNS",
     "calibration_table",
     "load_ecb_realizations",
+    "load_eurostat_ea20_annual_growth",
     "load_realization_history",
     "load_realizations",
     "load_us_realization_history",
