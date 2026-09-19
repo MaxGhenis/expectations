@@ -109,6 +109,25 @@ def test_worked_example_mean_pit_and_crps():
         )
 
 
+def test_mass_in_an_open_lower_tail_moves_the_other_way():
+    """The headline shifts do not generalize to a distribution piled into a tail.
+
+    An open tail closes at one adjacent-bin width, and that width grows from 0.4 to
+    0.5 on half-point bins under the primary reading. The tail's midpoint falls, so
+    the mean falls too, and the spread widens by far more than an interior bin's
+    within-bin term would suggest.
+    """
+    labels = [(None, -1.0), (-1.0, -0.6), (-0.5, -0.1), (0.0, 0.4), (0.5, None)]
+    weights = np.array([[70.0, 20.0, 10.0, 0.0, 0.0]])
+    stats = {}
+    for convention in ("contiguous", "literal"):
+        intervals = list(support_intervals(labels, convention))
+        stats[convention] = round_stats(weights, bin_midpoints(intervals), intervals)
+    assert stats["literal"]["mean"] == pytest.approx(-1.03)
+    assert stats["contiguous"]["mean"] == pytest.approx(-1.05)
+    assert stats["contiguous"]["total_sd"] / stats["literal"]["total_sd"] > 1.10
+
+
 def test_the_variance_identity_survives_every_convention():
     rng = np.random.default_rng(7)
     raw = rng.dirichlet(np.ones(len(LABELS)), size=9) * 100
@@ -163,3 +182,40 @@ def test_published_sensitivity_table_records_what_the_choice_moves():
     assert row.total_sd == pytest.approx(
         wide.loc["us_next_year_total_sd_2026q1", "contiguous"]
     )
+
+
+def _sensitivity():
+    table = pd.read_csv(ROOT / "outputs" / "reconstruction_sensitivity.csv")
+    return table.pivot(index="statistic", columns="convention", values="value")
+
+
+def test_the_rounding_reading_leaves_the_tail_probability_only_bounded():
+    """With boundaries at 3.95, growth above 4% is identified only as a range."""
+    wide = _sensitivity()
+    for series in ("us_next_year", "ecb_longer_term"):
+        for window in ("2015_19", "2025_26"):
+            lower = wide.loc[f"{series}_p_above_4_{window}"]
+            upper = wide.loc[f"{series}_p_above_4_upper_{window}"]
+            for convention in ("contiguous", "literal"):
+                assert lower[convention] == pytest.approx(upper[convention])
+            assert lower["midpoint"] < upper["midpoint"]
+            assert upper["midpoint"] == pytest.approx(upper["contiguous"])
+    # The euro-area ranges overlap, so that reading cannot establish the rise.
+    assert (
+        wide.loc["ecb_longer_term_p_above_4_2025_26", "midpoint"]
+        < wide.loc["ecb_longer_term_p_above_4_upper_2015_19", "midpoint"]
+    )
+
+
+def test_the_all_groups_comparison_covers_every_round_target():
+    wide = _sensitivity()
+    measures = pd.read_csv(ROOT / "outputs" / "measures.csv")
+    for convention in ("literal", "midpoint"):
+        assert wide.loc["all_groups_n", convention] == len(measures)
+    # Most means rise by a twentieth of a point against the printed labels ...
+    assert wide.loc["all_groups_mean_shift_median", "literal"] == pytest.approx(
+        0.05, abs=0.005
+    )
+    # ... but not all: tail-heavy distributions move the other way, and by more.
+    assert wide.loc["all_groups_mean_shift_min", "literal"] < 0
+    assert wide.loc["all_groups_sd_ratio_max", "literal"] > 0.05

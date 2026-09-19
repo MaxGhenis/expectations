@@ -40,6 +40,13 @@ c = pd.read_csv(ROOT / "outputs/growth_comparison.csv")
 cal = pd.read_csv(ROOT / "outputs/calibration.csv")
 b = pd.read_csv(ROOT / "outputs/benchmark_summary.csv")
 lr = pd.read_csv(ROOT / "outputs/longrun_points.csv")
+sens = pd.read_csv(ROOT / "outputs/reconstruction_sensitivity.csv").pivot(index="statistic", columns="convention", values="value")
+
+def rounding_bound(series, window):
+    """P(growth > 4%) when boundaries sit halfway between printed labels."""
+    lo = 100 * sens.loc[f"{series}_p_above_4_{window}", "midpoint"]
+    hi = 100 * sens.loc[f"{series}_p_above_4_upper_{window}", "midpoint"]
+    return f"{lo:.2f}–{hi:.2f}%"
 NAMES = ["US next year", "US three years ahead", "ECB longer term"]
 LABELS = ["US, next year", "US, year +3", "Euro area, year +4"]
 
@@ -119,7 +126,7 @@ The longer record also rules out calling central forecasts constant. The US ten-
 
 ## The upper tail
 
-We compute probabilities of growth above 3%, 4%, 5% and 10%. The thresholds describe outcomes and define nothing about transformative AI. For historical comparison 4% does the most work: it is a printed lower bin label in every scheme behind the displayed series, so its exceedance probability needs no assumption about how mass spreads inside a bin.
+We compute probabilities of growth above 3%, 4%, 5% and 10%. The thresholds describe outcomes and define nothing about transformative AI. For historical comparison 4% does the most work: it is a printed lower bin label in every scheme behind the displayed series, so its exceedance probability needs no assumption about how mass spreads inside a bin. It does take the printed label as the boundary; the method section reports what happens if the boundary sits at 3.95 instead.
 
 ```{python}
 #| label: tbl-tails
@@ -178,7 +185,7 @@ Forecast–outcome pairs can share a realized target, and rolling outcomes overl
 
 Within a round we keep respondent histograms whose probabilities lie between 0 and 100 and sum to within two percentage points of 100. Partial missing entries count as zero, and entirely missing histograms drop out. We normalize retained probabilities and weight respondents equally. The filter rejects two negative ECB entries in 2023Q1 along with responses whose totals are invalid.
 
-The questionnaires print closed one-decimal ranges ("2.0 to 2.9", then "3.0 to 3.9"). We read each range as running to the next range's lower label, so "2.0 to 2.9" covers [2, 3) and lower labels such as 4.0 stay bin edges. For moments, quantiles and scores, probability spreads uniformly inside each bin, and an open tail receives the width of its nearest finite bin. Reading the printed labels literally instead lowers every mean by about 0.05 points and leaves each comparison between periods unchanged (`outputs/reconstruction_sensitivity.csv`). If bin $b$ has midpoint $x_b$ and width $w_b$, respondent $i$ has
+The questionnaires print closed one-decimal ranges ("2.0 to 2.9", then "3.0 to 3.9"). We read each range as running to the next range's lower label, so "2.0 to 2.9" covers [2, 3) and lower labels such as 4.0 stay bin edges. For moments, quantiles and scores, probability spreads uniformly inside each bin, and an open tail receives the width of its nearest finite bin. Reading the printed labels literally instead lowers each mean reported here by 0.05 points and leaves each comparison between periods unchanged (`outputs/reconstruction_sensitivity.csv`). If bin $b$ has midpoint $x_b$ and width $w_b$, respondent $i$ has
 
 $$
 \mu_i=\sum_b p_{ib}x_b,\qquad
@@ -193,7 +200,7 @@ $$
 
 The first component is average individual uncertainty and the second is disagreement [@wallis2005; @zarnowitzLambros1987]. The denominator is $n$ because the object is the finite empirical pool; a sample-variance correction would estimate a different object. Numerical-integration tests check the identity against the pooled distribution. The reported within SD is the square root of average individual variance, which differs from the average individual SD.
 
-For high-growth probabilities we drop the finite-tail closure. When a threshold falls inside a bin, the bin's entire mass counts toward the upper bound and none toward the lower bound. Bins entirely above the threshold count toward both. At an exact edge we assume continuous outcomes, so the boundary itself carries no mass. Averaging respondent bounds gives pooled bounds. The pipeline also emits a uniform interpolation unless the threshold lies strictly inside an open tail; the headline bounds never use it. Small mass in an open tail does not bound how fast growth is, conditional on reaching that tail. The bins alone therefore identify no unrestricted mean or variance: the level and width results depend on the reconstruction, and the exceedance bounds do not.
+For high-growth probabilities we drop the finite-tail closure. When a threshold falls inside a bin, the bin's entire mass counts toward the upper bound and none toward the lower bound. Bins entirely above the threshold count toward both. At an exact edge we assume continuous outcomes, so the boundary itself carries no mass. Averaging respondent bounds gives pooled bounds. The pipeline also emits a uniform interpolation unless the threshold lies strictly inside an open tail; the headline bounds never use it. Small mass in an open tail does not bound how fast growth is, conditional on reaching that tail. The bins alone therefore identify no unrestricted mean or variance: the level and width results depend on the reconstruction. The exceedance bounds use neither the tail closure nor any within-bin shape, but they do depend on where a bin's boundary sits. Under our reading, and with the printed labels taken literally, 4.0 is a boundary and the probability above it is a single number. If outcomes instead round to one decimal, the boundary sits at 3.95 and 4% falls inside a bin. The US next-year probability is then bounded at `{python} rounding_bound('us_next_year', '2015_19')` for 2015–19 and `{python} rounding_bound('us_next_year', '2025_26')` for 2025–26, and the euro-area four-year probability at `{python} rounding_bound('ecb_longer_term', '2015_19')` and `{python} rounding_bound('ecb_longer_term', '2025_26')`. Those ranges overlap, so under that reading the surveys establish neither the US fall nor the euro-area rise in the probability of growth above 4%.
 
 These distinctions matter across survey redesigns. Neither the SD nor the IQR is invariant to changing bins, and probabilities at a common bin edge give the cleanest historical tail comparison. Respondent rounding also limits very small probabilities: zero reported mass records the elicited answer and cannot prove that a respondent's latent probability equals zero.
 

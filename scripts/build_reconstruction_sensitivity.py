@@ -21,6 +21,15 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS = ROOT / "outputs"
 WINDOWS = {"2015_19": range(2015, 2020), "2025_26": (2025, 2026)}
 HORIZONS = ("current_year", "next_year", "year_after_next", "three_years_ahead")
+GROUP_KEYS = [
+    "survey",
+    "variable",
+    "year",
+    "quarter",
+    "horizon_class",
+    "target_year",
+    "target_period",
+]
 
 
 def _q1(frame: pd.DataFrame, survey: str, variable: str, horizon: str) -> pd.DataFrame:
@@ -80,24 +89,74 @@ def headline(outputs: dict[str, pd.DataFrame]) -> dict[str, float]:
     return stats
 
 
+def all_groups(primary: pd.DataFrame, alternative: pd.DataFrame) -> dict[str, float]:
+    """How far every round-target's mean and SD move, primary minus alternative.
+
+    The headline windows are not the whole panel: a distribution with mass in an
+    open tail moves with that tail's closure width, not with the bin midpoints.
+    """
+    keyed = [
+        frame.assign(
+            **{key: frame[key].astype("string").fillna("") for key in GROUP_KEYS}
+        )
+        for frame in (primary, alternative)
+    ]
+    merged = keyed[0].merge(
+        keyed[1], on=GROUP_KEYS, suffixes=("", "_alt"), validate="1:1"
+    )
+    if len(merged) != len(primary):
+        raise ValueError("Every round-target must match across reconstructions")
+    shift = merged["mean"] - merged["mean_alt"]
+    ratio = merged["total_sd"] / merged["total_sd_alt"] - 1
+    worst = merged.loc[ratio.idxmax()]
+    print(
+        f"largest SD move: {worst.survey} {worst.variable} {worst.year}Q{worst.quarter} "
+        f"{worst.horizon_class} ({ratio.max():+.1%}, mean shift {shift[ratio.idxmax()]:+.3f})"
+    )
+    return {
+        "all_groups_n": len(merged),
+        "all_groups_mean_shift_median": shift.median(),
+        "all_groups_mean_shift_p05": shift.quantile(0.05),
+        "all_groups_mean_shift_p95": shift.quantile(0.95),
+        "all_groups_mean_shift_min": shift.min(),
+        "all_groups_mean_shift_max": shift.max(),
+        "all_groups_share_mean_lower_under_primary": (shift < 0).mean(),
+        "all_groups_sd_ratio_median": ratio.median(),
+        "all_groups_sd_ratio_p95": ratio.quantile(0.95),
+        "all_groups_sd_ratio_max": ratio.max(),
+        "all_groups_share_sd_ratio_above_1pct": (ratio.abs() > 0.01).mean(),
+    }
+
+
 def main() -> None:
+    names = ("measures", "growth_tails", "calibration", "scores")
     frames = {}
     for convention in RECONSTRUCTIONS:
+        # Every reading is read back from CSV, so keys and dtypes compare like for like.
         if convention == RECONSTRUCTION:
-            names = ("measures", "growth_tails", "calibration", "scores")
             frames[convention] = {
                 f"{name}.csv": pd.read_csv(OUTPUTS / f"{name}.csv") for name in names
             }
             continue
         with tempfile.TemporaryDirectory() as scratch:
-            frames[convention] = build_outputs(
-                output_dir=scratch, convention=convention
-            )
+            build_outputs(output_dir=scratch, convention=convention)
+            frames[convention] = {
+                f"{name}.csv": pd.read_csv(Path(scratch) / f"{name}.csv")
+                for name in names
+            }
     rows = [
         {"convention": convention, "statistic": statistic, "value": value}
         for convention, outputs in frames.items()
         for statistic, value in headline(outputs).items()
     ]
+    primary = frames[RECONSTRUCTION]["measures.csv"]
+    for convention, outputs in frames.items():
+        if convention == RECONSTRUCTION:
+            continue
+        rows += [
+            {"convention": convention, "statistic": statistic, "value": value}
+            for statistic, value in all_groups(primary, outputs["measures.csv"]).items()
+        ]
     table = pd.DataFrame(rows).sort_values(["statistic", "convention"])
     table.to_csv(OUTPUTS / "reconstruction_sensitivity.csv", index=False)
     print(table.pivot(index="statistic", columns="convention", values="value").round(4))
