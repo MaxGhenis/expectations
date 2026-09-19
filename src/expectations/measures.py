@@ -100,11 +100,19 @@ def histogram_quantiles(
     rows do after :func:`filter_probability_rows`.  The sum is therefore checked
     rather than divided out: rescaling a histogram that already sums to one only
     perturbs the cumulative sums by rounding, which is enough to move a quantile
-    sitting exactly on a bin edge into the neighboring bin.  An all-zero or
-    nonfinite total remains the documented degenerate case and returns missing
-    values.
+    sitting exactly on a bin edge into the neighboring bin.  An all-zero total
+    remains the documented degenerate case and returns missing values.
+
+    Negative mass is rejected, not tolerated: a signed bin makes the cumulative
+    sums non-monotone, so the inverse-CDF search would return an arbitrary bin.
+    Two-dimensional weights are checked row by row, before averaging, so that
+    offsetting signs in different rows cannot hide behind a nonnegative mean.
     """
     probabilities = np.asarray(weights, dtype=float)
+    if not np.isfinite(probabilities).all():
+        raise ValueError("Histogram weights must be finite")
+    if (probabilities < 0.0).any():
+        raise ValueError("Histogram weights must be nonnegative")
     if probabilities.ndim == 2:
         probabilities = probabilities.mean(axis=0)
     if probabilities.ndim != 1 or probabilities.size != len(intervals):
@@ -117,7 +125,7 @@ def histogram_quantiles(
         raise ValueError(f"Invalid quantile: {invalid}")
 
     total = probabilities.sum()
-    if not np.isfinite(total) or total <= 0:
+    if total <= 0:
         return np.full(levels.shape, np.nan, dtype=float)
     if abs(total - 1.0) > WEIGHT_SUM_TOLERANCE:
         raise ValueError(f"Histogram weights must sum to one, not {total}")

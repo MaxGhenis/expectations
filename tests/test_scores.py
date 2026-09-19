@@ -136,21 +136,79 @@ def test_uniform_crps_closed_form(realization):
     )
 
 
-def test_crps_is_nonnegative_for_random_and_signed_source_style_weights():
+def test_crps_is_nonnegative_for_random_histograms():
     rng = np.random.default_rng(73)
     for _ in range(100):
         weights, intervals = _random_histogram(rng, int(rng.integers(3, 9)))
         realization = float(rng.normal())
         assert histogram_crps(weights, intervals, realization) >= 0.0
 
-    assert (
-        histogram_crps(
-            [-0.0002, 0.5001, 0.5001],
-            [(-2.0, -1.0), (0.0, 1.0), (2.0, 3.0)],
-            0.25,
+
+# Signed mass reaches no public entry point legitimately: every histogram in the
+# pipeline is normalized by filter_probability_rows, which rejects negative
+# cells outright. A negative bin makes the "CDF" non-monotone, so these
+# primitives reject it rather than returning a number that reads like a score.
+TWO_BINS = [(0.0, 1.0), (1.0, 2.0)]
+WEIGHTED_ENTRY_POINTS = {
+    "histogram_cdf": lambda weights: histogram_cdf(weights, TWO_BINS, 0.5),
+    "histogram_crps": lambda weights: histogram_crps(weights, TWO_BINS, 0.5),
+    "histogram_quantiles": lambda weights: histogram_quantiles(
+        weights, TWO_BINS, [0.5]
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    "call", WEIGHTED_ENTRY_POINTS.values(), ids=WEIGHTED_ENTRY_POINTS
+)
+@pytest.mark.parametrize("weights", [[-1.0, 2.0], [-1e-9, 1.0 + 1e-9]])
+def test_public_distribution_functions_reject_negative_weights(call, weights):
+    with pytest.raises(ValueError, match="must be nonnegative"):
+        call(weights)
+
+
+@pytest.mark.parametrize(
+    "call", WEIGHTED_ENTRY_POINTS.values(), ids=WEIGHTED_ENTRY_POINTS
+)
+@pytest.mark.parametrize("bad", [math.nan, math.inf, -math.inf])
+def test_public_distribution_functions_reject_nonfinite_weights(call, bad):
+    with pytest.raises(ValueError, match="must be finite"):
+        call([bad, 1.0])
+
+
+def test_negative_weights_would_otherwise_produce_a_non_monotone_cdf():
+    """The rejected input is not merely unusual; it breaks the CDF contract."""
+    masses, bounds = np.asarray([-1.0, 2.0]), TWO_BINS
+    unchecked = [
+        float(
+            sum(
+                mass * min(max((value - lower) / (upper - lower), 0.0), 1.0)
+                for mass, (lower, upper) in zip(masses, bounds, strict=True)
+            )
         )
-        >= 0.0
-    )
+        for value in (0.0, 0.5, 1.0, 1.5, 2.0)
+    ]
+
+    assert min(unchecked) < 0.0
+    assert any(later < earlier for earlier, later in pairwise(unchecked))
+
+
+def test_rejection_happens_before_the_sum_to_one_check():
+    """A signed histogram summing to one must still be refused."""
+    with pytest.raises(ValueError, match="must be nonnegative"):
+        histogram_quantiles([-0.25, 1.25], TWO_BINS, [0.5])
+
+
+def test_two_dimensional_offsetting_signs_cannot_hide_behind_the_mean():
+    rows = np.asarray([[-0.5, 1.5], [1.5, -0.5]])
+
+    assert np.allclose(rows.mean(axis=0), [0.5, 0.5])
+    with pytest.raises(ValueError, match="must be nonnegative"):
+        histogram_quantiles(rows, TWO_BINS, [0.5])
+
+
+def test_all_zero_weights_remain_the_documented_degenerate_case():
+    assert np.isnan(histogram_quantiles([0.0, 0.0], TWO_BINS, [0.5])).all()
 
 
 def test_histogram_quantiles_handle_gaps_points_and_dense_grids():
