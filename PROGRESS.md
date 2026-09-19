@@ -84,7 +84,21 @@ Baseline before any change: `uv run pytest -q` → 165 passed; ruff format/check
   view, and that the fan's end label reports q50 rather than the respondent-mean median.
 - Every ECB source entry in the manifest is byte-identical to `origin/main`'s.
 
+## Extra fix found while verifying
+
+A malformed-fragment sweep surfaced a real defect: `#view=__proto__` resolved
+`RENDERERS["__proto__"]` to `Object.prototype`, which is truthy, so the render threw
+and every tab was left at `tabindex="-1"` — the tablist became unreachable by
+keyboard, which is the exact failure fix 2 exists to prevent. The truthiness check
+predates this branch, but the new `hashchange` listener makes it reachable after
+load, so it is fixed here. View and concept lookups now use `Object.hasOwn`.
+
+## PR
+
+https://github.com/MaxGhenis/expectations/pull/3 — open against `main`, not merged.
+
 ## Next
 
 - [x] all nine fixes
-- [ ] push and open the PR (do not merge)
+- [x] push and open the PR (do not merge)
+- [ ] nothing outstanding; the PR is awaiting review
