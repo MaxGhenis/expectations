@@ -115,17 +115,17 @@
     <label class="view-control" id="measure-control">Measure
       <select id="measure"><option value="sd">SD decomposition</option><option value="iqr">Pooled IQR</option></select>
     </label>
-    <div class="tabs" role="tablist" id="tabs">
-      <button role="tab" data-view="overview" aria-selected="true">Overview</button>
-      <button role="tab" data-view="decomposition" aria-selected="false">Decomposition</button>
-      <button role="tab" data-view="fan" aria-selected="false">Consensus fan</button>
-      <button role="tab" data-view="calibration" aria-selected="false">Calibration</button>
-      <button role="tab" data-view="term" aria-selected="false">Term structure</button>
-      <button role="tab" data-view="scores" aria-selected="false">Scores</button>
+    <div class="tabs" role="tablist" id="tabs" aria-label="Chart view">
+      <button role="tab" id="tab-overview" data-view="overview" aria-controls="panel" aria-selected="true" tabindex="0">Overview</button>
+      <button role="tab" id="tab-decomposition" data-view="decomposition" aria-controls="panel" aria-selected="false" tabindex="-1">Decomposition</button>
+      <button role="tab" id="tab-fan" data-view="fan" aria-controls="panel" aria-selected="false" tabindex="-1">Consensus fan</button>
+      <button role="tab" id="tab-calibration" data-view="calibration" aria-controls="panel" aria-selected="false" tabindex="-1">Calibration</button>
+      <button role="tab" id="tab-term" data-view="term" aria-controls="panel" aria-selected="false" tabindex="-1">Term structure</button>
+      <button role="tab" id="tab-scores" data-view="scores" aria-controls="panel" aria-selected="false" tabindex="-1">Scores</button>
     </div>
   </div>
 
-  <div class="panel" id="panel">
+  <div class="panel" id="panel" role="tabpanel" aria-labelledby="tab-overview">
     <h2 id="chart-title"></h2>
     <p class="note" id="chart-note"></p>
     <div class="legend" id="legend"></div>
@@ -173,6 +173,25 @@ const HORIZON_LABELS = {
   year_after_next: 'Year after next (+2)', three_years_ahead: 'Three years ahead (+3)',
   rolling_1y: 'Rolling 1 year', rolling_2y: 'Rolling 2 years', longer_term: 'Longer term',
 };
+// Plain-word names for the concept each survey round actually asked about. The
+// US series changed twice: GNP to GDP in 1992, and the implicit deflator to the
+// chain-weighted price index in 1996. Without these the tracker would label a
+// 1975 round "Real GDP growth", which the survey did not ask until 1992.
+const CONCEPT_LABELS = {
+  nominal_gnp: 'nominal GNP growth',
+  real_gnp: 'real GNP growth',
+  real_gdp: 'real GDP growth',
+  gnp_implicit_deflator: 'the GNP implicit price deflator',
+  gdp_implicit_deflator: 'the GDP implicit price deflator',
+  chain_weighted_gdp_price_index: 'the chain-weighted GDP price index',
+  civilian_unemployment_rate: 'the civilian unemployment rate',
+  core_cpi: 'core CPI inflation',
+  chain_weighted_core_pce: 'chain-weighted core PCE inflation',
+  real_gdp_yoy: 'real GDP growth, year on year',
+  hicp_yoy: 'HICP inflation, year on year',
+  hicpx_yoy_ex_food_energy: 'HICP inflation excluding food and energy, year on year',
+  unemployment_rate: 'the unemployment rate',
+};
 const HORIZON_ORDER = [
   'current_year', 'next_year', 'year_after_next', 'three_years_ahead',
   'rolling_1y', 'rolling_2y', 'longer_term',
@@ -208,6 +227,58 @@ const roundTime = row => Number(row.year) + (Number(row.quarter || 1) - 1) / 4;
 const roundName = row => `${row.year} Q${row.quarter || 1}`;
 const number = (value, digits = 2) => isNumber(value) ? Number(value).toFixed(digits) : '—';
 const percent = value => isNumber(value) ? `${(100 * Number(value)).toFixed(1)}%` : '—';
+
+const conceptLabel = id => CONCEPT_LABELS[id] || String(id == null ? '' : id).replace(/_/g, ' ');
+function joinList(parts) {
+  if (parts.length < 2) return parts.join('');
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+// The concept the selected variable asks about today, taken from its latest
+// round in the full table rather than from the filtered rows, so a filter that
+// happens to exclude recent rounds cannot silently redefine "current".
+const MODERN_CONCEPTS = new Map();
+function modernConcept(survey, variable) {
+  const key = `${survey}|${variable}`;
+  if (!MODERN_CONCEPTS.has(key)) {
+    const rows = DATABASE.measures.filter(row => row.survey === survey && row.variable === variable);
+    const latest = rows.reduce((best, row) => (best && roundTime(best) >= roundTime(row) ? best : row), null);
+    MODERN_CONCEPTS.set(key, latest ? latest.concept : null);
+  }
+  return MODERN_CONCEPTS.get(key);
+}
+// Consecutive runs of one concept, in the order the rows are plotted.
+function conceptEras(rows) {
+  const eras = [];
+  rows.forEach(row => {
+    const last = eras[eras.length - 1];
+    if (last && last.concept === row.concept) { last.end = row; return; }
+    eras.push({ concept: row.concept, start: row, end: row });
+  });
+  return eras;
+}
+function conceptNote(rows, survey, variable) {
+  if (!rows.length || rows.some(row => row.concept == null)) return '';
+  const modern = modernConcept(survey, variable);
+  const eras = conceptEras(rows);
+  if (eras.length === 1 && eras[0].concept === modern) return '';
+  if (eras.length === 1) {
+    return ` Every round shown asked about ${conceptLabel(eras[0].concept)}` +
+      ` (${roundName(eras[0].start)}–${roundName(eras[0].end)}), not ${conceptLabel(modern)},` +
+      ' which is what this variable measures today.';
+  }
+  const phrases = eras.map((era, index) =>
+    `${conceptLabel(era.concept)} ${index === eras.length - 1 && era.concept === modern
+      ? `from ${roundName(era.start)} onward`
+      : `from ${roundName(era.start)} to ${roundName(era.end)}`}`
+  );
+  return ` The survey question changed concept over this span: the chart shows ${joinList(phrases)}.`;
+}
+// Name the concept in the tooltip only where it is not today's, so the common
+// case stays uncluttered and a historical round is never silently mislabeled.
+function conceptTooltipRows(row, survey, variable) {
+  if (!row || row.concept == null || row.concept === modernConcept(survey, variable)) return [];
+  return [['Concept', conceptLabel(row.concept)]];
+}
 
 function niceStep(span) {
   const rough = span / 5;
@@ -462,7 +533,7 @@ function labels() {
 }
 function selectedRows(rows, numeric = [
   'horizon_years', 'n', 'mean', 'median', 'within_sd', 'disagreement',
-  'total_sd', 'share_between', 'iqr', 'q25', 'q75',
+  'total_sd', 'share_between', 'iqr', 'q25', 'q50', 'q75',
 ], requireComplete = []) {
   const selected = rows.filter(row =>
     row.survey === byId('survey').value && row.variable === byId('variable').value &&
@@ -557,7 +628,7 @@ function decomposition() {
     (iqr
       ? 'Pooled q25–q75 is the bin-robust companion to SD; it does not have an additive within/between split.'
       : 'Total pooled variance combines average individual variance and between-forecaster disagreement by the law of total variance.') +
-    roundsNote();
+    roundsNote() + conceptNote(rows, byId('survey').value, byId('variable').value);
   const series = iqr ? [
     { key: 'iqr', color: token('--series-1'), label: 'Pooled IQR' },
   ] : [
@@ -586,12 +657,13 @@ function decomposition() {
         ['Disagreement', `${number(row.disagreement)}pp`], ['Between share', percent(row.share_between)],
       ];
     values.unshift(['Forecasters', String(row.n)]);
+    values.push(...conceptTooltipRows(row, byId('survey').value, byId('variable').value));
     return { title: roundName(row), rows: values };
   });
   dataTable(
-    iqr ? ['Forecast round', 'n', 'q25', 'Median', 'q75', 'IQR']
+    iqr ? ['Forecast round', 'n', 'q25', 'Pooled median', 'q75', 'IQR']
       : ['Forecast round', 'n', 'Total', 'Individual', 'Disagreement', 'Between share'],
-    iqr ? rows.map(row => [roundName(row), row.n, number(row.q25), number(row.median), number(row.q75), number(row.iqr)])
+    iqr ? rows.map(row => [roundName(row), row.n, number(row.q25), number(row.q50), number(row.q75), number(row.iqr)])
       : rows.map(row => [roundName(row), row.n, number(row.total_sd), number(row.within_sd), number(row.disagreement), percent(row.share_between)])
   );
 }
@@ -605,27 +677,28 @@ function fan() {
     (byId('rounds').value === 'all' || Number(row.quarter) === 1)
   ).sort((a, b) => roundTime(a) - roundTime(b)) : [];
   byId('chart-title').textContent = showLongrun
-    ? 'The consensus — selected horizon and the next decade'
-    : 'Consensus median and pooled interquartile range';
-  byId('chart-note').textContent = `${chosen.variable}, ${chosen.horizon.toLowerCase()}: median with the pooled q25–q75 density band.` +
+    ? 'Pooled median and interquartile range, with the next decade'
+    : 'Pooled median and interquartile range';
+  byId('chart-note').textContent = `${chosen.variable}, ${chosen.horizon.toLowerCase()}: the pooled median (q50) with the pooled q25–q75 band. ` +
+    'Line and band are quantiles of the same pooled distribution. The table also reports the median of ' +
+    'individual forecasters\u2019 density-implied means, a different statistic that can sit outside the band.' +
     (showLongrun
-      ? ' RGDP10 supplies a median and reported IQR only, so its median is drawn without a reconstructed quartile band.'
-      : '') + roundsNote();
+      ? ' RGDP10 reports a median point forecast and a reported IQR only, so it is drawn without a reconstructed quartile band.'
+      : '') + roundsNote() + conceptNote(rows, byId('survey').value, byId('variable').value);
   const times = rows.map(roundTime).concat(longrun.map(roundTime));
-  const domain = makeDomain(rows.flatMap(row => [row.q25, row.q75, row.median]).concat(longrun.map(row => row.median)));
+  const domain = makeDomain(rows.flatMap(row => [row.q25, row.q75, row.q50]).concat(longrun.map(row => row.median)));
   const scales = makeScales(times, domain);
   axes(scales, domain, '%');
   band(rows, scales, row => row.q25, row => row.q75);
-  line(rows.map(row => [roundTime(row), row.median]), scales, token('--series-1'));
+  line(rows.map(row => [roundTime(row), row.q50]), scales, token('--series-1'));
+  const fanLegend = [{ color: token('--series-1'), label: `${chosen.horizon} — pooled median + pooled q25–q75` }];
   if (longrun.length) {
     line(longrun.map(row => [roundTime(row), row.median]), scales, token('--series-2'), '7 5');
-    setLegend([
-      { color: token('--series-1'), label: `${chosen.horizon} — median + pooled q25–q75` },
-      { color: token('--series-2'), label: 'Next 10 years, average annual — median' },
-    ]);
+    fanLegend.push({ color: token('--series-2'), label: 'Next 10 years, average annual — median point forecast' });
   }
+  setLegend(fanLegend);
   const last = rows[rows.length - 1];
-  endpoint(roundTime(last), last.median, scales, token('--series-1'), `${number(last.median, 1)}% · IQR ${number(last.iqr, 1)}`);
+  endpoint(roundTime(last), last.q50, scales, token('--series-1'), `${number(last.q50, 1)}% · IQR ${number(last.iqr, 1)}`);
   if (longrun.length) {
     const end = longrun[longrun.length - 1];
     endpoint(roundTime(end), end.median, scales, token('--series-2'), `${number(end.median, 1)}% · IQR ${number(end.iqr, 1)}`);
@@ -635,18 +708,21 @@ function fan() {
   crosshair(times, scales, time => {
     const density = densityByTime.get(time), decade = longrunByTime.get(time), values = [];
     if (density) values.push(
-      ['Selected median', `${number(density.median)}%`],
-      ['Selected q25–q75', `${number(density.q25)}% – ${number(density.q75)}%`],
-      ['Selected IQR', `${number(density.iqr)}pp`]
+      ['Pooled median', `${number(density.q50)}%`],
+      ['Pooled q25–q75', `${number(density.q25)}% – ${number(density.q75)}%`],
+      ['Pooled IQR', `${number(density.iqr)}pp`],
+      ['Median of respondent means', `${number(density.median)}%`]
     );
-    if (decade) values.push(['10-year median', `${number(decade.median)}%`], ['10-year IQR', `${number(decade.iqr)}pp`]);
+    if (decade) values.push(['10-year median point forecast', `${number(decade.median)}%`], ['10-year IQR', `${number(decade.iqr)}pp`]);
+    values.push(...conceptTooltipRows(density, byId('survey').value, byId('variable').value));
     return density || decade ? { title: roundName(density || decade), rows: values } : null;
   });
   dataTable(
-    ['Forecast round', 'Median', 'q25', 'q75', 'Pooled IQR'].concat(longrun.length ? ['10-year median', '10-year IQR'] : []),
+    ['Forecast round', 'Pooled median', 'q25', 'q75', 'Pooled IQR', 'Median of respondent means']
+      .concat(longrun.length ? ['10-year median point forecast', '10-year IQR'] : []),
     [...new Set(times)].sort((a, b) => a - b).map(time => {
       const density = densityByTime.get(time), decade = longrunByTime.get(time), basis = density || decade;
-      const values = [roundName(basis), density ? number(density.median) : '', density ? number(density.q25) : '', density ? number(density.q75) : '', density ? number(density.iqr) : ''];
+      const values = [roundName(basis), density ? number(density.q50) : '', density ? number(density.q25) : '', density ? number(density.q75) : '', density ? number(density.iqr) : '', density ? number(density.median) : ''];
       if (longrun.length) values.push(decade ? number(decade.median) : '', decade ? number(decade.iqr) : '');
       return values;
     })
@@ -670,7 +746,8 @@ function calibration() {
   byId('chart-note').textContent = `${chosen.variable}, ${chosen.horizon.toLowerCase()}: ${coveredSd} of ${rows.length} ` +
     `(${(100 * coveredSd / rows.length).toFixed(1)}%) inside consensus ± total pooled SD; ${covered90} of ${rows.length} ` +
     `(${(100 * covered90 / rows.length).toFixed(1)}%) inside pooled q05–q95.` + roundsNote(false) +
-    ' The x-axis is the forecast round, not the target period.';
+    ' The x-axis is the forecast round, not the target period.' +
+    conceptNote(rows, byId('survey').value, byId('variable').value);
   const times = rows.map(roundTime);
   const domain = makeDomain(rows.flatMap(row => [row.consensus - row.total_sd, row.consensus + row.total_sd, row.realized]));
   const scales = makeScales(times, domain);
@@ -708,11 +785,13 @@ function calibration() {
   });
   crosshair(times, scales, time => {
     const group = byTime.get(time);
+    const survey = byId('survey').value, variable = byId('variable').value;
     if (group.length > 1) return {
       title: `${roundName(group[0])} · ${group.length} matched rows`,
       rows: [
         ['Inside ±SD', `${group.filter(row => row.inside_1sd).length} / ${group.length}`],
         ['Inside q05–q95', `${group.filter(row => row.inside_pooled_90).length} / ${group.length}`],
+        ...conceptTooltipRows(group[0], survey, variable),
       ],
     };
     const row = group[0];
@@ -722,6 +801,7 @@ function calibration() {
         ['Consensus', `${number(row.consensus)}%`], ['Realized', `${number(row.realized)}%`],
         ['Error', `${number(row.realized - row.consensus)}pp`], ['Band ±', `${number(row.total_sd)}pp`],
         ['Inside ±SD', row.inside_1sd ? 'yes' : 'no'], ['Inside q05–q95', row.inside_pooled_90 ? 'yes' : 'no'],
+        ...conceptTooltipRows(row, survey, variable),
       ],
     };
   });
@@ -760,7 +840,8 @@ function scores() {
   const unavailableNote = unavailableBenchmarks.length
     ? ` ${unavailableBenchmarks.map(item => item.short).join(' and ')} benchmark${unavailableBenchmarks.length > 1 ? 's are' : ' is'} unavailable for this selection.`
     : '';
-  byId('chart-note').textContent += unavailableNote;
+  byId('chart-note').textContent +=
+    unavailableNote + conceptNote(rows, byId('survey').value, byId('variable').value);
   const times = rows.map(roundTime);
   const domain = makeDomain(availableSeries.flatMap(item => rows.map(row => row[item.key])), true);
   const scales = makeScales(times, domain);
@@ -782,7 +863,9 @@ function scores() {
     const row = byTime.get(time);
     return {
       title: roundName(row),
-      rows: availableSeries.map(item => [item.label, scoreLabel(row[item.key])]),
+      rows: availableSeries.map(item => [item.label, scoreLabel(row[item.key])]).concat(
+        conceptTooltipRows(row, byId('survey').value, byId('variable').value)
+      ),
     };
   });
   dataTable(
@@ -824,6 +907,7 @@ function buildTermData() {
     if (!rounds.has(key)) rounds.set(key, new Map());
     rounds.get(key).set(first.horizon_class, {
       year: first.year, quarter: first.quarter, horizon_class: first.horizon_class,
+      concept: first.concept,
       total_sd: average(values, 'total_sd'), within_sd: average(values, 'within_sd'),
     });
   });
@@ -832,6 +916,11 @@ function buildTermData() {
     .sort((a, b) => roundTime(a.values().next().value) - roundTime(b.values().next().value));
   return {
     balanced,
+    // One row per balanced round, for the concept-era note. Every horizon in a
+    // round shares the round's concept, so the first cell identifies it.
+    roundRows: balanced.map(map => map.values().next().value),
+    survey,
+    variable,
     summary: present.map(horizon => {
       const values = balanced.map(map => map.get(horizon));
       return {
@@ -851,9 +940,10 @@ function termStructure() {
   const last = data.balanced[data.balanced.length - 1].values().next().value;
   const sample = data.ecb ? `${roundName(first)}–${roundName(last)}` : `${first.year}–${last.year}`;
   byId('chart-title').textContent = 'Mean stated uncertainty by horizon';
+  const eraNote = conceptNote(data.roundRows, data.survey, data.variable);
   byId('chart-note').textContent = `${chosen.variable}: mean SD across ${data.balanced.length} balanced ` +
     `${data.ecb ? 'quarterly' : 'Q1'} rounds (${sample}); every displayed horizon is present in every round.` +
-    (data.ecb ? ' Duplicate early longer-term targets are averaged within round before balancing.' : '');
+    (data.ecb ? ' Duplicate early longer-term targets are averaged within round before balancing.' : '') + eraNote;
   const xs = data.summary.map((row, i) => i);
   const domain = makeDomain(data.summary.flatMap(row => [row.total_sd, row.within_sd]), true);
   const scales = makeScales(xs, domain);
@@ -877,6 +967,9 @@ function termStructure() {
   const lastIndex = data.summary.length - 1, end = data.summary[lastIndex];
   endpoint(lastIndex, end.total_sd, scales, token('--series-1'), `Total ${number(end.total_sd)}`);
   endpoint(lastIndex, end.within_sd, scales, token('--series-2'), `Individual ${number(end.within_sd)}`);
+  const averagedConcepts = eraNote
+    ? [['Concepts averaged', joinList([...new Set(data.roundRows.map(row => row.concept))].map(conceptLabel))]]
+    : [];
   crosshair(xs, scales, index => {
     const row = data.summary[index];
     return {
@@ -885,6 +978,7 @@ function termStructure() {
         ['Mean total SD', `${number(row.total_sd)}pp`],
         ['Mean individual SD', `${number(row.within_sd)}pp`],
         ['Balanced rounds', String(row.rounds)],
+        ...averagedConcepts,
       ],
     };
   });
@@ -938,12 +1032,7 @@ function applyHash() {
   const compare = params.get('compare');
   if (compare && hasOption(byId('compare'), compare)) byId('compare').value = compare;
   const view = params.get('view');
-  if (view && RENDERERS[view]) {
-    activeView = view;
-    document.querySelectorAll('#tabs button').forEach(tab =>
-      tab.setAttribute('aria-selected', tab.dataset.view === view ? 'true' : 'false')
-    );
-  }
+  if (view && RENDERERS[view]) setActiveTab(view);
 }
 function writeHash() {
   const params = new URLSearchParams();
@@ -951,6 +1040,37 @@ function writeHash() {
   for (const id of ['survey', 'variable', 'horizon', 'rounds', 'measure', 'concept', 'compare']) params.set(id, byId(id).value);
   history.replaceState(null, '', '#' + params.toString());
 }
+
+// One place owns tab state: aria-selected, the roving tabindex, and the panel's
+// accessible name. Focus only moves when the keyboard asked for it, so a click
+// or a hash change does not steal it.
+const TABS = [...document.querySelectorAll('#tabs button[role="tab"]')];
+function setActiveTab(view, { focus = false } = {}) {
+  if (!RENDERERS[view]) return;
+  activeView = view;
+  TABS.forEach(tab => {
+    const selected = tab.dataset.view === view;
+    tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+    tab.tabIndex = selected ? 0 : -1;
+    if (selected) {
+      byId('panel').setAttribute('aria-labelledby', tab.id);
+      if (focus) tab.focus();
+    }
+  });
+}
+byId('tabs').addEventListener('keydown', event => {
+  const moves = { ArrowRight: 1, ArrowLeft: -1, Home: 'first', End: 'last' };
+  const move = moves[event.key];
+  if (move === undefined) return;
+  event.preventDefault();
+  const current = TABS.findIndex(tab => tab.dataset.view === activeView);
+  const next = move === 'first' ? 0
+    : move === 'last' ? TABS.length - 1
+    : (Math.max(current, 0) + move + TABS.length) % TABS.length;
+  setActiveTab(TABS[next].dataset.view, { focus: true });
+  renderInteractive();
+  writeHash();
+});
 
 fillSelect(byId('survey'), surveys(), 'us');
 fillVariables('PRGDP');
@@ -962,12 +1082,9 @@ byId('survey').addEventListener('change', () => { fillVariables(); renderInterac
 byId('variable').addEventListener('change', () => { fillHorizons(); renderInteractive(); });
 ['horizon', 'rounds', 'measure'].forEach(id => byId(id).addEventListener('change', renderInteractive));
 byId('tabs').addEventListener('click', event => {
-  const button = event.target.closest('button');
+  const button = event.target.closest('button[role="tab"]');
   if (!button) return;
-  activeView = button.dataset.view;
-  document.querySelectorAll('#tabs button').forEach(tab =>
-    tab.setAttribute('aria-selected', tab === button ? 'true' : 'false')
-  );
+  setActiveTab(button.dataset.view);
   renderInteractive();
 });
 const colorMode = matchMedia('(prefers-color-scheme: dark)');
@@ -975,6 +1092,13 @@ if (colorMode.addEventListener) colorMode.addEventListener('change', renderInter
 applyHash();
 renderInteractive();
 writeHash();
+// writeHash uses history.replaceState, which does not fire hashchange, so this
+// listener only ever responds to a fragment the user or a link changed.
+addEventListener('hashchange', () => {
+  applyHash();
+  renderInteractive();
+  writeHash();
+});
 ['survey', 'variable', 'horizon', 'rounds', 'measure', 'concept', 'compare'].forEach(id =>
   byId(id).addEventListener('change', writeHash)
 );
