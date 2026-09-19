@@ -211,6 +211,19 @@ def test_all_zero_weights_remain_the_documented_degenerate_case():
     assert np.isnan(histogram_quantiles([0.0, 0.0], TWO_BINS, [0.5])).all()
 
 
+def test_a_nonfinite_total_from_finite_weights_still_returns_missing_values():
+    """Rejecting signed mass must not narrow the documented degenerate case.
+
+    Each weight here is finite, so the new guard lets them through, but their
+    sum overflows.  That case returned missing values before and still does.
+    """
+    weights = [1e308, 1e308]
+    with np.errstate(over="ignore"):
+        assert np.isfinite(np.asarray(weights)).all()
+        assert not np.isfinite(np.sum(weights))
+        assert np.isnan(histogram_quantiles(weights, TWO_BINS, [0.5])).all()
+
+
 def test_histogram_quantiles_handle_gaps_points_and_dense_grids():
     levels = np.asarray([0.0, 0.1, 0.25, 0.3, 0.5, 0.5001, 0.75, 1.0])
 
