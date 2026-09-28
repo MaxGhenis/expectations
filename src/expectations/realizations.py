@@ -787,7 +787,8 @@ def _core_cpi_source(filled: tuple[str, ...]) -> str:
         return source
     return (
         f"{source}; BLS did not collect {', '.join(filled)}, filled with the mean "
-        "of the adjacent months as in BLS's own fourth-quarter averages"
+        "of the adjacent months as in the BLS productivity program's fourth-quarter "
+        "averages"
     )
 
 
