@@ -2,8 +2,10 @@
 
 Run from the repository root with ``python scripts/download_ecb_annual_realizations.py``.
 The legacy ICP series match the existing rolling files' classification/geography;
-they stop in December 2025. New HICP flow observations are intentionally not spliced
-into these archived series. Retrieval time is not an economic vintage identifier.
+they stop in December 2025, when the ECB moved HICP to a new flow classified by
+ECOICOP version 2. That successor flow restates history, so it never replaces a
+period the legacy series covers: it supplies only the months and years after the
+legacy series ends. Retrieval time is not an economic vintage identifier.
 
 Sources already present with the recorded checksum are reused rather than
 re-downloaded, so adding a companion never silently re-vintages the others.
@@ -42,6 +44,38 @@ SOURCES = {
     "ecb_ea_hicpx_index_monthly.csv": "ICP.M.U2.N.XEF000.4.INX",
     "ecb_ea_hicp_growth_annual.csv": "ICP.A.U2.N.000000.4.AVR",
     "ecb_ea_hicpx_growth_annual.csv": "ICP.A.U2.N.XEF000.4.AVR",
+    "ecb_ea_hicp_yoy_monthly_ecoicop2.csv": "HICP.M.U2.N.000000.4D0.ANR",
+    "ecb_ea_hicpx_yoy_monthly_ecoicop2.csv": "HICP.M.U2.N.XEF000.4D0.ANR",
+    "ecb_ea_hicp_growth_annual_ecoicop2.csv": "HICP.A.U2.N.000000.4D0.AVR",
+    "ecb_ea_hicpx_growth_annual_ecoicop2.csv": "HICP.A.U2.N.XEF000.4D0.AVR",
+}
+# Each ECOICOP v2 successor file continues one legacy ICP file.
+SUCCESSORS = {
+    "ecb_ea_hicp_yoy_monthly_ecoicop2.csv": "ecb_ea_hicp_yoy_monthly.csv",
+    "ecb_ea_hicpx_yoy_monthly_ecoicop2.csv": "ecb_ea_hicpx_yoy_monthly.csv",
+    "ecb_ea_hicp_growth_annual_ecoicop2.csv": "ecb_ea_hicp_growth_annual.csv",
+    "ecb_ea_hicpx_growth_annual_ecoicop2.csv": "ecb_ea_hicpx_growth_annual.csv",
+}
+# Rolling archives this script never downloads. Their retrieval dates were not
+# recorded; the commit that added each file bounds that date from above, and the
+# checksum ties the bound to these exact bytes.
+ROLLING_ARCHIVES = {
+    "ecb_ea_hicp_yoy_monthly.csv": ("ICP.M.U2.N.000000.4.ANR", "059665a", "2026-08-26"),
+    "ecb_ea_hicpx_yoy_monthly.csv": (
+        "ICP.M.U2.N.XEF000.4.ANR",
+        "671e751",
+        "2026-08-26",
+    ),
+    "ecb_ea_rgdp_yoy_quarterly.csv": (
+        "MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY",
+        "059665a",
+        "2026-08-26",
+    ),
+    "ecb_ea_unemployment_monthly.csv": (
+        "LFSI.M.I9.S.UNEHRT.TOTAL0.15_74.T",
+        "059665a",
+        "2026-08-26",
+    ),
 }
 METADATA_COLUMNS = (
     "TITLE",
@@ -86,7 +120,9 @@ NOTES = [
     "Existing rolling raw files are preserved. Their original retrieval dates are unrecorded; do not infer identical vintages from this companion retrieval date.",
     "GDP companion level implied quarterly year-on-year growth is compared with the archived rolling values in verification; retrieval date alone does not establish vintage equality.",
     "Calendar inflation values are the official annual observations. Their emitted status is the union of the official annual status and the archived subannual statuses for the same year, so a provisional month is not hidden by a final annual flag.",
-    "Legacy ICP flow is discontinued; the new HICP flow is not spliced into this 1997–2025 outcome history.",
+    "Legacy ICP flow is discontinued after December 2025; the new HICP flow is not spliced into the 1997–2025 outcome history. Every period the legacy series covers keeps its legacy value, and only later periods (January 2026 onward, and calendar years after 2025) come from the ECOICOP version 2 successor, their only publication. Verification records how the successor's restated history differs from the legacy values over the overlap.",
+    "Successor files mark periods before their series starts with a blank value and status Q; those rows are dropped, and no successor period inside the legacy range is ever read.",
+    "rolling_archives records, for each rolling file this script does not download, its checksum and the date of the commit that added it, an upper bound on its unrecorded retrieval date.",
 ]
 EUROSTAT_ANNUAL_GROWTH_FILE = "eurostat_ea20_rgdp_growth_annual.json"
 EUROSTAT_ANNUAL_GROWTH_URL = (
@@ -109,7 +145,15 @@ def _rows(payload: bytes) -> list[dict[str, str]]:
 
 
 def _values(payload: bytes) -> dict[str, float]:
-    return {row["TIME_PERIOD"]: float(row["OBS_VALUE"]) for row in _rows(payload)}
+    """Numeric observations; a blank value is accepted only as flagged missing."""
+    values = {}
+    for row in _rows(payload):
+        if not row["OBS_VALUE"].strip():
+            if row["OBS_STATUS"] not in {"M", "Q"}:
+                raise ValueError(f"Blank ECB value at {row['TIME_PERIOD']}")
+            continue
+        values[row["TIME_PERIOD"]] = float(row["OBS_VALUE"])
+    return values
 
 
 def _annual_sums(levels: dict[str, float]) -> dict[str, float]:
@@ -252,6 +296,16 @@ def verify_companions(acquired: dict[str, bytes]) -> dict:
         ),
     }
 
+    for successor, legacy in SUCCESSORS.items():
+        verification[f"{Path(successor).stem}_vs_legacy"] = _successor_summary(
+            _values(
+                (RAW / legacy).read_bytes()
+                if legacy not in acquired
+                else acquired[legacy]
+            ),
+            _values(acquired[successor]),
+        )
+
     for variable in ("hicp", "hicpx"):
         index = _values(acquired[f"ecb_ea_{variable}_index_monthly.csv"])
         annual = _values(acquired[f"ecb_ea_{variable}_growth_annual.csv"])
@@ -281,15 +335,61 @@ def verify_companions(acquired: dict[str, bytes]) -> dict:
     return verification
 
 
+def _successor_summary(
+    legacy: dict[str, float], successor: dict[str, float]
+) -> dict[str, object]:
+    """How a successor's restated history compares with the legacy values."""
+    shared = sorted(set(legacy) & set(successor))
+    differing = {
+        period: round(successor[period] - legacy[period], 10)
+        for period in shared
+        if abs(successor[period] - legacy[period]) > 1e-9
+    }
+    years = sorted({period[:4] for period in differing})
+    return {
+        "legacy_last_period": max(legacy),
+        "successor_last_period": max(successor),
+        "successor_periods_used": sorted(
+            period for period in successor if period > max(legacy)
+        ),
+        "overlap_periods": len(shared),
+        "overlap_periods_differing": len(differing),
+        "overlap_max_absolute_difference_pp": max(
+            (abs(value) for value in differing.values()), default=0.0
+        ),
+        "overlap_years_with_differences": years,
+    }
+
+
+def describe_rolling_archive(filename: str) -> dict[str, object]:
+    key, commit, committed_on = ROLLING_ARCHIVES[filename]
+    payload = (RAW / filename).read_bytes()
+    records = _rows(payload)
+    if {row["KEY"] for row in records} != {key}:
+        raise ValueError(f"Unexpected series in rolling archive {filename}")
+    periods = [row["TIME_PERIOD"] for row in records]
+    return {
+        "series_key": key,
+        "sha256": hashlib.sha256(payload).hexdigest(),
+        "observations": len(records),
+        "first_period": min(periods),
+        "last_period": max(periods),
+        "retrieved_at_utc": None,
+        "retrieved_no_later_than": committed_on,
+        "retrieval_bound_basis": f"added to the repository in commit {commit}",
+    }
+
+
 def describe(
     payload: bytes, *, key: str, url: str, retrieved_at_utc: str
 ) -> dict[str, object]:
     records = _rows(payload)
     if not records or {row["KEY"] for row in records} != {key}:
         raise ValueError(f"Unexpected or empty series for {url}")
-    periods = [row["TIME_PERIOD"] for row in records]
+    periods = [row["TIME_PERIOD"] for row in records if row["OBS_VALUE"].strip()]
     if len(set(periods)) != len(periods):
         raise ValueError(f"Duplicate periods for {url}")
+    _values(payload)
     flow = key.split(".", 1)[0]
     first = records[0]
     return {
@@ -297,7 +397,7 @@ def describe(
         "url": url,
         "portal_url": f"https://data.ecb.europa.eu/data/datasets/{flow}/{key}",
         "sha256": hashlib.sha256(payload).hexdigest(),
-        "observations": len(records),
+        "observations": len(periods),
         "first_period": min(periods),
         "last_period": max(periods),
         "retrieved_at_utc": retrieved_at_utc,
@@ -388,6 +488,10 @@ def main() -> None:
         "retrieved_at_utc": now,
         "notes": NOTES,
         "sources": sources,
+        "rolling_archives": {
+            filename: describe_rolling_archive(filename)
+            for filename in ROLLING_ARCHIVES
+        },
         "verification": verify_companions(acquired),
     }
     for filename in fetched:

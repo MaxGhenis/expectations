@@ -1,5 +1,5 @@
 {
-  "retrieved_at_utc": "2026-09-19T12:42:35.352328+00:00",
+  "retrieved_at_utc": "2026-09-28T13:44:18.859313+00:00",
   "notes": [
     "Annual real GDP growth is the official ECB annual growth rate (MNA ... EUR_R_B1GQ.Y.GOY, titled 'Gross domestic product at market prices, annual growth rate'), non-adjusted, previous-year prices, fixed EA20 composition. It replaces growth in sums of calendar-and-seasonally-adjusted quarterly levels, which is not the published annual rate.",
     "Verification records that the official annual rate equals growth in sums of the non-adjusted quarterly levels, and how far the superseded adjusted-level sums departed from it.",
@@ -9,7 +9,9 @@
     "Existing rolling raw files are preserved. Their original retrieval dates are unrecorded; do not infer identical vintages from this companion retrieval date.",
     "GDP companion level implied quarterly year-on-year growth is compared with the archived rolling values in verification; retrieval date alone does not establish vintage equality.",
     "Calendar inflation values are the official annual observations. Their emitted status is the union of the official annual status and the archived subannual statuses for the same year, so a provisional month is not hidden by a final annual flag.",
-    "Legacy ICP flow is discontinued; the new HICP flow is not spliced into this 1997\u20132025 outcome history."
+    "Legacy ICP flow is discontinued after December 2025; the new HICP flow is not spliced into the 1997\u20132025 outcome history. Every period the legacy series covers keeps its legacy value, and only later periods (January 2026 onward, and calendar years after 2025) come from the ECOICOP version 2 successor, their only publication. Verification records how the successor's restated history differs from the legacy values over the overlap.",
+    "Successor files mark periods before their series starts with a blank value and status Q; those rows are dropped, and no successor period inside the legacy range is ever read.",
+    "rolling_archives records, for each rolling file this script does not download, its checksum and the date of the commit that added it, an upper bound on its unrecorded retrieval date."
   ],
   "sources": {
     "ecb_ea_rgdp_growth_annual.csv": {
@@ -156,6 +158,86 @@
         "DECIMALS": "1"
       }
     },
+    "ecb_ea_hicp_yoy_monthly_ecoicop2.csv": {
+      "series_key": "HICP.M.U2.N.000000.4D0.ANR",
+      "url": "https://data-api.ecb.europa.eu/service/data/HICP/M.U2.N.000000.4D0.ANR?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/HICP/HICP.M.U2.N.000000.4D0.ANR",
+      "sha256": "954875fc3f44afe47d2840776ee8ff9be6303c5b771da6dbe12fa360962a5337",
+      "observations": 356,
+      "first_period": "1997-01",
+      "last_period": "2026-08",
+      "retrieved_at_utc": "2026-09-28T13:44:18.859313+00:00",
+      "metadata": {
+        "TITLE": "HICP Inflation rate - Total - Annual rate of change",
+        "TITLE_COMPL": "Euro area (Member States and Institutions of the Euro Area) changing composition - HICP - Total, Annual rate of change, Statistical Office of the European Commission (Eurostat), Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "M",
+        "UNIT": "PCCH",
+        "UNIT_MULT": "0",
+        "DECIMALS": "1"
+      }
+    },
+    "ecb_ea_hicpx_yoy_monthly_ecoicop2.csv": {
+      "series_key": "HICP.M.U2.N.XEF000.4D0.ANR",
+      "url": "https://data-api.ecb.europa.eu/service/data/HICP/M.U2.N.XEF000.4D0.ANR?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/HICP/HICP.M.U2.N.XEF000.4D0.ANR",
+      "sha256": "fc1767aba326bd6b79029e341b47602922d023f6e2d8406db4c91555abf6ac50",
+      "observations": 356,
+      "first_period": "1997-01",
+      "last_period": "2026-08",
+      "retrieved_at_utc": "2026-09-28T13:44:18.859313+00:00",
+      "metadata": {
+        "TITLE": "HICP Inflation rate - Total excluding energy, food, alcohol and tobacco - Annual rate of change",
+        "TITLE_COMPL": "Euro area (Member States and Institutions of the Euro Area) changing composition - HICP - Total excluding energy, food, alcohol and tobacco, Annual rate of change, Statistical Office of the European Commission (Eurostat), Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "M",
+        "UNIT": "PCCH",
+        "UNIT_MULT": "0",
+        "DECIMALS": "1"
+      }
+    },
+    "ecb_ea_hicp_growth_annual_ecoicop2.csv": {
+      "series_key": "HICP.A.U2.N.000000.4D0.AVR",
+      "url": "https://data-api.ecb.europa.eu/service/data/HICP/A.U2.N.000000.4D0.AVR?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/HICP/HICP.A.U2.N.000000.4D0.AVR",
+      "sha256": "2c449ab047409bbb744421fb77469227b07c938ca00a516546209135b5ed0841",
+      "observations": 28,
+      "first_period": "1998",
+      "last_period": "2025",
+      "retrieved_at_utc": "2026-09-28T13:44:18.859313+00:00",
+      "metadata": {
+        "TITLE": "HICP Inflation rate - Total - Annual average rate of change",
+        "TITLE_COMPL": "Euro area (Member States and Institutions of the Euro Area) changing composition - HICP - Total, Annual average rate of change, Statistical Office of the European Commission (Eurostat), Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "A",
+        "UNIT": "PCCH",
+        "UNIT_MULT": "0",
+        "DECIMALS": "1"
+      }
+    },
+    "ecb_ea_hicpx_growth_annual_ecoicop2.csv": {
+      "series_key": "HICP.A.U2.N.XEF000.4D0.AVR",
+      "url": "https://data-api.ecb.europa.eu/service/data/HICP/A.U2.N.XEF000.4D0.AVR?format=csvdata",
+      "portal_url": "https://data.ecb.europa.eu/data/datasets/HICP/HICP.A.U2.N.XEF000.4D0.AVR",
+      "sha256": "5968ba9e0ac4c86966e7dcffcc7006ebc56dacf0d9d6e92992f05e66cc20e4d0",
+      "observations": 28,
+      "first_period": "1998",
+      "last_period": "2025",
+      "retrieved_at_utc": "2026-09-28T13:44:18.859313+00:00",
+      "metadata": {
+        "TITLE": "HICP Inflation rate - Total excluding energy, food, alcohol and tobacco - Annual average rate of change",
+        "TITLE_COMPL": "Euro area (Member States and Institutions of the Euro Area) changing composition - HICP - Total excluding energy, food, alcohol and tobacco, Annual average rate of change, Statistical Office of the European Commission (Eurostat), Neither seasonally nor working day adjusted",
+        "REF_AREA": "U2",
+        "ADJUSTMENT": "N",
+        "FREQ": "A",
+        "UNIT": "PCCH",
+        "UNIT_MULT": "0",
+        "DECIMALS": "1"
+      }
+    },
     "eurostat_ea20_rgdp_growth_annual.json": {
       "dataset": "NAMA_10_GDP",
       "dimensions": {
@@ -180,6 +262,48 @@
         "unit_label": "Chain linked volumes, percentage change on previous period",
         "na_item_label": "Gross domestic product at market prices"
       }
+    }
+  },
+  "rolling_archives": {
+    "ecb_ea_hicp_yoy_monthly.csv": {
+      "series_key": "ICP.M.U2.N.000000.4.ANR",
+      "sha256": "a511b279c5da5db278c4b21ce8aa9b87ad6de7a86c68f66dd079d11c061588c7",
+      "observations": 348,
+      "first_period": "1997-01",
+      "last_period": "2025-12",
+      "retrieved_at_utc": null,
+      "retrieved_no_later_than": "2026-08-26",
+      "retrieval_bound_basis": "added to the repository in commit 059665a"
+    },
+    "ecb_ea_hicpx_yoy_monthly.csv": {
+      "series_key": "ICP.M.U2.N.XEF000.4.ANR",
+      "sha256": "95ee21896135f7854e1376358e36475e950e143a073060dd26ab205758216a9d",
+      "observations": 348,
+      "first_period": "1997-01",
+      "last_period": "2025-12",
+      "retrieved_at_utc": null,
+      "retrieved_no_later_than": "2026-08-26",
+      "retrieval_bound_basis": "added to the repository in commit 671e751"
+    },
+    "ecb_ea_rgdp_yoy_quarterly.csv": {
+      "series_key": "MNA.Q.Y.I9.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY",
+      "sha256": "70542cf496cc72b25d568e4c119ca70813484293a90611b09b54318018e0b954",
+      "observations": 121,
+      "first_period": "1996-Q1",
+      "last_period": "2026-Q1",
+      "retrieved_at_utc": null,
+      "retrieved_no_later_than": "2026-08-26",
+      "retrieval_bound_basis": "added to the repository in commit 059665a"
+    },
+    "ecb_ea_unemployment_monthly.csv": {
+      "series_key": "LFSI.M.I9.S.UNEHRT.TOTAL0.15_74.T",
+      "sha256": "9d99530299ff69f91010843a43a2dc6a18e8987c0addddd5fbeb21f665bc5302",
+      "observations": 318,
+      "first_period": "2000-01",
+      "last_period": "2026-06",
+      "retrieved_at_utc": null,
+      "retrieved_no_later_than": "2026-08-26",
+      "retrieval_bound_basis": "added to the repository in commit 059665a"
     }
   },
   "verification": {
@@ -244,6 +368,104 @@
         "2017",
         "2019",
         "2024"
+      ]
+    },
+    "ecb_ea_hicp_yoy_monthly_ecoicop2_vs_legacy": {
+      "legacy_last_period": "2025-12",
+      "successor_last_period": "2026-08",
+      "successor_periods_used": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08"
+      ],
+      "overlap_periods": 348,
+      "overlap_periods_differing": 25,
+      "overlap_max_absolute_difference_pp": 0.1,
+      "overlap_years_with_differences": [
+        "1997",
+        "1999",
+        "2000",
+        "2001",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2015",
+        "2016",
+        "2022",
+        "2023",
+        "2025"
+      ]
+    },
+    "ecb_ea_hicpx_yoy_monthly_ecoicop2_vs_legacy": {
+      "legacy_last_period": "2025-12",
+      "successor_last_period": "2026-08",
+      "successor_periods_used": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08"
+      ],
+      "overlap_periods": 348,
+      "overlap_periods_differing": 74,
+      "overlap_max_absolute_difference_pp": 0.6,
+      "overlap_years_with_differences": [
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2010",
+        "2013",
+        "2015",
+        "2016",
+        "2017",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2024"
+      ]
+    },
+    "ecb_ea_hicp_growth_annual_ecoicop2_vs_legacy": {
+      "legacy_last_period": "2025",
+      "successor_last_period": "2025",
+      "successor_periods_used": [],
+      "overlap_periods": 28,
+      "overlap_periods_differing": 0,
+      "overlap_max_absolute_difference_pp": 0.0,
+      "overlap_years_with_differences": []
+    },
+    "ecb_ea_hicpx_growth_annual_ecoicop2_vs_legacy": {
+      "legacy_last_period": "2025",
+      "successor_last_period": "2025",
+      "successor_periods_used": [],
+      "overlap_periods": 28,
+      "overlap_periods_differing": 4,
+      "overlap_max_absolute_difference_pp": 0.5,
+      "overlap_years_with_differences": [
+        "1998",
+        "1999",
+        "2000",
+        "2001"
       ]
     },
     "hicp_avr_vs_annual_index_growth": {

@@ -405,3 +405,121 @@ def test_eurostat_comparator_identity_and_hash_are_verified(tmp_path: Path, corr
 
     with pytest.raises(ValueError, match="checksum|identity|is \\["):
         load_eurostat_ea20_annual_growth(tmp_path)
+
+
+SUCCESSOR_MONTHLY = {
+    "hicp": "ecb_ea_hicp_yoy_monthly_ecoicop2.csv",
+    "hicpx": "ecb_ea_hicpx_yoy_monthly_ecoicop2.csv",
+}
+
+
+@pytest.mark.parametrize("variable", ["hicp", "hicpx"])
+def test_successor_supplies_only_months_after_the_legacy_series_ends(variable):
+    """2026 targets resolve; no month the legacy series covers changes."""
+    legacy = _load_ecb_series(DEFAULT_RAW_DIR / f"ecb_ea_{variable}_yoy_monthly.csv")
+    successor = pd.read_csv(DEFAULT_RAW_DIR / SUCCESSOR_MONTHLY[variable])
+    realized = load_ecb_realizations()
+    rolling = realized[
+        (realized.variable == variable)
+        & ~realized.target_period.str.fullmatch(r"\d{4}")
+    ].set_index("target_period")
+
+    legacy_months = legacy.TIME_PERIOD.map(
+        lambda period: pd.Period(period, freq="M").strftime("%Y%b")
+    )
+    assert rolling.loc[legacy_months, "realized"].tolist() == legacy.OBS_VALUE.tolist()
+    assert not rolling.loc[legacy_months, "source"].str.contains("ECOICOP").any()
+
+    later = successor[successor.TIME_PERIOD > legacy.TIME_PERIOD.max()]
+    later_months = later.TIME_PERIOD.map(
+        lambda period: pd.Period(period, freq="M").strftime("%Y%b")
+    )
+    assert len(later) >= 8  # January through August 2026 at least
+    assert rolling.loc[later_months, "realized"].tolist() == later.OBS_VALUE.tolist()
+    assert rolling.loc[later_months, "source"].str.contains("ECOICOP version 2").all()
+    # The rolling targets the 2025 rounds asked about are now resolved.
+    assert {"2026Mar", "2026Jun"} <= set(rolling.index)
+
+
+def test_successor_cannot_override_a_legacy_period(tmp_path):
+    def rewrite(observations):
+        observations = observations.copy()
+        observations.loc[observations.TIME_PERIOD == "2025-12", "OBS_VALUE"] = 99.0
+        observations.loc[observations.TIME_PERIOD == "2026-03", "OBS_VALUE"] = 5.5
+        return observations
+
+    raw = _companion_copy(tmp_path, SUCCESSOR_MONTHLY["hicp"], rewrite)
+    rolling = load_ecb_realizations(raw).set_index(["variable", "target_period"])
+    assert rolling.loc[("hicp", "2025Dec"), "realized"] == pytest.approx(1.9)
+    assert rolling.loc[("hicp", "2026Mar"), "realized"] == pytest.approx(5.5)
+
+
+def test_successor_annual_year_after_the_legacy_series_is_used(tmp_path):
+    def append_2026(observations):
+        later = observations.iloc[[-1]].copy()
+        later["TIME_PERIOD"] = 2026
+        later["OBS_VALUE"] = 2.7
+        later["OBS_STATUS"] = "P"
+        return pd.concat([observations, later], ignore_index=True)
+
+    raw = _companion_copy(
+        tmp_path, "ecb_ea_hicpx_growth_annual_ecoicop2.csv", append_2026
+    )
+    annual = load_ecb_realizations(raw)
+    calendar = annual[
+        (annual.variable == "hicpx") & annual.target_period.str.fullmatch(r"\d{4}")
+    ].set_index("target_period")
+    assert calendar.index.tolist() == [str(year) for year in range(1997, 2027)]
+    assert calendar.loc["2026", "realized"] == pytest.approx(2.7)
+    assert calendar.loc["2026", "observation_status"] == "P"
+    assert "ECOICOP version 2 successor" in calendar.loc["2026", "source"]
+    # Years the legacy annual series covers keep their legacy values.
+    assert calendar.loc["1998", "realized"] == pytest.approx(1.4)
+
+
+@pytest.mark.parametrize(
+    "successor, legacy",
+    [
+        ("ecb_ea_hicp_yoy_monthly_ecoicop2.csv", "ecb_ea_hicp_yoy_monthly.csv"),
+        ("ecb_ea_hicpx_yoy_monthly_ecoicop2.csv", "ecb_ea_hicpx_yoy_monthly.csv"),
+        ("ecb_ea_hicp_growth_annual_ecoicop2.csv", "ecb_ea_hicp_growth_annual.csv"),
+        ("ecb_ea_hicpx_growth_annual_ecoicop2.csv", "ecb_ea_hicpx_growth_annual.csv"),
+    ],
+)
+def test_recorded_successor_overlap_reproduces_offline(successor, legacy):
+    """The manifest's legacy-versus-successor comparison recomputes from files."""
+    old = _load_ecb_series(DEFAULT_RAW_DIR / legacy).set_index("TIME_PERIOD")
+    new = _load_ecb_series(
+        DEFAULT_RAW_DIR / successor, allow_flagged_missing=True
+    ).set_index("TIME_PERIOD")
+    shared = old.index.intersection(new.index)
+    differing = shared[
+        (old.loc[shared, "OBS_VALUE"] - new.loc[shared, "OBS_VALUE"]).abs() > 1e-9
+    ]
+    recorded = _manifest()["verification"][f"{Path(successor).stem}_vs_legacy"]
+
+    assert recorded["overlap_periods"] == len(shared)
+    assert recorded["overlap_periods_differing"] == len(differing)
+    assert recorded["overlap_years_with_differences"] == sorted(
+        {period[:4] for period in differing}
+    )
+    assert recorded["overlap_max_absolute_difference_pp"] == pytest.approx(
+        (old.loc[differing, "OBS_VALUE"] - new.loc[differing, "OBS_VALUE"]).abs().max()
+        if len(differing)
+        else 0.0
+    )
+    assert recorded["successor_periods_used"] == sorted(
+        new.index[new.index > old.index.max()]
+    )
+
+
+def test_successor_blank_rows_must_be_flagged_missing(tmp_path: Path):
+    path = tmp_path / "successor.csv"
+    path.write_text(
+        "TIME_PERIOD,OBS_VALUE,OBS_STATUS\n1991-01,,Q\n2026-01,1.7,A\n2026-02,,A\n"
+    )
+    with pytest.raises(ValueError, match="Missing ECB realization period or value"):
+        _load_ecb_series(path, allow_flagged_missing=True)
+    path.write_text("TIME_PERIOD,OBS_VALUE,OBS_STATUS\n1991-01,,Q\n2026-01,1.7,A\n")
+    loaded = _load_ecb_series(path, allow_flagged_missing=True)
+    assert loaded.TIME_PERIOD.tolist() == ["2026-01"]

@@ -2,7 +2,10 @@
 
 The local files contain revised observations, not the real-time vintages that were
 available when forecasts were submitted.  Loaders therefore expose source metadata
-and never fill incomplete calendar years or missing target concepts.
+and never fill an incomplete calendar year or a missing target concept on their
+own. The one exception is a month the publisher itself marks as never collected
+(October 2025 in the BLS series); the rule for each such case is stated where the
+outcome is built, and follows the publisher's own treatment.
 """
 
 from __future__ import annotations
@@ -17,7 +20,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-DEFAULT_RAW_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
+from expectations.outcome_sources import (
+    DEFAULT_RAW_DIR,
+    BlsSeries,
+    certainly_published,
+    load_bls_file,
+    load_dbnomics_file,
+    outcome_snapshots,
+    period_end,
+)
 
 # Archived Eurostat EA20 comparator, pinned in the same manifest as the ECB
 # companions. It is compared against the emitted ECB annual rate, never emitted.
@@ -83,13 +94,41 @@ _ECB_ANNUAL_COMPANIONS = {
 }
 
 
+# The ECB ended the legacy ICP flow in December 2025 and moved HICP to a flow
+# classified by ECOICOP version 2, which restates history. Its files supply only
+# the periods after each legacy series ends; they never replace a legacy value.
+_ECB_SUCCESSORS = {
+    "hicp": {
+        "monthly": (
+            "ecb_ea_hicp_yoy_monthly_ecoicop2.csv",
+            "HICP.M.U2.N.000000.4D0.ANR",
+        ),
+        "annual": (
+            "ecb_ea_hicp_growth_annual_ecoicop2.csv",
+            "HICP.A.U2.N.000000.4D0.AVR",
+        ),
+    },
+    "hicpx": {
+        "monthly": (
+            "ecb_ea_hicpx_yoy_monthly_ecoicop2.csv",
+            "HICP.M.U2.N.XEF000.4D0.ANR",
+        ),
+        "annual": (
+            "ecb_ea_hicpx_growth_annual_ecoicop2.csv",
+            "HICP.A.U2.N.XEF000.4D0.AVR",
+        ),
+    },
+}
+
+
 def load_us_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame:
     """Return documented US SPF realization mappings in tidy form.
 
     Mappings begin in 1992, when the output target switches from GNP to GDP.
-    Annual unemployment and fourth-quarter inflation observations are emitted only
-    when every required source month is present.  ``recess`` is expressed on the
-    survey's percentage-point scale: 100 for a real-GDP decline and 0 otherwise.
+    Annual unemployment follows :func:`annual_unemployment_rates` and
+    fourth-quarter core CPI inflation :func:`q4_over_q4_growth`; neither fills a
+    month that is simply absent. ``recess`` is expressed on the survey's
+    percentage-point scale: 100 for a real-GDP decline and 0 otherwise.
     """
     return _load_us_realizations(raw_dir, start_years=_US_CALIBRATION_START_YEARS)
 
@@ -142,27 +181,37 @@ def _load_us_realizations(
         )
     )
 
-    unemployment = _load_dbnomics_series(directory / "dbnomics_us_unrate_monthly.json")
+    unemployment = annual_unemployment_rates(
+        load_bls_file((directory / "bls_ln_LNS14000000_monthly.json").read_bytes()),
+        load_bls_file((directory / "bls_ln_LNU04000000_annual.json").read_bytes()),
+    )
     frames.append(
         _annual_rows(
-            _complete_period_averages(unemployment, frequency="monthly"),
+            unemployment["realized"],
             survey="us_spf",
             variable="prunemp",
             start_year=start_years["prunemp"],
             concept="annual_average_civilian_unemployment_rate",
-            source="BLS LNS14000000 (latest vintage)",
+            source=unemployment["source"],
         )
     )
 
-    core_cpi = _load_dbnomics_series(directory / "dbnomics_us_corecpi_sa_monthly.json")
+    core_cpi = load_bls_file(
+        (directory / "bls_cu_CUSR0000SA0L1E_monthly.json").read_bytes()
+    )
+    core_cpi_growth = q4_over_q4_growth(
+        core_cpi.monthly_series(), not_collected=core_cpi.unavailable_periods()
+    )
     frames.append(
         _annual_rows(
-            _q4_over_q4_growth(core_cpi),
+            core_cpi_growth["realized"],
             survey="us_spf",
             variable="prccpi",
             start_year=start_years["prccpi"],
             concept="q4_over_q4_core_cpi_inflation",
-            source="BLS CUSR0000SA0L1E (latest vintage)",
+            source=core_cpi_growth["filled_months"].map(
+                lambda filled: _core_cpi_source(filled)
+            ),
         )
     )
 
@@ -171,7 +220,7 @@ def _load_us_realizations(
     )
     frames.append(
         _annual_rows(
-            _q4_over_q4_growth(core_pce),
+            q4_over_q4_growth(core_pce)["realized"],
             survey="us_spf",
             variable="prcpce",
             start_year=start_years["prcpce"],
@@ -199,6 +248,11 @@ def load_ecb_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame
     annual companion is archived for it. Rolling targets retain their archived
     source snapshots; per-source annual companion retrieval dates and the unknown
     rolling retrieval dates are distinguished in source metadata.
+
+    HICP and core HICP continue past the discontinued legacy ICP flow: each
+    month or year after a legacy series ends comes from the ECOICOP version 2
+    successor flow, the only publication of those periods, and every period the
+    legacy series covers keeps its legacy value.
 
     ``observation_status`` reports every published flag behind a value, so a
     provisional input is never hidden by a final aggregate flag:
@@ -256,6 +310,23 @@ def load_ecb_realizations(raw_dir: str | Path = DEFAULT_RAW_DIR) -> pd.DataFrame
                 source=source,
             )
         )
+        if variable in _ECB_SUCCESSORS:
+            successor, successor_source = _load_ecb_successor(
+                directory,
+                variable=variable,
+                frequency="monthly",
+                after=str(observations["TIME_PERIOD"].max()),
+            )
+            frames.append(
+                _ecb_rolling_rows(
+                    successor,
+                    variable=variable,
+                    frequency=frequency,
+                    concept=concept,
+                    source=successor_source,
+                )
+            )
+            observations = pd.concat([observations, successor], ignore_index=True)
         if variable == "unemp":
             annual = _ecb_annual_rows(
                 observations,
@@ -325,25 +396,59 @@ def _union_statuses(*statuses: object) -> str:
 
 
 def _load_ecb_calendar_growth(directory: Path, *, variable: str) -> pd.DataFrame:
-    """Read one verified official annual growth series at publisher precision."""
+    """Read one verified official annual growth series at publisher precision.
+
+    Inflation years after the legacy annual series ends come from its ECOICOP
+    version 2 successor.
+    """
     expected_key, concept, qualifier = _ECB_ANNUAL_COMPANIONS[variable]
     filename = f"ecb_ea_{variable}_growth_annual.csv"
     observations, source = _load_verified_ecb_companion(
         directory, filename=filename, expected_key=expected_key
     )
-    if not observations["TIME_PERIOD"].str.fullmatch(r"\d{4}").all():
-        raise ValueError(f"Invalid annual ECB periods in {filename}")
-    frame = _annual_rows(
-        observations.set_index("TIME_PERIOD")["OBS_VALUE"],
-        survey="ecb_spf",
-        variable=variable,
-        start_year=0,
-        concept=concept,
-        source=f"{source}; {qualifier}",
+    parts = [(observations, f"{source}; {qualifier}")]
+    if variable in _ECB_SUCCESSORS:
+        successor, successor_source = _load_ecb_successor(
+            directory,
+            variable=variable,
+            frequency="annual",
+            after=str(observations["TIME_PERIOD"].max()),
+        )
+        parts.append((successor, f"{successor_source}; {qualifier}"))
+    frames = []
+    for part, part_source in parts:
+        if not part["TIME_PERIOD"].str.fullmatch(r"\d{4}").all():
+            raise ValueError(f"Invalid annual ECB periods for {variable}")
+        frame = _annual_rows(
+            part.set_index("TIME_PERIOD")["OBS_VALUE"],
+            survey="ecb_spf",
+            variable=variable,
+            start_year=0,
+            concept=concept,
+            source=part_source,
+        )
+        statuses = part.set_index("TIME_PERIOD")["OBS_STATUS"]
+        frame["observation_status"] = frame["target_period"].map(statuses)
+        frames.append(frame)
+    return pd.concat(frames, ignore_index=True)
+
+
+def _load_ecb_successor(
+    directory: Path, *, variable: str, frequency: str, after: str
+) -> tuple[pd.DataFrame, str]:
+    """Successor observations strictly after the legacy series' last period."""
+    filename, key = _ECB_SUCCESSORS[variable][frequency]
+    observations, _ = _load_verified_ecb_companion(
+        directory, filename=filename, expected_key=key, allow_flagged_missing=True
     )
-    statuses = observations.set_index("TIME_PERIOD")["OBS_STATUS"]
-    frame["observation_status"] = frame["target_period"].map(statuses)
-    return frame
+    entry = _manifest_entry(directory, filename)
+    later = observations[observations["TIME_PERIOD"] > after].reset_index(drop=True)
+    source = (
+        f"ECB Data Portal {key} (ECOICOP version 2 successor retrieved "
+        f"{entry['retrieved_at_utc']}; supplies only periods after the "
+        f"discontinued legacy series ends in {after})"
+    )
+    return later, source
 
 
 def _verified_manifest_payload(
@@ -370,8 +475,19 @@ def _verified_manifest_payload(
     return payload, entry
 
 
+def _manifest_entry(directory: Path, filename: str) -> dict[str, Any]:
+    manifest = json.loads(
+        (directory / "ecb_annual_realizations_sources.json").read_text()
+    )
+    return manifest["sources"][filename]
+
+
 def _load_verified_ecb_companion(
-    directory: Path, *, filename: str, expected_key: str
+    directory: Path,
+    *,
+    filename: str,
+    expected_key: str,
+    allow_flagged_missing: bool = False,
 ) -> tuple[pd.DataFrame, str]:
     path = directory / filename
     flow, series = expected_key.split(".", 1)
@@ -390,7 +506,7 @@ def _load_verified_ecb_companion(
         f"ECB Data Portal {expected_key} (annual companion retrieved "
         f"{entry['retrieved_at_utc']}; rolling archive retrieval date unrecorded)"
     )
-    return _load_ecb_series(path), source
+    return _load_ecb_series(path, allow_flagged_missing=allow_flagged_missing), source
 
 
 def load_eurostat_ea20_annual_growth(
@@ -550,28 +666,218 @@ def calibration_table(
     return result.drop(columns=["_survey_key", "_variable_key", "_target_key"])
 
 
+def annual_unemployment_rates(monthly: BlsSeries, official: BlsSeries) -> pd.DataFrame:
+    """Annual-average civilian unemployment rate, one row per resolved year.
+
+    The rule, applied to every calendar year:
+
+    1. When all twelve monthly seasonally adjusted rates (LNS14000000) are
+       published, the outcome is their mean.
+    2. When BLS marks one or more months as not collected, and has published its
+       official annual average (LNU04000000, period M13), the outcome is that
+       official figure. BLS computes it from the months it has: for 2025 it is an
+       11-month average that excludes October, lost to the lapse in
+       appropriations. The source column quotes BLS's own note.
+    3. A year with no official annual average yet has no outcome: a month that
+       is simply absent, such as one not yet released, is never filled. A year
+       that has an official annual average but lacks a month BLS did not mark as
+       not collected raises, since the monthly file is then incomplete and the
+       year would otherwise vanish silently.
+
+    Rule 2 never overrides rule 1: a complete year keeps its monthly mean, so the
+    fallback cannot move an outcome that was already resolved.
+    """
+    published: dict[int, dict[int, float]] = {}
+    for (year, month), value in monthly.monthly.items():
+        published.setdefault(year, {})[month] = value
+    not_collected: dict[int, list[int]] = {}
+    for year, month in monthly.unavailable_months:
+        not_collected.setdefault(year, []).append(month)
+
+    rows: dict[str, dict[str, object]] = {}
+    for year in sorted(set(published) | set(not_collected)):
+        months = published.get(year, {})
+        missing = sorted(not_collected.get(year, []))
+        key = str(year)
+        if len(months) == 12:
+            rows[key] = {
+                "realized": float(np.mean(list(months.values()))),
+                "source": f"BLS {monthly.series_id} (latest vintage)",
+            }
+            continue
+        if key not in official.annual_averages:
+            continue
+        if set(months) | set(missing) != set(range(1, 13)):
+            absent = sorted(set(range(1, 13)) - set(months) - set(missing))
+            raise ValueError(
+                f"BLS {monthly.series_id} {year} lacks months {absent} without a "
+                "not-collected note, but an official annual average exists"
+            )
+        note = official.annual_notes.get(key, "")
+        rows[key] = {
+            "realized": official.annual_averages[key],
+            "source": (
+                f"BLS {official.series_id} official annual average (latest vintage); "
+                f"BLS did not collect "
+                + ", ".join(f"{year}-{month:02d}" for month in missing)
+                + (f"; BLS note: {note}" if note else "")
+            ),
+        }
+    return pd.DataFrame.from_dict(
+        rows, orient="index", columns=["realized", "source"]
+    ).astype({"realized": float})
+
+
+def q4_over_q4_growth(
+    monthly: pd.Series, *, not_collected: frozenset[str] = frozenset()
+) -> pd.DataFrame:
+    """Growth in the fourth-quarter average of a monthly index, year over year.
+
+    Each fourth quarter is the mean of October, November and December. A month
+    in ``not_collected`` (one the publisher marks as never collected) is filled
+    with the mean of the months either side of it, when both are published. This
+    is BLS's own treatment of the missing October 2025 CPI-U index in its fourth
+    quarter 2025 averages (BLS productivity program notice, May 8, 2026), and the
+    Philadelphia Fed built its 2025 fourth-quarter CPI jump-off values for the
+    first quarter 2026 survey from interpolated October values. A month that is
+    simply absent, such as one not yet released, is never filled. ``filled_months``
+    lists the months filled for either quarter behind a year's growth.
+    """
+    values = {str(period): float(value) for period, value in monthly.items()}
+    for period in values:
+        if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", period):
+            raise ValueError(f"Invalid monthly realization period: {period}")
+
+    def neighbour(period: str, step: int) -> str:
+        month = pd.Period(period, freq="M") + step
+        return f"{month.year}-{month.month:02d}"
+
+    quarters: dict[int, tuple[float, tuple[str, ...]]] = {}
+    for year in sorted({int(period[:4]) for period in values}):
+        months = [f"{year}-{month:02d}" for month in (10, 11, 12)]
+        levels: list[float] = []
+        filled: list[str] = []
+        for period in months:
+            if period in values:
+                levels.append(values[period])
+                continue
+            before, after = neighbour(period, -1), neighbour(period, 1)
+            if period in not_collected and before in values and after in values:
+                levels.append((values[before] + values[after]) / 2.0)
+                filled.append(period)
+        if len(levels) == 3:
+            quarters[year] = (float(np.mean(levels)), tuple(filled))
+
+    rows = {
+        str(year): {
+            "realized": 100.0 * (level / quarters[year - 1][0] - 1.0),
+            "filled_months": quarters[year - 1][1] + filled,
+        }
+        for year, (level, filled) in quarters.items()
+        if year - 1 in quarters
+    }
+    return pd.DataFrame.from_dict(
+        rows, orient="index", columns=["realized", "filled_months"]
+    ).astype({"realized": float})
+
+
+def _core_cpi_source(filled: tuple[str, ...]) -> str:
+    source = "BLS CUSR0000SA0L1E (latest vintage)"
+    if not filled:
+        return source
+    return (
+        f"{source}; BLS did not collect {', '.join(filled)}, filled with the mean "
+        "of the adjacent months as in BLS's own fourth-quarter averages"
+    )
+
+
+def unresolved_published_targets(
+    targets: pd.DataFrame,
+    realizations: pd.DataFrame | None = None,
+    *,
+    raw_dir: str | Path = DEFAULT_RAW_DIR,
+) -> pd.DataFrame:
+    """Forecast targets whose outcome was published by the snapshot but is absent.
+
+    ``targets`` holds ``survey``, ``variable`` and ``target_period`` or
+    ``target_year``, as in the density measures. A target counts as published
+    when it ended ``lag_days`` or more before its series' snapshot date. Two
+    kinds of target are unresolvable by design and are not reported: US output
+    and price targets before 1992, when the survey's concepts predate the GDP
+    measures scored here, and targets that end before the outcome series' first
+    observation (euro-area unemployment starts in January 2000). Blocks the
+    survey documentation does not date are not periods and are skipped.
+    """
+    actual = load_realizations(raw_dir) if realizations is None else realizations
+    resolved = set(
+        zip(
+            actual["survey"].map(_canonical_survey),
+            [
+                _canonical_variable(_canonical_survey(survey), variable)
+                for survey, variable in zip(
+                    actual["survey"], actual["variable"], strict=True
+                )
+            ],
+            actual["target_period"].map(_canonical_target_period),
+            strict=True,
+        )
+    )
+    snapshots = outcome_snapshots(raw_dir)
+    frame = targets.copy()
+    frame["_survey"] = frame["survey"].map(_canonical_survey)
+    frame["_variable"] = [
+        _canonical_variable(survey, variable)
+        for survey, variable in zip(frame["_survey"], frame["variable"], strict=True)
+    ]
+    frame["_target"] = _measure_target_keys(frame)
+    rows = []
+    for survey, variable, target in (
+        frame[["_survey", "_variable", "_target"]].drop_duplicates().itertuples(False)
+    ):
+        if pd.isna(target) or str(target).startswith("undocumented_block"):
+            continue
+        target = str(target)
+        kind = "annual" if re.fullmatch(r"\d{4}", target) else "rolling"
+        snapshot = snapshots.get((survey, variable, kind))
+        if snapshot is None:
+            raise ValueError(f"No outcome snapshot for {survey} {variable} {kind}")
+        if kind == "annual" and int(target) < _US_CALIBRATION_START_YEARS.get(
+            variable if survey == "us_spf" else "", 0
+        ):
+            continue
+        if period_end(target) < period_end(snapshot["first_period"]):
+            continue
+        if not certainly_published(
+            target, lag_days=snapshot["lag_days"], as_of=snapshot["as_of"]
+        ):
+            continue
+        if (survey, variable, target) not in resolved:
+            rows.append(
+                {
+                    "survey": survey,
+                    "variable": variable,
+                    "target_period": target,
+                    "snapshot_as_of": snapshot["as_of"],
+                }
+            )
+    return pd.DataFrame(
+        rows, columns=["survey", "variable", "target_period", "snapshot_as_of"]
+    )
+
+
 def _load_dbnomics_series(path: Path) -> pd.Series:
-    with path.open(encoding="utf-8") as file:
-        payload: dict[str, Any] = json.load(file)
-    try:
-        documents = payload["series"]["docs"]
-        document = documents[0]
-        periods = document["period"]
-        values = document["value"]
-    except (KeyError, IndexError, TypeError) as error:
-        raise ValueError(f"Unexpected DBnomics structure in {path}") from error
-    if len(documents) != 1 or len(periods) != len(values):
-        raise ValueError(f"Invalid DBnomics series dimensions in {path}")
-    if len(periods) != len(set(periods)):
-        raise ValueError(f"Duplicate DBnomics periods in {path}")
-    numeric = pd.to_numeric(pd.Series(values, index=pd.Index(periods)), errors="coerce")
-    if numeric.isna().any():
-        bad = numeric.index[numeric.isna()].tolist()
-        raise ValueError(f"Missing or nonnumeric DBnomics values in {path}: {bad}")
-    return numeric.astype(float).sort_index()
+    return load_dbnomics_file(path.read_bytes(), label=str(path))
 
 
-def _load_ecb_series(path: Path) -> pd.DataFrame:
+def _load_ecb_series(
+    path: Path, *, allow_flagged_missing: bool = False
+) -> pd.DataFrame:
+    """Read one ECB csvdata series.
+
+    With ``allow_flagged_missing``, rows the publisher leaves blank and flags as
+    missing (status ``M`` or ``Q``, as successor files do before their series
+    starts) are dropped; any other blank value still raises.
+    """
     observations = pd.read_csv(
         path,
         usecols=["TIME_PERIOD", "OBS_VALUE", "OBS_STATUS"],
@@ -580,6 +886,11 @@ def _load_ecb_series(path: Path) -> pd.DataFrame:
     observations["OBS_VALUE"] = pd.to_numeric(
         observations["OBS_VALUE"], errors="coerce"
     )
+    if allow_flagged_missing:
+        flagged = observations["OBS_VALUE"].isna() & observations["OBS_STATUS"].isin(
+            ["M", "Q"]
+        )
+        observations = observations.loc[~flagged].reset_index(drop=True)
     if observations[["TIME_PERIOD", "OBS_VALUE"]].isna().any().any():
         raise ValueError(f"Missing ECB realization period or value in {path}")
     if observations["TIME_PERIOD"].duplicated().any():
@@ -615,21 +926,6 @@ def _complete_period_averages(series: pd.Series, *, frequency: str) -> pd.Series
     return pd.Series(output, dtype=float)
 
 
-def _q4_over_q4_growth(series: pd.Series) -> pd.Series:
-    parsed = _parsed_periods(series, frequency="monthly")
-    q4: dict[int, float] = {}
-    for year, group in parsed.groupby("year", sort=True):
-        quarter = group[group["position"].isin((10, 11, 12))]
-        if set(quarter["position"].astype(int)) == {10, 11, 12}:
-            q4[int(year)] = float(quarter["value"].mean())
-    growth = {
-        str(year): 100.0 * (value / q4[year - 1] - 1.0)
-        for year, value in q4.items()
-        if year - 1 in q4
-    }
-    return pd.Series(growth, dtype=float).sort_index()
-
-
 def _parsed_periods(series: pd.Series, *, frequency: str) -> pd.DataFrame:
     pattern = r"^(\d{4})-(\d{2})$" if frequency == "monthly" else r"^(\d{4})-Q([1-4])$"
     records: list[tuple[int, int, float]] = []
@@ -648,8 +944,9 @@ def _annual_rows(
     variable: str,
     start_year: int,
     concept: str,
-    source: str,
+    source: str | pd.Series,
 ) -> pd.DataFrame:
+    """Tidy annual rows; ``source`` is one string or one string per period."""
     rows = [
         {
             "survey": survey,
@@ -658,7 +955,7 @@ def _annual_rows(
             "target_period": str(year),
             "realized": float(value),
             "realization_concept": concept,
-            "source": source,
+            "source": source if isinstance(source, str) else source.loc[period],
             "observation_status": pd.NA,
         }
         for period, value in series.items()
@@ -930,6 +1227,7 @@ __all__ = [
     "EUROSTAT_EA20_ANNUAL_GDP_FILE",
     "EUROSTAT_EA20_ANNUAL_GDP_URL",
     "REALIZATION_COLUMNS",
+    "annual_unemployment_rates",
     "calibration_table",
     "load_ecb_realizations",
     "load_eurostat_ea20_annual_growth",
@@ -937,4 +1235,6 @@ __all__ = [
     "load_realizations",
     "load_us_realization_history",
     "load_us_realizations",
+    "q4_over_q4_growth",
+    "unresolved_published_targets",
 ]

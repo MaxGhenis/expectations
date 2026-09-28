@@ -213,7 +213,7 @@ def test_hicpx_realizations_support_calendar_and_rolling_calibration():
     realizations = load_ecb_realizations()
     core = realizations[realizations["variable"] == "hicpx"].set_index("target_period")
 
-    assert len(core) == 377
+    assert len(core) == 385
     assert core.loc["2024Dec", "realized"] == pytest.approx(2.7)
     assert core.loc["2024Dec", "observation_status"] == "A"
     assert core.loc["2025", "realized"] == pytest.approx(2.4)
