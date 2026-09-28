@@ -53,11 +53,11 @@ def test_full_history_loader_preserves_calibration_loader_and_extends_history():
     calibration = load_us_realizations()
     calibration_counts = calibration.groupby("variable").size().to_dict()
     assert calibration_counts == {
-        "prccpi": 18,
+        "prccpi": 19,
         "prcpce": 19,
         "prgdp": 34,
         "prpgdp": 34,
-        "prunemp": 16,
+        "prunemp": 17,
         "recess": 138,
     }
 
@@ -73,12 +73,12 @@ def test_full_history_loader_preserves_calibration_loader_and_extends_history():
             "us_spf",
             "prunemp",
             "annual_average_civilian_unemployment_rate",
-        ): (77, 1948, 2024),
+        ): (78, 1948, 2025),
         (
             "us_spf",
             "prccpi",
             "q4_over_q4_core_cpi_inflation",
-        ): (67, 1958, 2024),
+        ): (68, 1958, 2025),
         (
             "us_spf",
             "prcpce",
@@ -252,7 +252,7 @@ def test_local_benchmark_availability_regressions():
     calibration["crps_pooled"] = 1.0
     scored = add_benchmark_scores(calibration)
 
-    assert len(scored) == len(calibration) == 3070
+    assert len(scored) == len(calibration) == 3102
     us = scored[scored["survey"] == "us"]
     assert us["crps_climatology"].notna().all()
 

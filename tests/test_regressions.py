@@ -310,7 +310,7 @@ def test_generated_scores_match_calibration_and_flag_benchmark_windows():
     calibration = pd.read_csv(ROOT / "outputs" / "calibration.csv")
     scores = pd.read_csv(ROOT / "outputs" / "scores.csv")
 
-    assert len(scores) == len(calibration) == 3070
+    assert len(scores) == len(calibration) == 3102
     assert scores.columns[: len(calibration.columns)].tolist() == list(
         calibration.columns
     )

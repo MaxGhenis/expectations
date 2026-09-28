@@ -1,7 +1,10 @@
 #!/bin/bash
-# Raw data downloads for the expectations pipeline.
-# Sources: Philadelphia Fed SPF individual files + documentation; ECB SPF
-# microdata; FRED realization series. Run from data/raw/.
+# Raw survey downloads for the expectations pipeline.
+# Sources: Philadelphia Fed SPF individual files + documentation. Run from
+# data/raw/. Outcome series are acquired, checksummed and dated by their own
+# scripts, run from the repository root:
+#   uv run python scripts/download_us_realizations.py
+#   uv run python scripts/download_ecb_annual_realizations.py
 set -uo pipefail
 UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 PHIL="https://www.philadelphiafed.org/-/media/frbp/assets/surveys-and-data/survey-of-professional-forecasters"
@@ -18,8 +21,3 @@ done
 
 # SPF documentation (bin schemes, Table 7 and friends)
 fetch "$PHIL/spf-documentation.pdf" "../docs/spf-documentation.pdf"
-
-# FRED realizations (latest vintage; vintage-aware evaluation can come later via ALFRED)
-for id in A191RL1A225NBEA GDPC1 UNRATE CPIAUCSL CORESTICKM159SFRBATL PCEPILFE CPILFESL; do
-  fetch "https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}" "fred_${id}.csv"
-done

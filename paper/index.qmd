@@ -790,7 +790,13 @@ median and no distribution — with the whole panorama behind it.
 All measures compute from the public microdata of the Philadelphia Fed SPF
 [@spfDocumentation2026] and the ECB SPF, with bin schemes taken from each
 survey's documentation for every era. Realizations are latest-vintage
-[@stark2010]; real-time-vintage evaluation is future work. Forecasts of a
+[@stark2010]; real-time-vintage evaluation is future work. BLS did not
+collect October 2025 data, so 2025 US unemployment is the official BLS annual
+average of the other eleven months, and fourth-quarter 2025 core CPI fills
+October with the mean of September and November, as BLS does in its own
+quarterly averages. Euro-area inflation after December 2025 comes from the
+ECB series that replaced the discontinued one; earlier months keep their
+original values. Forecasts of a
 shared outcome are correlated, so miss counts and score comparisons are
 descriptive. Benchmark windows are expanding with a ten-observation
 minimum; euro-area annual histories are short. The reading of the bin labels

@@ -41,6 +41,7 @@ from expectations.outcome_sources import (
     dbnomics_series_url,
     load_bls_file,
     load_dbnomics_file,
+    period_end,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -249,31 +250,36 @@ def verify_bls(acquired: dict[str, bytes]) -> dict[str, object]:
 
 
 def describe(filename: str, payload: bytes, *, retrieved_at_utc: str) -> dict:
+    """Manifest entry; periods are those of the source's declared frequency.
+
+    LNU04000000 is read only for its annual averages, so its entry describes
+    those and not the monthly values the same file also carries.
+    """
     spec = US_OUTCOME_SOURCES[filename]
     if spec["provider"] == "bls":
         series = load_bls_file(payload)
-        periods = series.monthly_periods() + [
-            str(year) for year in series.annual_averages
-        ]
         if series.series_id != spec["series_id"]:
             raise ValueError(f"{filename} holds {series.series_id}")
+        periods = (
+            list(series.annual_averages)
+            if spec["frequency"] == "annual"
+            else series.monthly_periods()
+        )
         url = BLS_API_URL
         identity = {"series_id": spec["series_id"]}
     else:
-        observations = load_dbnomics_file(payload)
-        periods = list(observations.index)
+        periods = list(load_dbnomics_file(payload).index)
         url = dbnomics_series_url(spec["series"])
         identity = {"series": spec["series"]}
-    monthly = [period for period in periods if "-" in period]
-    last_period = max(monthly) if monthly else max(periods)
     return {
         **identity,
         "provider": spec["provider"],
+        "frequency": spec["frequency"],
         "url": url,
         "sha256": hashlib.sha256(payload).hexdigest(),
         "observations": len(periods),
-        "first_period": min(periods),
-        "last_period": last_period,
+        "first_period": min(periods, key=period_end),
+        "last_period": max(periods, key=period_end),
         "retrieved_at_utc": retrieved_at_utc,
         "role": spec["role"],
     }

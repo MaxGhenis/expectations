@@ -45,19 +45,27 @@ The archive covers US density variables PRGDP, PRPGDP, PRUNEMP, PRCCPI and PRCPC
 
 ## Source snapshots
 
-Raw survey files and outcome snapshots are committed, so rebuilding runs offline once dependencies are installed. Official annual ECB outcomes come with a reproducible acquisition script, which has two distinct invocations:
+Raw survey files and outcome snapshots are committed, so rebuilding runs offline once dependencies are installed. Each set of outcomes comes with a reproducible acquisition script, and each script has two distinct invocations:
 
 ```bash
 # Verify the committed inputs and rewrite the manifest. Any file whose bytes
 # already match its recorded checksum is reused, not re-downloaded.
+uv run python scripts/download_us_realizations.py
 uv run python scripts/download_ecb_annual_realizations.py
 
 # Re-download every source, replacing the committed inputs with today's vintage.
+uv run python scripts/download_us_realizations.py --refresh
 uv run python scripts/download_ecb_annual_realizations.py --refresh
 ```
 
-Neither command is needed to reproduce the committed snapshot. Without `--refresh` the script only fetches a source that is missing or fails its checksum, so it re-verifies the [provenance manifest](data/raw/ecb_annual_realizations_sources.json) without re-vintaging anything; it does rewrite the manifest, whose top-level `retrieved_at_utc` records the run itself while each source entry keeps its own retrieval time. `--refresh` replaces every source and is how the inputs are deliberately re-vintaged. Annual GDP uses the ECB's published annual real GDP growth rate. Annual HICP and core HICP use the official annual-average index-growth series at publisher precision. Archived rolling outcomes are unchanged. Eurostat's published EA20 annual growth is archived alongside as a comparator only — never an emitted outcome — so the manifest's record that the two official series differ in 5 of 30 years at one decimal reproduces offline. All outcomes are revised-data snapshots, so the evaluation is not a real-time backtest.
+Neither command is needed to reproduce the committed snapshot. Without `--refresh` a script only fetches a source that is missing or fails its checksum, so it re-verifies its provenance manifest ([US](data/raw/us_realizations_sources.json), [ECB](data/raw/ecb_annual_realizations_sources.json)) without re-vintaging anything; it does rewrite the manifest, whose top-level `retrieved_at_utc` records the run itself while each source entry keeps its own retrieval time. `--refresh` replaces every source and is how the inputs are deliberately re-vintaged. If Python cannot verify a publisher's certificate chain, point `SSL_CERT_FILE` at a current CA bundle.
 
-Primary sources: [Philadelphia Fed SPF](https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/survey-of-professional-forecasters), [ECB SPF](https://www.ecb.europa.eu/stats/ecb_surveys/survey_of_professional_forecasters/html/index.en.html), BEA/BLS via archived DBnomics files, and the ECB Data Portal. AI-comparator source details are in [paper/AI_COMPARATORS.md](paper/AI_COMPARATORS.md); the verified literature review is in [docs/LITREVIEW.md](docs/LITREVIEW.md).
+US unemployment and core CPI come straight from the BLS Public Data API; the keyless API allows 25 requests a day, and a full refresh uses eight (set `BLS_API_KEY` for a registered key). BEA series come through DBnomics and are compared with BEA's own bulk NIPA files at retrieval. The US script refuses any series that ends before a period its publisher has certainly released, and `tests/test_outcome_currency.py` fails when a forecast target published by its snapshot's date has no outcome. Both checks exist because the DBnomics BLS mirror used before September 2026 stopped at January 2025, which silently left every 2025 unemployment and core CPI target unscored.
+
+BLS did not collect October 2025 data. Each complete year of unemployment is the mean of its twelve monthly rates; 2025 is BLS's official annual average, an 11-month average that excludes October. Fourth-quarter 2025 core CPI fills October with the mean of September and November, as BLS does in its own fourth-quarter averages. A month that is simply absent, such as one not yet released, is never filled.
+
+Annual GDP uses the ECB's published annual real GDP growth rate. Annual HICP and core HICP use the official annual-average index-growth series at publisher precision. The ECB discontinued its legacy HICP flow after December 2025; later months and years come from the ECOICOP version 2 flow that replaced it, every earlier period keeps its legacy value, and the manifest records how the new flow's restated history differs from the legacy values. Other archived rolling outcomes are unchanged. Eurostat's published EA20 annual growth is archived alongside as a comparator only — never an emitted outcome — so the manifest's record that the two official series differ in 5 of 30 years at one decimal reproduces offline. All outcomes are revised-data snapshots, so the evaluation is not a real-time backtest.
+
+Primary sources: [Philadelphia Fed SPF](https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/survey-of-professional-forecasters), [ECB SPF](https://www.ecb.europa.eu/stats/ecb_surveys/survey_of_professional_forecasters/html/index.en.html), the [BLS Public Data API](https://www.bls.gov/developers/), BEA series via DBnomics checked against [BEA's NIPA files](https://apps.bea.gov/national/Release/TXT/), and the ECB Data Portal. AI-comparator source details are in [paper/AI_COMPARATORS.md](paper/AI_COMPARATORS.md); the verified literature review is in [docs/LITREVIEW.md](docs/LITREVIEW.md).
 
 Earlier planning documents and build reports live in [docs/history](docs/history/) with supersession notices. Use the regenerated outputs, not their numbers.
