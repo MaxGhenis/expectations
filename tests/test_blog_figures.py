@@ -290,3 +290,62 @@ def test_uncertainty_grid_description_carries_the_latest_values(grid, grid_svg):
         label = figures.GRID_HORIZONS[horizon].lower()
         assert f"{label} {row.total_sd:.2f}" in description
     assert description.count("three years out") == 2  # US cells only
+
+
+def test_uncertainty_grid_y_labels_sit_on_their_gridlines(grid_svg):
+    for survey in figures.GRID_ROWS:
+        ox, oy, _, h = figures.grid_cells()[survey, next(iter(figures.GRID_COLUMNS))]
+        labels = re.findall(
+            rf'<text x="{ox - 6:.1f}" y="([\d.]+)"[^>]*>([\d.]+)</text>', grid_svg
+        )
+        in_cell = {
+            text: float(y) for y, text in labels if oy - 5 <= float(y) <= oy + h + 5
+        }
+        assert set(in_cell) == {"0", "0.5", "1.0", "1.5", "2.0"}
+        for text, y in in_cell.items():
+            expected = oy + h * (1 - float(text) / figures.GRID_Y_MAX) + 4
+            assert abs(y - expected) < 0.1
+
+
+def test_uncertainty_grid_description_names_each_cell_with_its_own_values(
+    grid, grid_svg
+):
+    description = re.search(r"<desc>(.*)</desc>", grid_svg).group(1)
+    end = figures.GRID_YEARS[1]
+    for survey, (name, _) in figures.GRID_ROWS.items():
+        for column in figures.GRID_COLUMNS:
+            cell = grid[
+                (grid.survey == survey) & (grid.column == column) & (grid.year == end)
+            ].set_index("horizon_class")
+            values = ", ".join(
+                f"{label.lower()} {cell.total_sd[horizon]:.2f}"
+                for horizon, label in figures.GRID_HORIZONS.items()
+                if horizon in cell.index
+            )
+            column_name = column[0].lower() + column[1:]
+            assert f"{name} {column_name} in {end}Q1: {values}." in description
+
+
+def test_uncertainty_grid_refuses_a_round_with_no_common_forecasters():
+    rows = []
+    for horizon, respondent, target in (
+        ("next_year", "a", 2027),
+        ("three_years_ahead", "b", 2029),
+    ):
+        for bin_index, (lower, upper) in enumerate(((None, 5.0), (5.0, None))):
+            rows.append(
+                {
+                    "horizon_class": horizon,
+                    "respondent": respondent,
+                    "bin_index": bin_index,
+                    "probability": 50.0,
+                    "lower": lower,
+                    "upper": upper,
+                    "bin_scheme": "test",
+                    "target_year": target,
+                }
+            )
+    with pytest.raises(ValueError, match="no forecaster answered every horizon"):
+        figures._balanced_round(
+            pd.DataFrame(rows), "us", "Unemployment rate", "PRUNEMP", 2026
+        )
