@@ -9,12 +9,14 @@ microdata), so they move with the pipeline. Usage::
 from __future__ import annotations
 
 import argparse
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from expectations.measures import filter_probability_rows, finite_intervals
+from expectations.ecb_spf import load_ecb_spf
+from expectations.measures import filter_probability_rows, finite_intervals, round_stats
 from expectations.us_spf import parse_us_density
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,18 +31,19 @@ FONT = 'font-family="system-ui, -apple-system, sans-serif"'
 WINDOWS = {"2015–19": range(2015, 2020), "2025–26": (2025, 2026)}
 
 # The horizon grid: one row per survey, one column per variable, one line per
-# calendar-year horizon. The ECB asks at most two calendar years ahead, so its
-# rows stop at the year after next. Horizons are ordered, so they take one
-# blue ramp, light to dark (validated as an ordinal ramp on the cream surface).
+# calendar-year horizon. The ECB has no three-years-ahead question (its longer
+# horizon is four or five years out), so its cells stop at the year after next.
+# Horizons are ordered, so they take one blue ramp, light to dark: monotone in
+# lightness, one hue, and every step at least 3:1 against the cream surface.
 GRID_HORIZONS = {
     "next_year": "Next year",
     "year_after_next": "Two years out",
     "three_years_ahead": "Three years out",
 }
 GRID_BLUES = {
-    "next_year": "#86b6ef",
-    "year_after_next": "#2a78d6",
-    "three_years_ahead": "#104281",
+    "next_year": "#3987e5",
+    "year_after_next": "#1c5cab",
+    "three_years_ahead": "#0d366b",
 }
 GRID_ROWS = {"us": ("US", "US SPF"), "ecb": ("Euro area", "ECB SPF")}
 GRID_COLUMNS = {
@@ -50,13 +53,10 @@ GRID_COLUMNS = {
 GRID_YEARS = (2010, 2026)
 # One y scale for all four cells, so every line reads in the same points.
 GRID_Y_MAX = 2.25
-GRID_WIDTH, GRID_HEIGHT = 760, 534
+GRID_WIDTH, GRID_HEIGHT = 760, 549
 GRID_LEFT, GRID_TOP, GRID_GUTTER, GRID_RIGHT = 120, 116, 24, 16
 GRID_CELL_W = (GRID_WIDTH - GRID_LEFT - GRID_GUTTER - GRID_RIGHT) / 2
 GRID_CELL_H, GRID_ROW_GAP = 150, 26
-# The US survey printed wider bins from 2020Q2 through 2024Q1. On a
-# year-plus-quarter axis that is [2020.25, 2024.25): the 2021–24 Q1 rounds.
-US_WIDE_BINS = (2020.25, 2024.25)
 
 
 def _text(
@@ -300,26 +300,99 @@ def cross_survey_figure() -> str:
     return "\n".join([*parts, "</svg>"])
 
 
-def uncertainty_grid_data(measures: pd.DataFrame) -> pd.DataFrame:
-    """Pooled total SD of each Q1 round in the grid window, per cell and horizon."""
+def uncertainty_grid_data(
+    us: pd.DataFrame | None = None, ecb: pd.DataFrame | None = None
+) -> pd.DataFrame:
+    """Pooled SDs by horizon on a balanced panel, per grid cell and Q1 round.
+
+    The US and ECB panels change membership, and fewer forecasters answer the
+    longer horizons, so each horizon's published SD pools a different set of
+    people. Here each round keeps only the forecasters whose histogram passes
+    the published validity rule at every horizon the round asks for that
+    variable, and every horizon is pooled over that same set. ``us`` and
+    ``ecb`` are the tidy density frames; by default they are parsed from the
+    raw files.
+    """
+    if us is None:
+        us = pd.concat(
+            parse_us_density(variables["us"]) for variables in GRID_COLUMNS.values()
+        )
+    if ecb is None:
+        ecb = load_ecb_spf()
     start, end = GRID_YEARS
-    pieces = []
+    rows = []
     for column, variables in GRID_COLUMNS.items():
         for survey, variable in variables.items():
-            cell = measures[
-                (measures.survey == survey)
-                & (measures.variable == variable)
-                & (measures.quarter == 1)
-                & measures.year.between(start, end)
-                & measures.horizon_class.isin(GRID_HORIZONS)
+            density = us if survey == "us" else ecb
+            cell = density[
+                (density.variable == variable)
+                & (density.quarter == 1)
+                & density.year.between(start, end)
+                & density.horizon_class.isin(GRID_HORIZONS)
             ]
-            pieces.append(cell.assign(column=column))
-    frame = pd.concat(pieces, ignore_index=True)
+            for year, round_frame in cell.groupby("year"):
+                rows += _balanced_round(round_frame, survey, column, variable, year)
+    frame = pd.DataFrame(rows)
     keys = ["survey", "column", "horizon_class", "year"]
-    if frame.duplicated(keys).any():
-        raise ValueError("A grid cell has two rows for one round and horizon")
-    columns = [*keys, "variable", "target_year", "bin_scheme", "n", "total_sd"]
-    return frame[columns].sort_values(keys).reset_index(drop=True)
+    return frame.sort_values(keys).reset_index(drop=True)
+
+
+def _balanced_round(
+    round_frame: pd.DataFrame, survey: str, column: str, variable: str, year: int
+) -> list[dict]:
+    answers = {}
+    for horizon, block in round_frame.groupby("horizon_class"):
+        if block.duplicated(["respondent", "bin_index"]).any():
+            raise ValueError(f"{survey} {variable} {year} {horizon}: repeat respondent")
+        bins = (
+            block[["bin_index", "lower", "upper"]]
+            .drop_duplicates()
+            .sort_values("bin_index")
+        )
+        matrix = block.pivot(
+            index="respondent", columns="bin_index", values="probability"
+        ).reindex(columns=bins.bin_index)
+        # One row at a time through the published filter, so the panel keeps
+        # exactly the histograms the published measures keep.
+        valid = [
+            respondent
+            for respondent in matrix.index
+            if filter_probability_rows(matrix.loc[[respondent]].to_numpy())[1][
+                "rows_kept"
+            ]
+        ]
+        intervals = [
+            (
+                None if pd.isna(lower) else float(lower),
+                None if pd.isna(upper) else float(upper),
+            )
+            for lower, upper in zip(bins.lower, bins.upper, strict=True)
+        ]
+        answers[horizon] = (block, matrix.loc[valid], intervals)
+    panel = None
+    for _, matrix, _ in answers.values():
+        panel = matrix.index if panel is None else panel.intersection(matrix.index)
+    rows = []
+    for horizon, (block, matrix, intervals) in answers.items():
+        if block.bin_scheme.nunique() != 1 or block.target_year.nunique() != 1:
+            raise ValueError(f"{survey} {variable} {year} {horizon}: mixed targets")
+        midpoints = finite_intervals(intervals).mean(axis=1)
+        stats = round_stats(matrix.loc[panel].to_numpy(), midpoints, intervals)
+        rows.append(
+            {
+                "survey": survey,
+                "column": column,
+                "horizon_class": horizon,
+                "year": year,
+                "variable": variable,
+                "target_year": block.target_year.iloc[0],
+                "bin_scheme": block.bin_scheme.iloc[0],
+                "n": stats["n"],
+                "n_answered": len(matrix),
+                "total_sd": stats["total_sd"],
+            }
+        )
+    return rows
 
 
 def _grid_description(data: pd.DataFrame) -> str:
@@ -351,9 +424,20 @@ def grid_cells() -> dict[tuple[str, str], tuple[float, float, float, float]]:
     return cells
 
 
-def uncertainty_grid_figure(measures: pd.DataFrame) -> str:
+def bin_changes(cell: pd.DataFrame) -> list[float]:
+    """Midpoints between consecutive plotted rounds that used different bins."""
+    schemes = cell.groupby("year").bin_scheme.agg(frozenset)
+    return [
+        (before + after) / 2
+        for before, after in pairwise(schemes.index)
+        if schemes[before] != schemes[after]
+    ]
+
+
+def uncertainty_grid_figure(data: pd.DataFrame | None = None) -> str:
     """Small multiples: pooled total SD by horizon, US and euro area, 2010–26."""
-    data = uncertainty_grid_data(measures)
+    if data is None:
+        data = uncertainty_grid_data()
     if data.total_sd.max() >= GRID_Y_MAX:
         raise ValueError("A value exceeds GRID_Y_MAX; raise it so no line clips")
     width, height = GRID_WIDTH, GRID_HEIGHT
@@ -363,8 +447,9 @@ def uncertainty_grid_figure(measures: pd.DataFrame) -> str:
         (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" role="img" '
             'aria-label="Small multiples of forecast uncertainty by horizon: pooled total '
-            "standard deviation of first-quarter survey densities, 2010 to 2026, for real GDP "
-            'growth and the unemployment rate in the US and the euro area">'
+            "standard deviation among the forecasters who answered every horizon, "
+            "first-quarter rounds 2010 to 2026, for real GDP growth and the unemployment "
+            'rate in the US and the euro area">'
         ),
         f"<desc>{_grid_description(data)}</desc>",
         _text(
@@ -378,8 +463,8 @@ def uncertainty_grid_figure(measures: pd.DataFrame) -> str:
         _text(
             16,
             46,
-            "Pooled total SD of each survey&#8217;s densities, percentage points. "
-            f"First-quarter rounds, {start}–{end}.",
+            "Pooled total SD among the forecasters who answered every horizon, "
+            f"percentage points. First-quarter rounds, {start}–{end}.",
             size=12.5,
         ),
     ]
@@ -391,7 +476,12 @@ def uncertainty_grid_figure(measures: pd.DataFrame) -> str:
             f'stroke="{GRID_BLUES[horizon]}" stroke-width="2.5" stroke-linecap="round"/>'
         )
         parts.append(_text(key_x + 24, 72, text, size=12, fill=INK))
-        key_x += 24 + 6.6 * len(text) + 22
+        key_x += 24 + 6.0 * len(text) + 22  # about 6 px per character at 12 px
+    parts.append(
+        f'<line x1="{key_x + 9:.1f}" y1="60" x2="{key_x + 9:.1f}" y2="76" '
+        f'stroke="{MUTED}" stroke-dasharray="3 3"/>'
+    )
+    parts.append(_text(key_x + 24, 72, "Bins changed", size=12, fill=INK))
     for column in GRID_COLUMNS:
         ox, oy, _, _ = cells["us", column]
         parts.append(
@@ -424,18 +514,20 @@ def uncertainty_grid_figure(measures: pd.DataFrame) -> str:
                 (ox, oy, cell_w, cell_h),
                 tick_labels=col == 0,
                 year_labels=row == len(GRID_ROWS) - 1,
-                wide_bins=survey == "us",
-                wide_bins_label=survey == "us" and col == 0,
             )
     notes = [
         (
-            "The ECB survey asks at most two calendar years ahead. Within a round, "
-            "every horizon shares the same bins;"
+            "Within a round every horizon pools the same forecasters on the same bins, "
+            "so the gap between lines"
         ),
-        "shading marks the wider bins the US survey used from 2020Q2 through 2024Q1.",
+        (
+            "compares like with like; levels on either side of a dashed line use "
+            "different bins. The ECB has no three-year"
+        ),
+        "question and asks two years out in first-quarter rounds only from 2013.",
     ]
     for offset, line in enumerate(notes):
-        parts.append(_text(16, height - 50 + 15 * offset, line, size=11.5))
+        parts.append(_text(16, height - 65 + 15 * offset, line, size=11.5))
     parts.append(
         _text(
             16,
@@ -454,30 +546,19 @@ def _grid_cell(
     *,
     tick_labels: bool,
     year_labels: bool,
-    wide_bins: bool,
-    wide_bins_label: bool,
 ) -> list[str]:
     ox, oy, cell_w, cell_h = box
     start, end = GRID_YEARS
     x = lambda year: ox + (year - start) / (end - start) * cell_w
     y = lambda value: oy + cell_h * (1 - value / GRID_Y_MAX)
     parts = []
-    if wide_bins:
-        x0, x1 = (x(edge) for edge in US_WIDE_BINS)
+    for change in bin_changes(cell):
         parts.append(
-            f'<rect x="{x0:.1f}" y="{oy:.1f}" width="{x1 - x0:.1f}" height="{cell_h:.1f}" '
-            f'fill="{MUTED}" fill-opacity="0.09"/>'
+            f'<line x1="{x(change):.1f}" y1="{oy:.1f}" x2="{x(change):.1f}" '
+            f'y2="{oy + cell_h:.1f}" stroke="{MUTED}" stroke-dasharray="3 3"/>'
         )
-        if wide_bins_label:
-            parts.append(
-                _text(
-                    (x0 + x1) / 2,
-                    oy + cell_h - 8,
-                    "wider bins",
-                    size=10.5,
-                    extra='text-anchor="middle"',
-                )
-            )
+    if tick_labels:
+        parts.append(_text(ox - 6, y(0) + 4, "0", size=11, extra='text-anchor="end"'))
     for tick in (0.5, 1.0, 1.5, 2.0):
         parts.append(
             f'<line x1="{ox:.1f}" y1="{y(tick):.1f}" x2="{ox + cell_w:.1f}" '
@@ -533,12 +614,9 @@ def main() -> None:
     )
     out = parser.parse_args().out
     out.mkdir(parents=True, exist_ok=True)
-    measures = pd.read_csv(OUTPUTS / "measures.csv")
     (out / "expectations-growth-density.svg").write_text(growth_density_figure())
     (out / "expectations-us-ea-sd.svg").write_text(cross_survey_figure())
-    (out / "expectations-uncertainty-grid.svg").write_text(
-        uncertainty_grid_figure(measures)
-    )
+    (out / "expectations-uncertainty-grid.svg").write_text(uncertainty_grid_figure())
     print(f"wrote three figures to {out}")
 
 

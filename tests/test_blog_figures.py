@@ -4,7 +4,9 @@ import importlib.util
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
@@ -33,11 +35,21 @@ def test_step_path_skips_bins_outside_the_plotted_range():
 
 MEASURES = pd.read_csv(ROOT / "outputs" / "measures.csv")
 HORIZON_YEARS = {"next_year": 1, "year_after_next": 2, "three_years_ahead": 3}
+ROUND = ["survey", "column", "year"]
 
 
-def test_uncertainty_grid_takes_every_q1_round_and_no_ecb_three_year_line():
-    data = figures.uncertainty_grid_data(MEASURES)
-    spans = data.groupby(["survey", "column", "horizon_class"]).year.agg(
+@pytest.fixture(scope="module")
+def grid():
+    return figures.uncertainty_grid_data()
+
+
+@pytest.fixture(scope="module")
+def grid_svg(grid):
+    return figures.uncertainty_grid_figure(grid)
+
+
+def test_uncertainty_grid_takes_every_q1_round_and_no_ecb_three_year_line(grid):
+    spans = grid.groupby(["survey", "column", "horizon_class"]).year.agg(
         ["min", "max", "size"]
     )
     for column in figures.GRID_COLUMNS:
@@ -49,58 +61,96 @@ def test_uncertainty_grid_takes_every_q1_round_and_no_ecb_three_year_line():
         assert ("ecb", column, "three_years_ahead") not in spans.index
 
 
-def test_uncertainty_grid_plots_the_published_measures_at_their_horizons():
-    data = figures.uncertainty_grid_data(MEASURES)
+def test_uncertainty_grid_pools_one_panel_per_round_on_one_bin_scheme(grid):
+    per_round = grid.groupby(ROUND)
+    assert (per_round.n.nunique() == 1).all()  # the same forecasters at every horizon
+    assert (per_round.bin_scheme.nunique() == 1).all()  # and the same bins
+    assert (grid.n <= grid.n_answered).all()
+    assert (grid.n > 0).all()
+    horizons = grid.horizon_class.map(HORIZON_YEARS)
+    assert (grid.target_year - grid.year == horizons).all()
+
+
+def test_uncertainty_grid_matches_the_published_measures_where_everyone_is_in(grid):
     published = MEASURES[
         (MEASURES.quarter == 1)
         & MEASURES.horizon_class.isin(HORIZON_YEARS)
         & MEASURES.year.between(*figures.GRID_YEARS)
     ]
-    merged = data.merge(
+    merged = grid.merge(
         published,
         on=["survey", "variable", "year", "horizon_class", "target_year"],
         suffixes=("", "_published"),
         validate="one_to_one",
     )
-    assert len(merged) == len(data)
-    assert (merged.total_sd == merged.total_sd_published).all()
+    assert len(merged) == len(grid)
+    # The panel starts from exactly the histograms the published filter keeps.
+    assert (merged.n_answered == merged.n_published).all()
     assert (merged.bin_scheme == merged.bin_scheme_published).all()
-    # Each line's target year sits its horizon's number of years past the round.
-    horizons = merged.horizon_class.map(HORIZON_YEARS)
-    assert (merged.target_year - merged.year == horizons).all()
+    # Where every forecaster who answered a horizon is in the panel, the panel
+    # SD is the published SD: same filter, same bins, same pooling.
+    everyone = merged[merged.n == merged.n_answered]
+    assert len(everyone) > 60  # every US three-year row and every ECB two-year row
+    assert np.allclose(everyone.total_sd, everyone.total_sd_published, atol=1e-12)
 
 
-def _line_paths(svg):
-    colors = "|".join(figures.GRID_BLUES.values())
-    return re.findall(rf'<path d="M([^"]+)" fill="none" stroke="({colors})"', svg)
-
-
-def test_uncertainty_grid_draws_each_line_inside_its_own_cell():
-    svg = figures.uncertainty_grid_figure(MEASURES)
-    boxes = list(figures.grid_cells().values())
-    paths = _line_paths(svg)
-    assert len(paths) == 3 + 3 + 2 + 2  # US cells three lines, ECB cells two
-    for path, _ in paths:
+def _plotted_lines(svg):
+    colors = {color: horizon for horizon, color in figures.GRID_BLUES.items()}
+    pattern = rf'<path d="M([^"]+)" fill="none" stroke="({"|".join(colors)})"'
+    for path, color in re.findall(pattern, svg):
         points = [tuple(map(float, pair.split(","))) for pair in path.split(" L")]
-        xs = [x for x, _ in points]
-        assert xs == sorted(xs)  # one point per round, left to right
-        inside = [
-            box
-            for box in boxes
-            if all(
-                box[0] <= x <= box[0] + box[2] and box[1] <= y <= box[1] + box[3]
-                for x, y in points
-            )
+        yield colors[color], points
+
+
+def test_uncertainty_grid_draws_every_value_in_its_own_cell_and_color(grid, grid_svg):
+    start, end = figures.GRID_YEARS
+    boxes = figures.grid_cells()
+    drawn = {}
+    for horizon, points in _plotted_lines(grid_svg):
+        cells = [
+            key
+            for key, (ox, oy, w, h) in boxes.items()
+            if all(ox <= x <= ox + w and oy <= y <= oy + h for x, y in points)
         ]
-        assert len(inside) == 1
-    # Every cell's lines share one y scale, so one ceiling must clear every value.
-    assert figures.uncertainty_grid_data(MEASURES).total_sd.max() < figures.GRID_Y_MAX
+        assert len(cells) == 1
+        ox, oy, w, h = boxes[cells[0]]
+        # Invert the scales: back from pixels to rounds and points of SD.
+        drawn[(*cells[0], horizon)] = [
+            (
+                start + (x - ox) / w * (end - start),
+                (1 - (y - oy) / h) * figures.GRID_Y_MAX,
+            )
+            for x, y in points
+        ]
+    expected = grid.groupby(["survey", "column", "horizon_class"])
+    assert set(drawn) == set(expected.groups)
+    for key, rows in expected:
+        years, values = zip(*drawn[key], strict=True)
+        # Coordinates print to 0.1 px: about 0.005 years and 0.0015 points.
+        assert np.allclose(years, rows.year, atol=0.01)
+        assert np.allclose(values, rows.total_sd, atol=0.002)
+    assert grid.total_sd.max() < figures.GRID_Y_MAX
 
 
-def test_uncertainty_grid_description_carries_the_latest_values():
-    svg = figures.uncertainty_grid_figure(MEASURES)
-    description = re.search(r"<desc>(.*)</desc>", svg).group(1)
-    assert "US unemployment rate in 2026Q1: next year 0.61" in description
-    assert "three years out 0.67" in description
-    assert "Euro area real gdp growth in 2026Q1" in description
+def test_uncertainty_grid_marks_each_change_of_bins_between_plotted_rounds(grid):
+    changes = {
+        key: figures.bin_changes(cell)
+        for key, cell in grid.groupby(["survey", "column"])
+    }
+    assert changes == {
+        ("us", "Real GDP growth"): [2020.5, 2024.5],
+        ("us", "Unemployment rate"): [2013.5, 2020.5, 2024.5],
+        ("ecb", "Real GDP growth"): [2020.5, 2022.5],
+        ("ecb", "Unemployment rate"): [2017.5, 2022.5],
+    }
+
+
+def test_uncertainty_grid_description_carries_the_latest_values(grid, grid_svg):
+    description = re.search(r"<desc>(.*)</desc>", grid_svg).group(1)
+    latest = grid[grid.year == figures.GRID_YEARS[1]].set_index(
+        ["survey", "column", "horizon_class"]
+    )
+    for (survey, column, horizon), row in latest.iterrows():
+        label = figures.GRID_HORIZONS[horizon].lower()
+        assert f"{label} {row.total_sd:.2f}" in description
     assert description.count("three years out") == 2  # US cells only
