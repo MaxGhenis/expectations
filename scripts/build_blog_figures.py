@@ -25,6 +25,7 @@ OUTPUTS = ROOT / "outputs"
 # The blog's palette: ink text on cream. Red and blue follow the tracker's flag
 # coding (US, euro area); the two amber steps order an older and a newer window.
 INK, MUTED, GRID = "#0f172a", "#64748b", "#e7e2d6"
+CREAM = "#fefdf8"  # the blog page the figures sit on
 AMBER_OLD, AMBER_NEW = "#d97706", "#78350f"
 RED, BLUE = "#e34948", "#2a78d6"
 FONT = 'font-family="system-ui, -apple-system, sans-serif"'
@@ -119,14 +120,15 @@ def step_path(frame: pd.DataFrame, x, y, x0: float, x1: float) -> str:
     return "M" + " L".join(f"{a:.1f},{b:.1f}" for a, b in points)
 
 
-def growth_density_figure() -> str:
+def growth_density_figure(density: pd.DataFrame | None = None) -> str:
     comparison = pd.read_csv(OUTPUTS / "growth_comparison.csv")
     comparison = comparison[
         (comparison.series == "US next year")
         & (comparison.rounds == "Q1")
         & (comparison.threshold == 4.0)
     ].set_index("window")
-    density = parse_us_density("PRGDP")
+    if density is None:
+        density = parse_us_density("PRGDP")
     density = density[(density.quarter == 1) & (density.horizon_class == "next_year")]
     curves = {label: pooled_density(density, years) for label, years in WINDOWS.items()}
 
@@ -308,8 +310,8 @@ def uncertainty_grid_data(
     The US and ECB panels change membership, and fewer forecasters answer the
     longer horizons, so each horizon's published SD pools a different set of
     people. Here each round keeps only the forecasters whose histogram passes
-    the published validity rule at every horizon the round asks for that
-    variable, and every horizon is pooled over that same set. ``us`` and
+    the published validity rule at every plotted horizon the round asks
+    for that variable, and every horizon is pooled over that same set. ``us`` and
     ``ecb`` are the tidy density frames; by default they are parsed from the
     raw files.
     """
@@ -372,6 +374,10 @@ def _balanced_round(
     panel = None
     for _, matrix, _ in answers.values():
         panel = matrix.index if panel is None else panel.intersection(matrix.index)
+    if panel.empty:
+        raise ValueError(
+            f"{survey} {variable} {year}: no forecaster answered every horizon"
+        )
     rows = []
     for horizon, (block, matrix, intervals) in answers.items():
         if block.bin_scheme.nunique() != 1 or block.target_year.nunique() != 1:
@@ -406,7 +412,9 @@ def _grid_description(data: pd.DataFrame) -> str:
                 for horizon, label in GRID_HORIZONS.items()
                 if (survey, column, horizon) in latest.index
             )
-            sentences.append(f"{name} {column.lower()} in {end}Q1: {values}.")
+            sentences.append(
+                f"{name} {column[0].lower() + column[1:]} in {end}Q1: {values}."
+            )
     return " ".join(sentences)
 
 
@@ -447,7 +455,7 @@ def uncertainty_grid_figure(data: pd.DataFrame | None = None) -> str:
         (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" role="img" '
             'aria-label="Small multiples of forecast uncertainty by horizon: pooled total '
-            "standard deviation among the forecasters who answered every horizon, "
+            "standard deviation among the forecasters who answered every horizon shown, "
             "first-quarter rounds 2010 to 2026, for real GDP growth and the unemployment "
             'rate in the US and the euro area">'
         ),
@@ -463,8 +471,8 @@ def uncertainty_grid_figure(data: pd.DataFrame | None = None) -> str:
         _text(
             16,
             46,
-            "Pooled total SD among the forecasters who answered every horizon, "
-            f"percentage points. First-quarter rounds, {start}–{end}.",
+            "Pooled total SD (percentage points) among forecasters who answered "
+            f"every horizon shown. Q1 rounds, {start}–{end}.",
             size=12.5,
         ),
     ]
@@ -517,14 +525,17 @@ def uncertainty_grid_figure(data: pd.DataFrame | None = None) -> str:
             )
     notes = [
         (
-            "Within a round every horizon pools the same forecasters on the same bins, "
-            "so the gap between lines"
+            "Within a round every horizon shown pools the same forecasters on the "
+            "same bins, so the gap between lines compares"
         ),
         (
-            "compares like with like; levels on either side of a dashed line use "
-            "different bins. The ECB has no three-year"
+            "like with like; levels on either side of a dashed line use different "
+            "bins. The ECB has no three-year question, and its"
         ),
-        "question and asks two years out in first-quarter rounds only from 2013.",
+        (
+            "Q1 rounds ask two years out only from 2013; from then its next-year "
+            "line holds only forecasters who answered both."
+        ),
     ]
     for offset, line in enumerate(notes):
         parts.append(_text(16, height - 65 + 15 * offset, line, size=11.5))
@@ -614,9 +625,17 @@ def main() -> None:
     )
     out = parser.parse_args().out
     out.mkdir(parents=True, exist_ok=True)
-    (out / "expectations-growth-density.svg").write_text(growth_density_figure())
+    # Parse each US workbook once; both the density figure and the grid use PRGDP.
+    us = pd.concat(
+        parse_us_density(variables["us"]) for variables in GRID_COLUMNS.values()
+    )
+    (out / "expectations-growth-density.svg").write_text(
+        growth_density_figure(us[us.variable == "PRGDP"])
+    )
     (out / "expectations-us-ea-sd.svg").write_text(cross_survey_figure())
-    (out / "expectations-uncertainty-grid.svg").write_text(uncertainty_grid_figure())
+    (out / "expectations-uncertainty-grid.svg").write_text(
+        uncertainty_grid_figure(uncertainty_grid_data(us=us))
+    )
     print(f"wrote three figures to {out}")
 
 

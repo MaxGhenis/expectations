@@ -39,8 +39,17 @@ ROUND = ["survey", "column", "year"]
 
 
 @pytest.fixture(scope="module")
-def grid():
-    return figures.uncertainty_grid_data()
+def densities():
+    us = pd.concat(
+        figures.parse_us_density(variables["us"])
+        for variables in figures.GRID_COLUMNS.values()
+    )
+    return us, figures.load_ecb_spf()
+
+
+@pytest.fixture(scope="module")
+def grid(densities):
+    return figures.uncertainty_grid_data(*densities)
 
 
 @pytest.fixture(scope="module")
@@ -90,8 +99,132 @@ def test_uncertainty_grid_matches_the_published_measures_where_everyone_is_in(gr
     # Where every forecaster who answered a horizon is in the panel, the panel
     # SD is the published SD: same filter, same bins, same pooling.
     everyone = merged[merged.n == merged.n_answered]
-    assert len(everyone) > 60  # every US three-year row and every ECB two-year row
+    assert len(everyone) > 60  # includes every ECB two-year row
     assert np.allclose(everyone.total_sd, everyone.total_sd_published, atol=1e-12)
+
+
+def _independent_panel(density, variable, year):
+    """A second, vectorized build of one round's panel: valid at every horizon."""
+    frame = density[
+        (density.variable == variable)
+        & (density.quarter == 1)
+        & (density.year == year)
+        & density.horizon_class.isin(HORIZON_YEARS)
+    ]
+    blocks = {}
+    for horizon, block in frame.groupby("horizon_class"):
+        bins = block[["bin_index", "lower", "upper"]].drop_duplicates()
+        bins = bins.sort_values("bin_index")
+        values = block.pivot_table(
+            index="respondent",
+            columns="bin_index",
+            values="probability",
+            aggfunc="first",
+            dropna=False,
+        ).reindex(columns=bins.bin_index)
+        filled = values.fillna(0.0)
+        valid = (
+            values.notna().any(axis=1)
+            & ((filled >= 0) & (filled <= 100)).all(axis=1)
+            & ((filled.sum(axis=1) - 100).abs() < 2)
+        )
+        intervals = [
+            (None if pd.isna(lo) else float(lo), None if pd.isna(hi) else float(hi))
+            for lo, hi in zip(bins.lower, bins.upper, strict=True)
+        ]
+        blocks[horizon] = (values[valid], intervals)
+    members = set.intersection(*(set(values.index) for values, _ in blocks.values()))
+    return {
+        horizon: figures.round_stats(
+            values.loc[sorted(members)].to_numpy(),
+            figures.finite_intervals(intervals).mean(axis=1),
+            intervals,
+        )
+        for horizon, (values, intervals) in blocks.items()
+    }
+
+
+def test_uncertainty_grid_panel_matches_an_independent_rebuild(grid, densities):
+    us, ecb = densities
+    for (survey, variable, year), rows in grid.groupby(["survey", "variable", "year"]):
+        rebuilt = _independent_panel(us if survey == "us" else ecb, variable, year)
+        assert set(rebuilt) == set(rows.horizon_class)
+        for row in rows.itertuples():
+            assert row.n == rebuilt[row.horizon_class]["n"]
+            assert np.isclose(
+                row.total_sd, rebuilt[row.horizon_class]["total_sd"], atol=1e-12
+            )
+
+
+def _contrast(foreground, background):
+    def luminance(color):
+        channels = [int(color[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        linear = [
+            c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+            for c in channels
+        ]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    light, dark = sorted((luminance(foreground), luminance(background)), reverse=True)
+    return (light + 0.05) / (dark + 0.05)
+
+
+def test_uncertainty_grid_colors_clear_three_to_one_on_the_blog_page():
+    for color in figures.GRID_BLUES.values():
+        assert _contrast(color, figures.CREAM) >= 3
+
+
+def test_uncertainty_grid_legend_pairs_each_color_with_its_horizon(grid_svg):
+    keys = re.findall(
+        r'<line [^>]*y1="68"[^>]*stroke="(#[0-9a-f]{6})"[^>]*/>\n<text [^>]*>([^<]+)</text>',
+        grid_svg,
+    )
+    labels = {
+        figures.GRID_BLUES[h]: label for h, label in figures.GRID_HORIZONS.items()
+    }
+    assert len(keys) == len(labels)
+    for color, text in keys:
+        assert text.startswith(labels[color])
+
+
+def test_uncertainty_grid_year_labels_and_bin_markers_sit_at_their_years(
+    grid, grid_svg
+):
+    start, end = figures.GRID_YEARS
+    boxes = figures.grid_cells()
+
+    def cell_at(x, y):
+        found = [
+            key
+            for key, (ox, oy, w, h) in boxes.items()
+            if ox - 0.1 <= x <= ox + w + 0.1 and oy - 0.1 <= y <= oy + h + 20
+        ]
+        assert len(found) == 1
+        return found[0]
+
+    def year_at(key, x):
+        ox, _, w, _ = boxes[key]
+        return start + (x - ox) / w * (end - start)
+
+    labels = re.findall(
+        r'<text x="([\d.]+)" y="([\d.]+)"[^>]*>(20\d\d)</text>', grid_svg
+    )
+    assert len(labels) == 2 * len(range(start, end + 1, 4))
+    for x, y, year in labels:
+        key = cell_at(float(x), float(y))
+        assert abs(year_at(key, float(x)) - int(year)) < 0.01
+    markers = {}
+    for x, y in re.findall(
+        r'<line x1="([\d.]+)" y1="([\d.]+)" x2="[\d.]+" y2="[\d.]+" '
+        r'stroke="[^"]+" stroke-dasharray="3 3"/>',
+        grid_svg,
+    ):
+        if float(y) < figures.GRID_TOP:  # the legend's key
+            continue
+        key = cell_at(float(x), float(y))
+        markers.setdefault(key, []).append(round(year_at(key, float(x)), 2))
+    for key, cell in grid.groupby(["survey", "column"]):
+        assert sorted(markers.get(key, [])) == figures.bin_changes(cell)
 
 
 def _plotted_lines(svg):
@@ -106,6 +239,7 @@ def test_uncertainty_grid_draws_every_value_in_its_own_cell_and_color(grid, grid
     start, end = figures.GRID_YEARS
     boxes = figures.grid_cells()
     drawn = {}
+    count = {}
     for horizon, points in _plotted_lines(grid_svg):
         cells = [
             key
@@ -114,6 +248,7 @@ def test_uncertainty_grid_draws_every_value_in_its_own_cell_and_color(grid, grid
         ]
         assert len(cells) == 1
         ox, oy, w, h = boxes[cells[0]]
+        count[(*cells[0], horizon)] = count.get((*cells[0], horizon), 0) + 1
         # Invert the scales: back from pixels to rounds and points of SD.
         drawn[(*cells[0], horizon)] = [
             (
@@ -124,6 +259,7 @@ def test_uncertainty_grid_draws_every_value_in_its_own_cell_and_color(grid, grid
         ]
     expected = grid.groupby(["survey", "column", "horizon_class"])
     assert set(drawn) == set(expected.groups)
+    assert set(count.values()) == {1}  # each line drawn exactly once
     for key, rows in expected:
         years, values = zip(*drawn[key], strict=True)
         # Coordinates print to 0.1 px: about 0.005 years and 0.0015 points.
